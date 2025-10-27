@@ -14,7 +14,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-3xl font-bold font-headline tracking-tight">
-          Welcome to your HTBase Portal
+          Welcome to your HTBase
         </h1>
         <p className="text-muted-foreground">
           Your central hub for managing your AI-powered training.
@@ -48,10 +48,10 @@ export default function DashboardPage() {
               <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <Palette className="size-6" />
               </div>
-              <CardTitle className="font-headline">Portal Customization</CardTitle>
+              <CardTitle className="font-headline">Brand Customization</CardTitle>
             </div>
             <CardDescription className="pt-2">
-              Tailor the look and feel of your portal. Customize logos, colors,
+              Tailor the look and feel of your experience. Customize logos, colors,
               and features to match your brand's unique identity.
             </CardDescription>
           </CardHeader>

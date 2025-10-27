@@ -9,7 +9,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "HTBase Portal",
+  title: "HTBase",
   description: "White-label AI Trainer by Huxleigh",
 };
 

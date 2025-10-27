@@ -34,7 +34,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm border-2 border-primary/20 shadow-lg shadow-primary/10">
         <CardHeader className="items-center text-center">
           <Logo className="h-12 w-12 text-primary" />
-          <CardTitle className="font-headline text-2xl">HTBase Portal</CardTitle>
+          <CardTitle className="font-headline text-2xl">HTBase</CardTitle>
           <CardDescription>
             Access your white-label AI trainer.
           </CardDescription>
