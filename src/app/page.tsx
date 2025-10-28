@@ -26,6 +26,7 @@ import {
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { collectionGroup, query, where, limit } from 'firebase/firestore';
 import type { Client } from '@/types/client';
+import { FirebaseError } from 'firebase/app';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
 
@@ -74,7 +76,24 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    initiateEmailSignIn(auth, email, password);
+    setError(null);
+    initiateEmailSignIn(auth, email, password, (error) => {
+      setIsLoading(false);
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            setError('Invalid email or password. Please try again.');
+            break;
+          default:
+            setError('An unexpected error occurred. Please try again later.');
+            break;
+        }
+      } else {
+        setError('An unexpected error occurred.');
+      }
+    });
   };
 
   const handleClientSelect = (displayId: string) => {
@@ -126,6 +145,7 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                 />
               </div>
+               {error && <p className="text-sm text-destructive">{error}</p>}
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full" disabled={isLoading}>
