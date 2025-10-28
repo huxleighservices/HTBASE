@@ -34,7 +34,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import type { Session } from '@/types/session';
 import { Textarea } from '@/components/ui/textarea';
 
 const sessionFormSchema = z.object({
@@ -60,7 +59,7 @@ export default function ClientLaunchPage({
   const firestore = useFirestore();
 
   const clientQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !params.clientId) return null;
     return query(
       collectionGroup(firestore, 'clients'),
       where('displayId', '==', params.clientId)
@@ -70,9 +69,6 @@ export default function ClientLaunchPage({
   const { data: clients, isLoading } = useCollection<Client>(clientQuery);
   const client = clients?.[0];
 
-  // We need to get the full path to the client document to add a session
-  // This is a bit of a workaround because we don't know the user ID.
-  // A better data model would have a top-level `sessions` collection.
   const getClientDocPath = (client: Client | undefined) => {
     if (!client || !client.path) return null;
     return client.path;

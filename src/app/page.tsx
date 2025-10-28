@@ -84,6 +84,7 @@ export default function LoginPage() {
           case 'auth/user-not-found':
           case 'auth/wrong-password':
           case 'auth/invalid-credential':
+          case 'auth/invalid-email':
             setError('Invalid email or password. Please try again.');
             break;
           default:
