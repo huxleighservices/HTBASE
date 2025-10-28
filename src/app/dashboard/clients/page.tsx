@@ -18,7 +18,6 @@ import {
   Edit,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState } from 'react';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
 import type { Client } from '@/types/client';
 import { ReviewClientDialog } from '@/components/clients/review-client-dialog';
@@ -42,7 +41,7 @@ export default function ClientsPage() {
     return collection(firestore, 'users', user.uid, 'clients');
   }, [firestore, user]);
 
-  const { data: clients = [], isLoading } = useCollection<Client>(
+  const { data: clients, isLoading } = useCollection<Client>(
     clientsCollectionRef
   );
 
@@ -96,9 +95,22 @@ export default function ClientsPage() {
     deleteDocumentNonBlocking(clientDocRef);
   };
 
-  const pendingClients = clients.filter(c => c.status === 'pending');
-  const activeClients = clients.filter(c => c.status === 'active');
-  const archivedClients = clients.filter(c => c.status === 'archived');
+  const renderClientList = (clientList: Client[], listName: string) => {
+    if (clientList.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>No {listName} clients found.</p>
+        </div>
+      );
+    }
+    return (
+      <ul className="space-y-4">
+        {clientList.map(client => (
+          <ClientListItem key={client.id} client={client} />
+        ))}
+      </ul>
+    );
+  };
 
   const ClientListItem = ({ client }: { client: Client }) => (
     <li className="flex items-center justify-between p-4 rounded-lg border bg-card">
@@ -199,30 +211,6 @@ export default function ClientsPage() {
     </li>
   );
 
-  const renderClientList = (clientList: Client[], listName: string) => {
-    if (isLoading) {
-      return (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>Loading clients...</p>
-        </div>
-      );
-    }
-    if (clientList.length === 0) {
-      return (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>No {listName} clients found.</p>
-        </div>
-      );
-    }
-    return (
-      <ul className="space-y-4">
-        {clientList.map(client => (
-          <ClientListItem key={client.id} client={client} />
-        ))}
-      </ul>
-    );
-  };
-
   return (
     <div className="flex flex-col gap-8">
       <div className="flex justify-between items-center">
@@ -256,7 +244,10 @@ export default function ClientsPage() {
                 Clients who have been invited but have not yet accepted.
               </CardDescription>
             </CardHeader>
-            <CardContent>{renderClientList(pendingClients, 'pending')}</CardContent>
+            <CardContent>
+                {isLoading && <p>Loading clients...</p>}
+                {clients && renderClientList(clients.filter(c => c.status === 'pending'), 'pending')}
+            </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="active">
@@ -267,7 +258,10 @@ export default function ClientsPage() {
                 A list of all your current clients.
               </CardDescription>
             </CardHeader>
-            <CardContent>{renderClientList(activeClients, 'active')}</CardContent>
+            <CardContent>
+                {isLoading && <p>Loading clients...</p>}
+                {clients && renderClientList(clients.filter(c => c.status === 'active'), 'active')}
+            </CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="archived">
@@ -278,7 +272,10 @@ export default function ClientsPage() {
                 Clients who are no longer active.
               </CardDescription>
             </CardHeader>
-            <CardContent>{renderClientList(archivedClients, 'archived')}</CardContent>
+            <CardContent>
+                {isLoading && <p>Loading clients...</p>}
+                {clients && renderClientList(clients.filter(c => c.status === 'archived'), 'archived')}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
