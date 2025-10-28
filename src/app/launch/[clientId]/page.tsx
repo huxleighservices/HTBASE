@@ -32,6 +32,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { QualificationSimulatorDialog } from '@/components/trainer/qualification-simulator-dialog';
+import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulator-dialog';
 
 const sessionFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -43,19 +45,24 @@ const sessionFormSchema = z.object({
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
 export default function ClientLaunchPage({
-  params: { clientId },
+  params,
 }: {
   params: { clientId: string };
 }) {
+  const { clientId } = params;
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
   const [sessionCreated, setSessionCreated] = useState(false);
-  
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const firestore = useFirestore();
+
+  const [isQualificationOpen, setIsQualificationOpen] = useState(false);
+  const [isColdCallOpen, setIsColdCallOpen] = useState(false);
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -112,7 +119,7 @@ export default function ClientLaunchPage({
     }
   };
 
-  const handleSessionSubmit: SubmitHandler<SessionFormValues> = data => {
+  const handleSessionSubmit: SubmitHandler<SessionFormValues> = async (data) => {
     const clientDocPath = getClientDocPath(client);
     if (!clientDocPath || !firestore) return;
     const sessionCollectionRef = collection(
@@ -120,7 +127,10 @@ export default function ClientLaunchPage({
       clientDocPath,
       'sessions'
     );
-    addDocumentNonBlocking(sessionCollectionRef, data);
+    const newDocRef = await addDocumentNonBlocking(sessionCollectionRef, data);
+    if (newDocRef) {
+      setActiveSessionId(newDocRef.id);
+    }
     setSessionCreated(true);
   };
 
@@ -267,61 +277,65 @@ export default function ClientLaunchPage({
   }
 
   return (
-    <main className="min-h-screen bg-dot p-4 md:p-8">
-      <div className="mx-auto max-w-4xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">
-              AI Trainer for {client?.firmName}
-            </CardTitle>
-            <CardDescription>
-              Select a training module to begin.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <MessageSquare className="size-6" />
+    <>
+      <main className="min-h-screen bg-dot p-4 md:p-8">
+        <div className="mx-auto max-w-4xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline text-2xl">
+                AI Trainer for {client?.firmName}
+              </CardTitle>
+              <CardDescription>
+                Select a training module to begin.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <MessageSquare className="size-6" />
+                      </div>
+                      <CardTitle className="font-headline text-lg">
+                        Messenger Scenario Runner
+                      </CardTitle>
                     </div>
-                    <CardTitle className="font-headline text-lg">
-                      Messenger Scenario Runner
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="pt-2">
-                    Practice real-world conversations with an AI-powered chat
-                    simulator.
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter>
-                  <Button>Start Scenario</Button>
-                </CardFooter>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Phone className="size-6" />
+                    <CardDescription className="pt-2">
+                      Practice real-world conversations with an AI-powered chat
+                      simulator.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button onClick={() => setIsQualificationOpen(true)}>Start Scenario</Button>
+                  </CardFooter>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Phone className="size-6" />
+                      </div>
+                      <CardTitle className="font-headline text-lg">
+                        Cold Call Simulator
+                      </CardTitle>
                     </div>
-                    <CardTitle className="font-headline text-lg">
-                      Cold Call Simulator
-                    </CardTitle>
-                  </div>
-                  <CardDescription className="pt-2">
-                    Hone your sales skills by practicing cold calls with an
-                    AI prospect.
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter>
-                  <Button>Start Simulation</Button>
-                </CardFooter>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+                    <CardDescription className="pt-2">
+                      Hone your sales skills by practicing cold calls with an
+                      AI prospect.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button onClick={() => setIsColdCallOpen(true)}>Start Simulation</Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+      <QualificationSimulatorDialog open={isQualificationOpen} onOpenChange={setIsQualificationOpen} activeSessionId={activeSessionId} />
+      <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeSessionId} />
+    </>
   );
 }
