@@ -21,10 +21,17 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useUser } from '@/firebase';
+import {
+  useUser,
+  useFirestore,
+  useDoc,
+  setDocumentNonBlocking,
+  useMemoFirebase,
+} from '@/firebase';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -36,8 +43,16 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function SettingsPage() {
   const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -49,27 +64,33 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (user) {
-      // Dummy data for now, will be replaced with actual user data from firestore
+    if (userProfile) {
       form.reset({
-        firstName: 'HTBase',
-        lastName: 'User',
-        email: user.email || '',
+        firstName: userProfile.firstName || '',
+        lastName: userProfile.lastName || '',
+        email: userProfile.email || '',
       });
     }
-  }, [user, form]);
-  
+  }, [userProfile, form]);
+
   const onSubmit: SubmitHandler<FormValues> = data => {
-    setIsLoading(true);
-    console.log(data);
-    // Here you would typically update the user's profile in your database
+    if (!userDocRef) return;
+    setIsSaving(true);
+    const profileData = {
+      id: user!.uid,
+      email: user!.email,
+      ...data,
+    };
+    setDocumentNonBlocking(userDocRef, profileData, { merge: true });
+    // The non-blocking function doesn't have a callback for success,
+    // so we optimistically show the toast.
     setTimeout(() => {
-        setIsLoading(false);
-        toast({
-            title: "Profile Updated",
-            description: "Your settings have been saved successfully.",
-        });
-    }, 1000);
+      setIsSaving(false);
+      toast({
+        title: 'Profile Updated',
+        description: 'Your settings have been saved successfully.',
+      });
+    }, 500); // Simulate a short delay
   };
 
   return (
@@ -101,7 +122,7 @@ export default function SettingsPage() {
                     <FormItem>
                       <FormLabel>First Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={isSaving || isProfileLoading} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -114,7 +135,7 @@ export default function SettingsPage() {
                     <FormItem>
                       <FormLabel>Last Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} disabled={isSaving || isProfileLoading} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -135,9 +156,15 @@ export default function SettingsPage() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isLoading ? "Saving..." : "Save Changes"}
+                <Button type="submit" disabled={isSaving || isProfileLoading}>
+                  {(isSaving || isProfileLoading) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isSaving
+                    ? 'Saving...'
+                    : isProfileLoading
+                    ? 'Loading...'
+                    : 'Save Changes'}
                 </Button>
               </div>
             </form>

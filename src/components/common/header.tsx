@@ -18,16 +18,25 @@ import { LogOut, User, Settings } from "lucide-react";
 import { Logo } from "@/components/icons/logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { doc } from 'firebase/firestore';
 
 export function Header() {
   const userAvatar = PlaceHolderImages.find((p) => p.id === "user-avatar");
   const pathname = usePathname();
   const auth = useAuth();
   const { user } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc(userDocRef);
 
   const navLinks = [
     { href: "/dashboard", label: "Home" },
@@ -39,6 +48,12 @@ export function Header() {
     signOut(auth).then(() => {
       router.push("/");
     });
+  };
+
+  const getInitials = (firstName?: string, lastName?: string) => {
+    const first = firstName?.[0] || '';
+    const last = lastName?.[0] || '';
+    return `${first}${last}`.toUpperCase() || 'U';
   };
 
   return (
@@ -77,14 +92,16 @@ export function Header() {
                     alt={userAvatar.description}
                   />
                 )}
-                <AvatarFallback>HT</AvatarFallback>
+                <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">HTBase User</p>
+                <p className="text-sm font-medium leading-none">
+                  {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'HTBase User'}
+                </p>
                 <p className="text-xs leading-none text-muted-foreground">
                   {user?.email}
                 </p>
