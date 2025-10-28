@@ -1,130 +1,99 @@
-/**
- * @fileoverview Firestore Security Rules for HTBase.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model, meaning users can only
- * access data explicitly associated with their user ID. This is achieved through
- * path-based authorization.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only to the owning user.
- * - /users/{userId}/clients/{clientId}: Stores client data, accessible only to the owning user.
- * - /users/{userId}/clients/{clientId}/sessions/{sessionId}: Stores session data for clients, accessible only to the owning user.
- * - /users/{userId}/landingPages/{landingPageId}: Stores landing pages, accessible only to the owning user.
- *
- * Key Security Decisions:
- * - No public data access is allowed.
- * - User listing is implicitly denied (no top-level collection access).
- * - Data validation is relaxed to allow for rapid prototyping.  Only critical
- *   fields required for authorization are validated.
- *
- * Denormalization for Authorization:
- *  - The `userId` is encoded in the path for `clients`, `sessions` and `landingPages`,
- *    avoiding the need to duplicate this information in the document itself.
- *
- * Structural Segregation:
- *  - Private user data is stored under the `/users/{userId}` path, ensuring
- *    that only the owning user can access it.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows a user to read and write their own user profile.
+     * @description Defines the `isSignedIn()` helper function to check if a user is authenticated.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Authentication is required for all operations.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Defines the `isOwner(userId)` helper function to check if the authenticated user ID matches the provided `userId`.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces path-based ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Defines the `isExistingOwner(userId)` helper function to check if the authenticated user ID matches the provided `userId` and if the document exists.
+     * @path N/A
+     * @allow N/A
+     * @deny N/A
+     * @principle Enforces document existence and ownership for updates and deletes.
+     */
+    function isExistingOwner(userId) {
+      return isSignedIn() && isOwner(userId) && resource.data != null;
+    }
+
+    /**
+     * @description Rule set for the /users/{userId} collection.
      * @path /users/{userId}
-     * @allow (create) - Authenticated user with ID matching the document ID.
-     * @allow (get, list, update, delete) - Authenticated user with ID matching the document ID.
-     * @deny (create) - Authenticated user with ID not matching the document ID.
-     * @deny (get, list, update, delete) - Unauthenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
+     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
+     * @principle Enforces user-ownership: only the authenticated user can create their own profile.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
-      allow list: if false; // Listing all users is not permitted.
-      allow create: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows a user to manage their clients.
+     * @description Rule set for the /users/{userId}/clients/{clientId} collection.
      * @path /users/{userId}/clients/{clientId}
-     * @allow (create) - Authenticated user with ID matching the userId path.
-     * @allow (get, list, update, delete) - Authenticated user with ID matching the userId path.
-     * @deny (create, get, list, update, delete) - Authenticated user with ID not matching the userId path.
-     * @deny (create, get, list, update, delete) - Unauthenticated user.
-     * @principle Enforces path-based ownership.
+     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
+     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
+     * @principle Enforces user-ownership: only the authenticated user can create clients under their profile.
      */
     match /users/{userId}/clients/{clientId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
+
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows a user to manage training sessions for their clients.
+     * @description Rule set for the /users/{userId}/clients/{clientId}/sessions/{sessionId} collection.
      * @path /users/{userId}/clients/{clientId}/sessions/{sessionId}
-     * @allow (create) - Authenticated user with ID matching the userId path.
-     * @allow (get, list, update, delete) - Authenticated user with ID matching the userId path.
-     * @deny (create, get, list, update, delete) - Authenticated user with ID not matching the userId path.
-     * @deny (create, get, list, update, delete) - Unauthenticated user.
-     * @principle Enforces path-based ownership.
+     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
+     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
+     * @principle Enforces user-ownership: only the authenticated user can create sessions under their client profiles.
      */
     match /users/{userId}/clients/{clientId}/sessions/{sessionId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
+
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows a user to manage their landing pages.
+     * @description Rule set for the /users/{userId}/landingPages/{landingPageId} collection.
      * @path /users/{userId}/landingPages/{landingPageId}
-     * @allow (create) - Authenticated user with ID matching the userId path.
-     * @allow (get, list, update, delete) - Authenticated user with ID matching the userId path.
-     * @deny (create, get, list, update, delete) - Authenticated user with ID not matching the userId path.
-     * @deny (create, get, list, update, delete) - Unauthenticated user.
-     * @principle Enforces path-based ownership.
+     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
+     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
+     * @principle Enforces user-ownership: only the authenticated user can create landing pages under their profile.
      */
     match /users/{userId}/landingPages/{landingPageId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
+
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
