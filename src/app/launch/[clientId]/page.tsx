@@ -19,7 +19,7 @@ import {
 } from '@/firebase';
 import { collection, query, where, collectionGroup, getDocs } from 'firebase/firestore';
 import type { Client } from '@/types/client';
-import { Loader2, Upload, Link as LinkIcon } from 'lucide-react';
+import { Loader2, MessageSquare, Phone } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,7 +32,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 
 const sessionFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -52,7 +51,6 @@ export default function ClientLaunchPage({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
   const [sessionCreated, setSessionCreated] = useState(false);
-  const [links, setLinks] = useState<string[]>(['']);
   
   const [client, setClient] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,16 +122,6 @@ export default function ClientLaunchPage({
     );
     addDocumentNonBlocking(sessionCollectionRef, data);
     setSessionCreated(true);
-  };
-
-  const handleAddLink = () => {
-    setLinks([...links, '']);
-  };
-
-  const handleLinkChange = (index: number, value: string) => {
-    const newLinks = [...links];
-    newLinks[index] = value;
-    setLinks(newLinks);
   };
 
   if (isLoading) {
@@ -287,65 +275,51 @@ export default function ClientLaunchPage({
               AI Trainer for {client?.firmName}
             </CardTitle>
             <CardDescription>
-              Begin by providing documents and links to train the AI.
+              Select a training module to begin.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4 rounded-lg border bg-background p-4">
-              <h3 className="font-semibold">Sourcing Documents</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-center w-full">
-                  <Label
-                    htmlFor="file-upload"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                      <p className="mb-2 text-sm text-muted-foreground">
-                        <span className="font-semibold">Click to upload</span> or
-                        drag and drop
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        PDF, DOCX, TXT, etc.
-                      </p>
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <MessageSquare className="size-6" />
                     </div>
-                    <Input id="file-upload" type="file" className="hidden" multiple />
-                  </Label>
-                </div>
-                <div className="relative flex items-center">
-                  <div className="flex-grow border-t"></div>
-                  <span className="flex-shrink mx-4 text-muted-foreground text-sm">OR</span>
-                  <div className="flex-grow border-t"></div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Add Links to Documents</Label>
-                  {links.map((link, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <LinkIcon className="h-5 w-5 text-muted-foreground" />
-                      <Input
-                        type="url"
-                        placeholder="https://example.com/document.pdf"
-                        value={link}
-                        onChange={(e) => handleLinkChange(index, e.target.value)}
-                      />
+                    <CardTitle className="font-headline text-lg">
+                      Messenger Scenario Runner
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="pt-2">
+                    Practice real-world conversations with an AI-powered chat
+                    simulator.
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button>Start Scenario</Button>
+                </CardFooter>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Phone className="size-6" />
                     </div>
-                  ))}
-                   <Button variant="outline" size="sm" onClick={handleAddLink}>
-                    Add Another Link
-                  </Button>
-                </div>
-              </div>
+                    <CardTitle className="font-headline text-lg">
+                      Cold Call Simulator
+                    </CardTitle>
+                  </div>
+                  <CardDescription className="pt-2">
+                    Hone your sales skills by practicing cold calls with an
+                    AI prospect.
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button>Start Simulation</Button>
+                </CardFooter>
+              </Card>
             </div>
-            
-            <Textarea
-              placeholder="You can also paste text directly here..."
-              className="min-h-[150px]"
-            />
-
           </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button>Start Training AI</Button>
-          </CardFooter>
         </Card>
       </div>
     </main>
