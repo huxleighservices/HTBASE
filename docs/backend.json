@@ -1,14 +1,23 @@
+
 {
   "entities": {
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user within the HTBase Portal.",
+      "description": "Represents a user within the HTBase.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the User entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
         },
         "email": {
           "type": "string",
