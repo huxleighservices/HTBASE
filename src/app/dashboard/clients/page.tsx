@@ -341,7 +341,7 @@ export default function ClientsPage() {
               <CardTitle>Archived Clients</CardTitle>
               <CardDescription>
                 Clients who are no longer active.
-              </redcarddescription>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {renderClientList(archivedClients, 'archived')}
