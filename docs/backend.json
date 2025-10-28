@@ -75,6 +75,10 @@
         "status": {
           "type": "string",
           "enum": ["pending", "active", "archived"]
+        },
+        "launchPassword": {
+          "type": "string",
+          "description": "Password to access the client's launch portal."
         }
       },
       "required": [

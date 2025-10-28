@@ -13,11 +13,14 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useFirestore, addDocumentNonBlocking } from '@/firebase';
 import {
-  useFirestore,
-  addDocumentNonBlocking,
-} from '@/firebase';
-import { collection, query, where, collectionGroup, getDocs } from 'firebase/firestore';
+  collection,
+  query,
+  where,
+  collectionGroup,
+  getDocs,
+} from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { Loader2, MessageSquare, Phone } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -77,12 +80,16 @@ export default function ClientLaunchPage({
         const querySnapshot = await getDocs(clientQuery);
         if (!querySnapshot.empty) {
           const clientDoc = querySnapshot.docs[0];
-          setClient({ ...clientDoc.data(), id: clientDoc.id, path: clientDoc.ref.path } as Client);
+          setClient({
+            ...(clientDoc.data() as Omit<Client, 'id'>),
+            id: clientDoc.id,
+            path: clientDoc.ref.path,
+          });
         } else {
           setClient(null);
         }
       } catch (e) {
-        console.error("Error fetching client:", e);
+        console.error('Error fetching client:', e);
         setClient(null);
       } finally {
         setIsLoading(false);
@@ -92,11 +99,10 @@ export default function ClientLaunchPage({
     fetchClient();
   }, [firestore, clientId]);
 
-
   const getClientDocPath = (client: Client | undefined | null) => {
     if (!client || !client.path) return null;
     return client.path;
-  }
+  };
 
   const sessionForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionFormSchema),
@@ -110,7 +116,7 @@ export default function ClientLaunchPage({
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'JAXON') {
+    if (password === client?.launchPassword) {
       setIsAuthenticated(true);
       setError('');
     } else {
@@ -118,7 +124,7 @@ export default function ClientLaunchPage({
     }
   };
 
-  const handleSessionSubmit: SubmitHandler<SessionFormValues> = async (data) => {
+  const handleSessionSubmit: SubmitHandler<SessionFormValues> = async data => {
     const clientDocPath = getClientDocPath(client);
     if (!clientDocPath || !firestore) return;
     const sessionCollectionRef = collection(
@@ -161,7 +167,13 @@ export default function ClientLaunchPage({
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
-            <Image src="/logo.png" alt="Company Logo" width={48} height={48} className="text-primary" />
+            <Image
+              src="/logo.png"
+              alt="Company Logo"
+              width={48}
+              height={48}
+              className="text-primary"
+            />
             <CardTitle className="font-headline text-2xl">
               {client?.firmName || 'Client Portal'}
             </CardTitle>
@@ -306,7 +318,9 @@ export default function ClientLaunchPage({
                     </CardDescription>
                   </CardHeader>
                   <CardFooter>
-                    <Button onClick={() => setIsQualificationOpen(true)}>Start Scenario</Button>
+                    <Button onClick={() => setIsQualificationOpen(true)}>
+                      Start Scenario
+                    </Button>
                   </CardFooter>
                 </Card>
                 <Card>
@@ -320,12 +334,14 @@ export default function ClientLaunchPage({
                       </CardTitle>
                     </div>
                     <CardDescription className="pt-2">
-                      Hone your sales skills by practicing cold calls with an
-                      AI prospect.
+                      Hone your sales skills by practicing cold calls with an AI
+                      prospect.
                     </CardDescription>
                   </CardHeader>
                   <CardFooter>
-                    <Button onClick={() => setIsColdCallOpen(true)}>Start Simulation</Button>
+                    <Button onClick={() => setIsColdCallOpen(true)}>
+                      Start Simulation
+                    </Button>
                   </CardFooter>
                 </Card>
               </div>
@@ -333,8 +349,16 @@ export default function ClientLaunchPage({
           </Card>
         </div>
       </main>
-      <QualificationSimulatorDialog open={isQualificationOpen} onOpenChange={setIsQualificationOpen} activeSessionId={activeSessionId} />
-      <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeSessionId} />
+      <QualificationSimulatorDialog
+        open={isQualificationOpen}
+        onOpenChange={setIsQualificationOpen}
+        activeSessionId={activeSessionId}
+      />
+      <ColdCallSimulatorDialog
+        open={isColdCallOpen}
+        onOpenChange={setIsColdCallOpen}
+        activeSessionId={activeSessionId}
+      />
     </>
   );
 }

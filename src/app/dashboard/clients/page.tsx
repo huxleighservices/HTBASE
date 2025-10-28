@@ -17,6 +17,7 @@ import {
   Undo,
   Edit,
   Rocket,
+  KeyRound,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -36,11 +37,14 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { EditPasswordDialog } from '@/components/clients/edit-password-dialog';
 
 export default function ClientsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+
+  const isServiceAccount = user?.email === 'service@huxleigh.com';
 
   const clientsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -69,8 +73,14 @@ export default function ClientsPage() {
   useEffect(() => {
     if (clients && firestore && user) {
       clients.forEach(client => {
-        if (!client.displayId) {
-          const newDisplayId = generateDisplayId(clients);
+        if (!client.displayId || !client.launchPassword) {
+          const updates: Partial<Client> = {};
+          if (!client.displayId) {
+            updates.displayId = generateDisplayId(clients);
+          }
+          if (!client.launchPassword) {
+            updates.launchPassword = 'JAXON';
+          }
           const clientDocRef = doc(
             firestore,
             'users',
@@ -78,19 +88,22 @@ export default function ClientsPage() {
             'clients',
             client.id
           );
-          updateDocumentNonBlocking(clientDocRef, { displayId: newDisplayId });
+          updateDocumentNonBlocking(clientDocRef, updates);
         }
       });
     }
   }, [clients, firestore, user]);
 
-  const handleAddClient = (client: Omit<Client, 'id' | 'status' | 'displayId'>) => {
+  const handleAddClient = (
+    client: Omit<Client, 'id' | 'status' | 'displayId' | 'launchPassword'>
+  ) => {
     if (!clientsCollectionRef) return;
     const displayId = generateDisplayId(clients);
     addDocumentNonBlocking(clientsCollectionRef, {
       ...client,
       displayId,
       status: 'pending',
+      launchPassword: 'JAXON',
     });
   };
 
@@ -107,6 +120,18 @@ export default function ClientsPage() {
       clientId
     );
     updateDocumentNonBlocking(clientDocRef, client);
+  };
+
+  const handleUpdateClientPassword = (clientId: string, password: string) => {
+    if (!firestore || !user) return;
+    const clientDocRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'clients',
+      clientId
+    );
+    updateDocumentNonBlocking(clientDocRef, { launchPassword: password });
   };
 
   const handleUpdateClientStatus = (
@@ -173,6 +198,22 @@ export default function ClientsPage() {
           <p className="text-sm text-muted-foreground">
             {client.contactEmail}
           </p>
+          {isServiceAccount && client.launchPassword && (
+            <div className="flex items-center gap-2 mt-1">
+              <KeyRound className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-mono">
+                {client.launchPassword}
+              </span>
+              <EditPasswordDialog
+                client={client}
+                onUpdatePassword={handleUpdateClientPassword}
+              >
+                <Button variant="link" size="sm" className="h-auto p-0 text-xs">
+                  Change
+                </Button>
+              </EditPasswordDialog>
+            </div>
+          )}
         </div>
       </div>
       {client.status === 'pending' && (
@@ -227,7 +268,10 @@ export default function ClientsPage() {
             <Archive className="mr-2" />
             Archive
           </Button>
-          <Button size="sm" onClick={() => handleLaunchClient(client.displayId)}>
+          <Button
+            size="sm"
+            onClick={() => handleLaunchClient(client.displayId)}
+          >
             <Rocket className="mr-2" />
             Launch
           </Button>
