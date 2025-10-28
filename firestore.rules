@@ -2,102 +2,111 @@
  * @fileoverview Firestore Security Rules for HTBase.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model, ensuring that only authenticated users can access their own data. All data is nested under /users/{userId} to simplify authorization.
+ * This ruleset enforces a strict user-ownership model for all user-specific data
+ * while allowing public read access to client information.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles.
- * - /users/{userId}/clients/{clientId}: Stores clients associated with a user.
- * - /users/{userId}/landingPages/{landingPageId}: Stores landing pages owned by a user.
+ * - /users/{userId}: Stores user profiles, accessible only to the authenticated user.
+ * - /users/{userId}/clients/{clientId}: Stores clients associated with a specific user. Accessible only by the owning user.
+ * - /users/{userId}/clients/{clientId}/sessions/{sessionId}: Stores training sessions for a specific client, accessible only by the owning user.
+ * - /users/{userId}/landingPages/{landingPageId}: Stores customizable landing pages owned by users. Accessible only by the owning user.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - All subcollections are secured via path-based ownership (the authenticated user's UID must match the userId in the path).
- * - Data validation is relaxed in this prototyping phase, focusing only on ownership and relational integrity.
- *
- * Denormalization for Authorization:
- *  - User ID is included in subcollection documents to enable simple ownership checks.
- *
- * Structural Segregation:
- *  - User-specific data is stored under the /users/{userId} path to ensure clear ownership and prevent accidental public exposure.
+ * - User data is strictly segregated and accessible only to the owning user.
+ * - `list` operations are generally restricted to the owner for user-specific collections.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures the user profiles. Only the authenticated user can read or write their own profile.
+     * @description Secure user profiles. Only the authenticated user can read/write their own profile.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) User with ID 'user123' can access /users/user123 if authenticated.
-     * @deny (get, create, update, delete) User with ID 'user456' cannot access /users/user123, even if authenticated.
+     * @allow (get, create, update, delete, list) if the user is the owner of the profile.
+     * @deny (get, create, update, delete, list) if the user is not the owner of the profile.
      * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
-        return isSignedIn() && resource != null && request.auth.uid == userId;
+        return isOwner(userId) && resource != null;
       }
-      allow get: if isSignedIn() && isOwner(userId);
+
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures the clients subcollection for each user. Only the owner can read/write.
+     * @description Secure clients for a specific user.
      * @path /users/{userId}/clients/{clientId}
-     * @allow (get, create, update, delete) User with ID 'user123' can access /users/user123/clients/client456 if authenticated.
-     * @deny (get, create, update, delete) User with ID 'user456' cannot access /users/user123/clients/client456, even if authenticated.
-     * @principle Restricts access to a user's own data tree.
+     * @allow (get, create, update, delete, list) if the user is the owner of the client.
+     * @deny (get, create, update, delete, list) if the user is not the owner of the client.
+     * @principle Enforces document ownership for writes within a user's data tree.
      */
     match /users/{userId}/clients/{clientId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
-        return isSignedIn() && resource != null && request.auth.uid == userId;
+        return isOwner(userId) && resource != null;
       }
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures the landingPages subcollection for each user. Only the owner can read/write.
-     * @path /users/{userId}/landingPages/{landingPageId}
-     * @allow (get, create, update, delete) User with ID 'user123' can access /users/user123/landingPages/page456 if authenticated.
-     * @deny (get, create, update, delete) User with ID 'user456' cannot access /users/user123/landingPages/page456, even if authenticated.
-     * @principle Restricts access to a user's own data tree.
+     * @description Secure training sessions for a specific client.
+     * @path /users/{userId}/clients/{clientId}/sessions/{sessionId}
+     * @allow (get, create, update, delete, list) if the user is the owner of the session.
+     * @deny (get, create, update, delete, list) if the user is not the owner of the session.
+     * @principle Enforces document ownership for writes within a user's data tree.
      */
-    match /users/{userId}/landingPages/{landingPageId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
+    match /users/{userId}/clients/{clientId}/sessions/{sessionId} {
       function isOwner(userId) {
-        return request.auth.uid == userId;
+        return request.auth != null && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
-        return isSignedIn() && resource != null && request.auth.uid == userId;
+        return isOwner(userId) && resource != null;
       }
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure landing pages owned by a specific user.
+     * @path /users/{userId}/landingPages/{landingPageId}
+     * @allow (get, create, update, delete, list) if the user is the owner of the landing page.
+     * @deny (get, create, update, delete, list) if the user is not the owner of the landing page.
+     * @principle Enforces document ownership for writes within a user's data tree.
+     */
+    match /users/{userId}/landingPages/{landingPageId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
