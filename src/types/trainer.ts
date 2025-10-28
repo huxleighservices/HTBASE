@@ -1,4 +1,5 @@
 
+import { z } from 'zod';
 
 export enum SimulationDifficulty {
     Easy = 'Easy',
@@ -23,3 +24,23 @@ export type ProspectingSimulationOutput = {
     feedback: SimulationFeedback | null;
 };
 
+// Types for Voice Call Simulation
+export type CallPersona = {
+    role: 'Recruitment Chair' | 'President' | 'New Member' | 'Treasurer';
+    gender: 'Male' | 'Female';
+    attitude: 'Friendly' | 'Skeptical' | 'Busy' | 'Hostile';
+    qualification: 'Good Fit' | 'Bad Fit' | 'Unsure';
+};
+
+export type CallSimulationInput = {
+    persona: CallPersona;
+    conversationHistory: { role: 'user' | 'assistant'; text: string }[];
+    trainingData?: string;
+};
+
+export type SimulationOutput = {
+    response?: string;
+    audioUrl?: string;
+    feedback?: SimulationFeedback;
+    isComplete: boolean;
+};
