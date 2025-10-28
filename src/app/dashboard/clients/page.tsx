@@ -16,6 +16,7 @@ import {
   Eye,
   Undo,
   Edit,
+  Rocket,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -34,10 +35,12 @@ import { collection, doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ClientsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const clientsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -133,6 +136,10 @@ export default function ClientsPage() {
     deleteDocumentNonBlocking(clientDocRef);
   };
 
+  const handleLaunchClient = (clientId: string) => {
+    router.push(`/launch/${clientId}`);
+  };
+
   const renderClientList = (clientList: Client[], listName: string) => {
     if (clientList.length === 0) {
       return (
@@ -219,6 +226,10 @@ export default function ClientsPage() {
           >
             <Archive className="mr-2" />
             Archive
+          </Button>
+          <Button size="sm" onClick={() => handleLaunchClient(client.displayId)}>
+            <Rocket className="mr-2" />
+            Launch
           </Button>
         </div>
       )}
@@ -330,7 +341,7 @@ export default function ClientsPage() {
               <CardTitle>Archived Clients</CardTitle>
               <CardDescription>
                 Clients who are no longer active.
-              </CardDescription>
+              </redcarddescription>
             </CardHeader>
             <CardContent>
               {renderClientList(archivedClients, 'archived')}

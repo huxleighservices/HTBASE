@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, Menu, X } from "lucide-react";
 import { Logo } from "@/components/icons/logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,12 @@ import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/fireb
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc } from 'firebase/firestore';
+import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export function Header() {
   const pathname = usePathname();
@@ -28,6 +34,7 @@ export function Header() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -54,6 +61,19 @@ export function Header() {
     return `${first}${last}`.toUpperCase() || 'U';
   };
 
+  const NavLink = ({ href, label }: { href: string; label: string }) => (
+    <Link
+      href={href}
+      onClick={() => setIsMobileMenuOpen(false)}
+      className={cn(
+        "text-lg font-medium transition-colors hover:text-primary md:text-sm",
+        pathname === href ? "text-primary" : "text-muted-foreground"
+      )}
+    >
+      {label}
+    </Link>
+  );
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
       <div className="flex items-center gap-6">
@@ -63,20 +83,38 @@ export function Header() {
         </Link>
         <nav className="hidden md:flex items-center gap-4">
           {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                pathname === link.href ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              {link.label}
-            </Link>
+            <NavLink key={link.href} {...link} />
           ))}
         </nav>
       </div>
       <div className="flex items-center gap-4">
+        <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu />
+                  <span className="sr-only">Open Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <div className="flex flex-col gap-6 p-6">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 mb-4"
+                  >
+                    <Logo className="size-8 text-primary" />
+                    <span className="text-lg font-semibold font-headline">HTBase</span>
+                  </Link>
+                  <nav className="flex flex-col gap-4">
+                    {navLinks.map((link) => (
+                      <NavLink key={link.href} {...link} />
+                    ))}
+                  </nav>
+                </div>
+              </SheetContent>
+            </Sheet>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
