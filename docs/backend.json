@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the HTBase Portal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "email"
+      ]
+    },
+    "LandingPage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LandingPage",
+      "type": "object",
+      "description": "Represents the customizable landing page for a white-label client.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the LandingPage entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this landing page. (Relationship: User 1:N LandingPage)"
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL of the logo for the landing page.",
+          "format": "uri"
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Tagline displayed on the landing page."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "logoUrl",
+        "tagline"
+      ]
+    },
+    "PortalCustomization": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PortalCustomization",
+      "type": "object",
+      "description": "Represents the customizable features inside the AI Trainer application based on brand standards.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PortalCustomization entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this portal customization. (Relationship: User 1:N PortalCustomization)"
+        },
+        "primaryColor": {
+          "type": "string",
+          "description": "Primary color of the customized portal (e.g., Turquoise)."
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "Background color of the customized portal (e.g., Off-white)."
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "Font family used in the customized portal (e.g., Space Grotesk)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "primaryColor",
+        "backgroundColor",
+        "fontFamily"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store user profiles. Only the authenticated user can read/write their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/landingPages/{landingPageId}",
+        "definition": {
+          "entityName": "LandingPage",
+          "schema": {
+            "$ref": "#/backend/entities/LandingPage"
+          },
+          "description": "Collection to store landing pages owned by a specific user.  Each LandingPage document stores customizable landing page details. Path-based ownership ensures only the user can access this data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the landing page."
+            },
+            {
+              "name": "landingPageId",
+              "description": "The unique identifier of the landing page."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/portalCustomizations/{portalCustomizationId}",
+        "definition": {
+          "entityName": "PortalCustomization",
+          "schema": {
+            "$ref": "#/backend/entities/PortalCustomization"
+          },
+          "description": "Collection to store portal customizations owned by a specific user. Each PortalCustomization document stores customizable portal settings. Path-based ownership ensures only the user can access this data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the portal customization."
+            },
+            {
+              "name": "portalCustomizationId",
+              "description": "The unique identifier of the portal customization."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, following the core design principles and strategy mandates. It uses path-based ownership for user-specific data, ensuring clear authorization and efficient querying. The structure avoids hierarchical authorization dependencies by relying solely on `request.auth.uid` and path-based ownership, which simplifies security rules and allows atomic operations. Segregation of data based on access needs simplifies security rules by ensuring all documents in a collection share the same security requirements.\n\nThe `/users/{userId}` collection stores user profiles. The `/users/{userId}/landingPages/{landingPageId}` collection stores landing pages owned by each user. The `/users/{userId}/portalCustomizations/{portalCustomizationId}` collection stores portal customizations owned by each user. This structure facilitates straightforward security rules based on path-based ownership, guaranteeing that only the authenticated user can access their respective landing pages and portal customizations. All `list` operations are secured via path-based ownership, where listing a collection is only allowed if the authenticated user is the owner. \n\nThis design emphasizes Authorization Independence, DBAC (Database-Based Access Control), QAPs (Rules Are Not Filters), and structural segregation, resulting in a robust and maintainable data model."
+  }
+}
