@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -15,11 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   useFirestore,
-  useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
+  useMemoFirebase,
 } from '@/firebase';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, collectionGroup, getDocs } from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { Loader2, Upload, Link as LinkIcon } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
@@ -55,24 +54,43 @@ export default function ClientLaunchPage({
   const [error, setError] = useState('');
   const [sessionCreated, setSessionCreated] = useState(false);
   const [links, setLinks] = useState<string[]>(['']);
+  
+  const [client, setClient] = useState<Client | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const firestore = useFirestore();
 
-  const clientQuery = useMemoFirebase(() => {
-    if (!firestore || !params.clientId) {
-      // Return a query that will never return results
-      return query(collectionGroup(firestore, 'clients'), where('__never', '==', 'true'));
-    }
-    return query(
-      collectionGroup(firestore, 'clients'),
-      where('displayId', '==', params.clientId)
-    );
+  useEffect(() => {
+    const fetchClient = async () => {
+      if (!firestore || !params.clientId) {
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const clientQuery = query(
+          collectionGroup(firestore, 'clients'),
+          where('displayId', '==', params.clientId)
+        );
+        const querySnapshot = await getDocs(clientQuery);
+        if (!querySnapshot.empty) {
+          const clientDoc = querySnapshot.docs[0];
+          setClient({ ...clientDoc.data(), id: clientDoc.id, path: clientDoc.ref.path } as Client);
+        } else {
+          setClient(null);
+        }
+      } catch (e) {
+        console.error("Error fetching client:", e);
+        setClient(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchClient();
   }, [firestore, params.clientId]);
 
-  const { data: clients, isLoading } = useCollection<Client>(clientQuery);
-  const client = clients?.[0];
 
-  const getClientDocPath = (client: Client | undefined) => {
+  const getClientDocPath = (client: Client | undefined | null) => {
     if (!client || !client.path) return null;
     return client.path;
   }
@@ -334,3 +352,5 @@ export default function ClientLaunchPage({
     </main>
   );
 }
+
+    
