@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import {
   useFirestore,
   addDocumentNonBlocking,
-  useMemoFirebase,
 } from '@/firebase';
 import { collection, query, where, collectionGroup, getDocs } from 'firebase/firestore';
 import type { Client } from '@/types/client';
@@ -49,6 +48,7 @@ export default function ClientLaunchPage({
 }: {
   params: { clientId: string };
 }) {
+  const { clientId } = params;
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
@@ -62,14 +62,14 @@ export default function ClientLaunchPage({
 
   useEffect(() => {
     const fetchClient = async () => {
-      if (!firestore || !params.clientId) {
+      if (!firestore || !clientId) {
         return;
       }
       setIsLoading(true);
       try {
         const clientQuery = query(
           collectionGroup(firestore, 'clients'),
-          where('displayId', '==', params.clientId)
+          where('displayId', '==', clientId)
         );
         const querySnapshot = await getDocs(clientQuery);
         if (!querySnapshot.empty) {
@@ -87,7 +87,7 @@ export default function ClientLaunchPage({
     };
 
     fetchClient();
-  }, [firestore, params.clientId]);
+  }, [firestore, clientId]);
 
 
   const getClientDocPath = (client: Client | undefined | null) => {
@@ -352,5 +352,3 @@ export default function ClientLaunchPage({
     </main>
   );
 }
-
-    
