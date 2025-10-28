@@ -41,7 +41,7 @@ export default function ClientLaunchPage({ params }: { params: { clientId: strin
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // In a real application, this would be a more secure check
-    if (password === 'password') {
+    if (password === 'JAXON') {
       setIsAuthenticated(true);
       setError('');
     } else {
