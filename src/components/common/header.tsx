@@ -17,16 +17,28 @@ import { LogOut, User, Settings } from "lucide-react";
 import { Logo } from "@/components/icons/logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth, useUser } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export function Header() {
   const userAvatar = PlaceHolderImages.find((p) => p.id === "user-avatar");
   const pathname = usePathname();
+  const auth = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
 
   const navLinks = [
     { href: "/dashboard", label: "Home" },
     { href: "/dashboard/clients", label: "Clients" },
     { href: "/dashboard/settings", label: "Settings" },
   ];
+  
+  const handleLogout = () => {
+    signOut(auth).then(() => {
+      router.push("/");
+    });
+  };
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
@@ -73,7 +85,7 @@ export function Header() {
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">HTBase User</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  user@huxleigh.com
+                  {user?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -89,11 +101,9 @@ export function Header() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/">
+            <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2" />
                 <span>Log out</span>
-              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
