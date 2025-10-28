@@ -20,7 +20,6 @@ import {
 import { collection, query, where, collectionGroup, getDocs } from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { Loader2, MessageSquare, Phone } from 'lucide-react';
-import { Logo } from '@/components/icons/logo';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,6 +33,7 @@ import {
 } from '@/components/ui/form';
 import { QualificationSimulatorDialog } from '@/components/trainer/qualification-simulator-dialog';
 import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulator-dialog';
+import Image from 'next/image';
 
 const sessionFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -45,11 +45,10 @@ const sessionFormSchema = z.object({
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
 export default function ClientLaunchPage({
-  params,
+  params: { clientId },
 }: {
   params: { clientId: string };
 }) {
-  const { clientId } = params;
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
@@ -162,7 +161,7 @@ export default function ClientLaunchPage({
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
-            <Logo className="h-12 w-12 text-primary" />
+            <Image src="/logo.png" alt="Company Logo" width={48} height={48} className="text-primary" />
             <CardTitle className="font-headline text-2xl">
               {client?.firmName || 'Client Portal'}
             </CardTitle>

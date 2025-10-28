@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Settings, Menu, X } from "lucide-react";
-import { Logo } from "@/components/icons/logo";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -27,6 +26,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import Image from "next/image";
 
 export function Header() {
   const pathname = usePathname();
@@ -78,7 +78,7 @@ export function Header() {
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
       <div className="flex items-center gap-6">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Logo className="size-8 text-primary" />
+          <Image src="/logo.png" alt="HTBase Logo" width={32} height={32} />
           <span className="text-lg font-semibold font-headline">HTBase</span>
         </Link>
         <nav className="hidden md:flex items-center gap-4">
@@ -103,7 +103,7 @@ export function Header() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-2 mb-4"
                   >
-                    <Logo className="size-8 text-primary" />
+                    <Image src="/logo.png" alt="HTBase Logo" width={32} height={32} />
                     <span className="text-lg font-semibold font-headline">HTBase</span>
                   </Link>
                   <nav className="flex flex-col gap-4">

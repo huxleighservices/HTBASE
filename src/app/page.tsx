@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo } from '@/components/icons/logo';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
@@ -25,6 +24,7 @@ import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { collectionGroup, query, where, limit, getDocs } from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { FirebaseError } from 'firebase/app';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,10 +60,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     const fetchClients = async () => {
-      // Only run query if firestore is available and search query is long enough
-      if (!firestore || !debouncedSearchQuery || debouncedSearchQuery.length < 3) {
+      if (!firestore || debouncedSearchQuery.length < 3) {
         setSearchResults([]);
-        setIsSearchLoading(false);
         return;
       }
 
@@ -81,12 +79,12 @@ export default function LoginPage() {
         const clients = querySnapshot.docs.map(doc => ({
           ...doc.data(),
           id: doc.id,
+          displayId: doc.data().displayId,
         })) as Client[];
         setSearchResults(clients);
       } catch (e) {
         console.error("Error searching clients:", e);
         setSearchResults([]);
-        // Optionally set an error state to show in the UI
       } finally {
         setIsSearchLoading(false);
       }
@@ -136,7 +134,7 @@ export default function LoginPage() {
       <div className="flex w-full max-w-sm flex-col gap-8">
         <Card className="border-2 border-primary/20 shadow-lg shadow-primary/10">
           <CardHeader className="items-center text-center">
-            <Logo className="h-12 w-12 text-primary" />
+            <Image src="/logo.png" alt="HTBase Logo" width={48} height={48} className="text-primary" />
             <CardTitle className="font-headline text-2xl">HTBase</CardTitle>
             <CardDescription>
               Access your white-label AI trainer.
