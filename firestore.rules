@@ -2,29 +2,42 @@
  * @fileoverview Firestore Security Rules for HTBase.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for all user-specific data
- * while allowing public read access to client information.
+ * This ruleset enforces a strict user-ownership model, meaning users can only
+ * access data explicitly associated with their user ID. This is achieved through
+ * path-based authorization.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only to the authenticated user.
- * - /users/{userId}/clients/{clientId}: Stores clients associated with a specific user. Accessible only by the owning user.
- * - /users/{userId}/clients/{clientId}/sessions/{sessionId}: Stores training sessions for a specific client, accessible only by the owning user.
- * - /users/{userId}/landingPages/{landingPageId}: Stores customizable landing pages owned by users. Accessible only by the owning user.
+ * - /users/{userId}: Stores user profiles, accessible only to the owning user.
+ * - /users/{userId}/clients/{clientId}: Stores client data, accessible only to the owning user.
+ * - /users/{userId}/clients/{clientId}/sessions/{sessionId}: Stores session data for clients, accessible only to the owning user.
+ * - /users/{userId}/landingPages/{landingPageId}: Stores landing pages, accessible only to the owning user.
  *
  * Key Security Decisions:
- * - User data is strictly segregated and accessible only to the owning user.
- * - `list` operations are generally restricted to the owner for user-specific collections.
+ * - No public data access is allowed.
+ * - User listing is implicitly denied (no top-level collection access).
+ * - Data validation is relaxed to allow for rapid prototyping.  Only critical
+ *   fields required for authorization are validated.
+ *
+ * Denormalization for Authorization:
+ *  - The `userId` is encoded in the path for `clients`, `sessions` and `landingPages`,
+ *    avoiding the need to duplicate this information in the document itself.
+ *
+ * Structural Segregation:
+ *  - Private user data is stored under the `/users/{userId}` path, ensuring
+ *    that only the owning user can access it.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secure user profiles. Only the authenticated user can read/write their own profile.
+     * @description Allows a user to read and write their own user profile.
      * @path /users/{userId}
-     * @allow (get, create, update, delete, list) if the user is the owner of the profile.
-     * @deny (get, create, update, delete, list) if the user is not the owner of the profile.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - Authenticated user with ID matching the document ID.
+     * @allow (get, list, update, delete) - Authenticated user with ID matching the document ID.
+     * @deny (create) - Authenticated user with ID not matching the document ID.
+     * @deny (get, list, update, delete) - Unauthenticated user.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       function isOwner(userId) {
@@ -36,18 +49,20 @@ service cloud.firestore {
       }
 
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if false; // Listing all users is not permitted.
       allow create: if isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secure clients for a specific user.
+     * @description Allows a user to manage their clients.
      * @path /users/{userId}/clients/{clientId}
-     * @allow (get, create, update, delete, list) if the user is the owner of the client.
-     * @deny (get, create, update, delete, list) if the user is not the owner of the client.
-     * @principle Enforces document ownership for writes within a user's data tree.
+     * @allow (create) - Authenticated user with ID matching the userId path.
+     * @allow (get, list, update, delete) - Authenticated user with ID matching the userId path.
+     * @deny (create, get, list, update, delete) - Authenticated user with ID not matching the userId path.
+     * @deny (create, get, list, update, delete) - Unauthenticated user.
+     * @principle Enforces path-based ownership.
      */
     match /users/{userId}/clients/{clientId} {
       function isOwner(userId) {
@@ -66,11 +81,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secure training sessions for a specific client.
+     * @description Allows a user to manage training sessions for their clients.
      * @path /users/{userId}/clients/{clientId}/sessions/{sessionId}
-     * @allow (get, create, update, delete, list) if the user is the owner of the session.
-     * @deny (get, create, update, delete, list) if the user is not the owner of the session.
-     * @principle Enforces document ownership for writes within a user's data tree.
+     * @allow (create) - Authenticated user with ID matching the userId path.
+     * @allow (get, list, update, delete) - Authenticated user with ID matching the userId path.
+     * @deny (create, get, list, update, delete) - Authenticated user with ID not matching the userId path.
+     * @deny (create, get, list, update, delete) - Unauthenticated user.
+     * @principle Enforces path-based ownership.
      */
     match /users/{userId}/clients/{clientId}/sessions/{sessionId} {
       function isOwner(userId) {
@@ -89,11 +106,13 @@ service cloud.firestore {
     }
 
     /**
-     * @description Secure landing pages owned by a specific user.
+     * @description Allows a user to manage their landing pages.
      * @path /users/{userId}/landingPages/{landingPageId}
-     * @allow (get, create, update, delete, list) if the user is the owner of the landing page.
-     * @deny (get, create, update, delete, list) if the user is not the owner of the landing page.
-     * @principle Enforces document ownership for writes within a user's data tree.
+     * @allow (create) - Authenticated user with ID matching the userId path.
+     * @allow (get, list, update, delete) - Authenticated user with ID matching the userId path.
+     * @deny (create, get, list, update, delete) - Authenticated user with ID not matching the userId path.
+     * @deny (create, get, list, update, delete) - Unauthenticated user.
+     * @principle Enforces path-based ownership.
      */
     match /users/{userId}/landingPages/{landingPageId} {
       function isOwner(userId) {
