@@ -12,18 +12,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { LogOut, User, Settings } from "lucide-react";
+import { Logo } from "@/components/icons/logo";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function Header() {
   const userAvatar = PlaceHolderImages.find((p) => p.id === "user-avatar");
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: "/dashboard", label: "Home" },
+    { href: "/dashboard/clients", label: "Clients" },
+    { href: "/dashboard/settings", label: "Settings" },
+  ];
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md md:px-6">
-      <div className="flex items-center gap-2">
-        <SidebarTrigger className="md:hidden" />
-        <h2 className="hidden text-lg font-semibold md:block">Dashboard</h2>
+      <div className="flex items-center gap-6">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <Logo className="size-8 text-primary" />
+          <span className="text-lg font-semibold font-headline">HTBase</span>
+        </Link>
+        <nav className="hidden md:flex items-center gap-4">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-primary",
+                pathname === link.href ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
       <div className="flex items-center gap-4">
         <DropdownMenu>
