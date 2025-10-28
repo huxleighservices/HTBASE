@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PlusCircle, Search, Archive, Trash2 } from 'lucide-react';
+import { PlusCircle, Search, Archive, Trash2, Eye, Undo } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
@@ -105,6 +105,12 @@ export default function ClientsPage() {
                           onReject={() =>
                             handleUpdateClientStatus(client.id, 'archived')
                           }
+                          triggerButton={
+                            <Button variant="outline" size="sm">
+                              Review & Activate
+                            </Button>
+                          }
+                          action="activate"
                         />
                       </div>
                     </li>
@@ -140,16 +146,29 @@ export default function ClientsPage() {
                           {client.contactEmail}
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          handleUpdateClientStatus(client.id, 'archived')
-                        }
-                      >
-                        <Archive className="mr-2" />
-                        Archive
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <ReviewClientDialog
+                          client={client}
+                          onActivate={() => {}}
+                          onReject={() => {}}
+                          action="view"
+                          triggerButton={
+                            <Button variant="ghost" size="icon">
+                              <Eye />
+                            </Button>
+                          }
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleUpdateClientStatus(client.id, 'archived')
+                          }
+                        >
+                          <Archive className="mr-2" />
+                          Archive
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -183,17 +202,46 @@ export default function ClientsPage() {
                           {client.contactEmail}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() =>
-                          setClients(prev => prev.filter(c => c.id !== client.id))
-                        }
-                      >
-                        <Trash2 className="mr-2" />
-                        Delete Permanently
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <ReviewClientDialog
+                          client={client}
+                          onActivate={() => {}}
+                          onReject={() => {}}
+                          action="view"
+                          triggerButton={
+                            <Button variant="ghost" size="icon">
+                              <Eye />
+                            </Button>
+                          }
+                        />
+                        <ReviewClientDialog
+                          client={client}
+                          onActivate={() =>
+                            handleUpdateClientStatus(client.id, 'active')
+                          }
+                          onReject={() => {}}
+                          action="reactivate"
+                          triggerButton={
+                            <Button variant="outline" size="sm">
+                              <Undo className="mr-2" />
+                              Re-activate
+                            </Button>
+                          }
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() =>
+                            setClients(prev =>
+                              prev.filter(c => c.id !== client.id)
+                            )
+                          }
+                        >
+                          <Trash2 className="mr-2" />
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
