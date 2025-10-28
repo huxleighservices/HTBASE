@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { LogOut, User, Settings } from "lucide-react";
 import { Logo } from "@/components/icons/logo";
 import { usePathname } from "next/navigation";
@@ -24,7 +23,6 @@ import { useRouter } from "next/navigation";
 import { doc } from 'firebase/firestore';
 
 export function Header() {
-  const userAvatar = PlaceHolderImages.find((p) => p.id === "user-avatar");
   const pathname = usePathname();
   const auth = useAuth();
   const { user } = useUser();
@@ -86,13 +84,13 @@ export function Header() {
               className="relative h-10 w-10 rounded-full"
             >
               <Avatar className="h-10 w-10 border-2 border-primary/50">
-                {userAvatar && (
-                  <AvatarImage
-                    src={userAvatar.imageUrl}
-                    alt={userAvatar.description}
-                  />
-                )}
-                <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
+                <AvatarFallback className='bg-background'>
+                  {userProfile?.firstName || userProfile?.lastName ? (
+                    getInitials(userProfile?.firstName, userProfile?.lastName)
+                  ) : (
+                    <User />
+                  )}
+                  </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

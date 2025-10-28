@@ -8,11 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { User } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -24,8 +24,6 @@ export default function ProfilePage() {
   }, [firestore, user]);
 
   const { data: userProfile, isLoading } = useDoc(userDocRef);
-
-  const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
 
   const getInitials = (firstName?: string, lastName?: string) => {
     const first = firstName?.[0] || '';
@@ -65,14 +63,12 @@ export default function ProfilePage() {
           ) : (
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-2 border-primary/50">
-                {userAvatar && (
-                  <AvatarImage
-                    src={userAvatar.imageUrl}
-                    alt={userAvatar.description}
-                  />
-                )}
-                <AvatarFallback className="text-3xl">
-                  {getInitials(userProfile?.firstName, userProfile?.lastName)}
+                <AvatarFallback className="text-3xl bg-background">
+                  {userProfile?.firstName || userProfile?.lastName ? (
+                    getInitials(userProfile?.firstName, userProfile?.lastName)
+                  ) : (
+                    <User className="h-12 w-12" />
+                  )}
                 </AvatarFallback>
               </Avatar>
               <div>
