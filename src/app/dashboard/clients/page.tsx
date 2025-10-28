@@ -8,12 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Archive, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
 import type { Client } from '@/types/client';
+import { ReviewClientDialog } from '@/components/clients/review-client-dialog';
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -29,11 +30,12 @@ export default function ClientsPage() {
     ]);
   };
 
-  const moveToActive = (clientId: string) => {
+  const handleUpdateClientStatus = (
+    clientId: string,
+    status: 'active' | 'archived'
+  ) => {
     setClients(prevClients =>
-      prevClients.map(c =>
-        c.id === clientId ? { ...c, status: 'active' } : c
-      )
+      prevClients.map(c => (c.id === clientId ? { ...c, status } : c))
     );
   };
 
@@ -94,13 +96,17 @@ export default function ClientsPage() {
                           {client.contactEmail}
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => moveToActive(client.id)}
-                      >
-                        Review & Activate
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <ReviewClientDialog
+                          client={client}
+                          onActivate={() =>
+                            handleUpdateClientStatus(client.id, 'active')
+                          }
+                          onReject={() =>
+                            handleUpdateClientStatus(client.id, 'archived')
+                          }
+                        />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -134,6 +140,16 @@ export default function ClientsPage() {
                           {client.contactEmail}
                         </p>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleUpdateClientStatus(client.id, 'archived')
+                        }
+                      >
+                        <Archive className="mr-2" />
+                        Archive
+                      </Button>
                     </li>
                   ))}
                 </ul>
@@ -155,25 +171,36 @@ export default function ClientsPage() {
             </CardHeader>
             <CardContent>
               {archivedClients.length > 0 ? (
-                 <ul className="space-y-4">
-                 {archivedClients.map(client => (
-                   <li
-                     key={client.id}
-                     className="flex items-center justify-between p-4 rounded-lg border bg-card"
-                   >
-                     <div>
-                       <p className="font-semibold">{client.firmName}</p>
-                       <p className="text-sm text-muted-foreground">
-                         {client.contactEmail}
-                       </p>
-                     </div>
-                   </li>
-                 ))}
-               </ul>
+                <ul className="space-y-4">
+                  {archivedClients.map(client => (
+                    <li
+                      key={client.id}
+                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                    >
+                      <div>
+                        <p className="font-semibold">{client.firmName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {client.contactEmail}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() =>
+                          setClients(prev => prev.filter(c => c.id !== client.id))
+                        }
+                      >
+                        <Trash2 className="mr-2" />
+                        Delete Permanently
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No archived clients found.</p>
-              </div>
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>No archived clients found.</p>
+                </div>
               )}
             </CardContent>
           </Card>
