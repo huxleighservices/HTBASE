@@ -15,33 +15,176 @@ import { useState } from 'react';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
 import type { Client } from '@/types/client';
 import { ReviewClientDialog } from '@/components/clients/review-client-dialog';
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+  useMemoFirebase,
+} from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const clientsCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'clients');
+  }, [firestore, user]);
+
+  const { data: clients = [], isLoading } = useCollection<Client>(
+    clientsCollectionRef
+  );
 
   const handleAddClient = (client: Omit<Client, 'id' | 'status'>) => {
-    setClients(prevClients => [
-      ...prevClients,
-      {
-        ...client,
-        id: `${Date.now()}`,
-        status: 'pending',
-      },
-    ]);
+    if (!clientsCollectionRef) return;
+    addDocumentNonBlocking(clientsCollectionRef, {
+      ...client,
+      status: 'pending',
+    });
   };
 
   const handleUpdateClientStatus = (
     clientId: string,
     status: 'active' | 'archived'
   ) => {
-    setClients(prevClients =>
-      prevClients.map(c => (c.id === clientId ? { ...c, status } : c))
+    if (!firestore || !user) return;
+    const clientDocRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'clients',
+      clientId
     );
+    updateDocumentNonBlocking(clientDocRef, { status });
+  };
+
+  const handleDeleteClient = (clientId: string) => {
+    if (!firestore || !user) return;
+    const clientDocRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'clients',
+      clientId
+    );
+    deleteDocumentNonBlocking(clientDocRef);
   };
 
   const pendingClients = clients.filter(c => c.status === 'pending');
   const activeClients = clients.filter(c => c.status === 'active');
   const archivedClients = clients.filter(c => c.status === 'archived');
+
+  const renderClientList = (clientList: Client[]) => {
+    if (isLoading) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>Loading clients...</p>
+        </div>
+      );
+    }
+    if (clientList.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>No clients found.</p>
+        </div>
+      );
+    }
+    return (
+      <ul className="space-y-4">
+        {clientList.map(client => (
+          <li
+            key={client.id}
+            className="flex items-center justify-between p-4 rounded-lg border bg-card"
+          >
+            <div>
+              <p className="font-semibold">{client.firmName}</p>
+              <p className="text-sm text-muted-foreground">
+                {client.contactEmail}
+              </p>
+            </div>
+            {client.status === 'pending' && (
+              <div className="flex items-center gap-2">
+                <ReviewClientDialog
+                  client={client}
+                  onActivate={() => handleUpdateClientStatus(client.id, 'active')}
+                  onReject={() => handleUpdateClientStatus(client.id, 'archived')}
+                  triggerButton={
+                    <Button variant="outline" size="sm">
+                      Review & Activate
+                    </Button>
+                  }
+                  action="activate"
+                />
+              </div>
+            )}
+            {client.status === 'active' && (
+              <div className="flex items-center gap-2">
+                <ReviewClientDialog
+                  client={client}
+                  onActivate={() => {}}
+                  onReject={() => {}}
+                  action="view"
+                  triggerButton={
+                    <Button variant="ghost" size="icon">
+                      <Eye />
+                    </Button>
+                  }
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUpdateClientStatus(client.id, 'archived')}
+                >
+                  <Archive className="mr-2" />
+                  Archive
+                </Button>
+              </div>
+            )}
+            {client.status === 'archived' && (
+              <div className="flex items-center gap-2">
+                <ReviewClientDialog
+                  client={client}
+                  onActivate={() => {}}
+                  onReject={() => {}}
+                  action="view"
+                  triggerButton={
+                    <Button variant="ghost" size="icon">
+                      <Eye />
+                    </Button>
+                  }
+                />
+                <ReviewClientDialog
+                  client={client}
+                  onActivate={() => handleUpdateClientStatus(client.id, 'active')}
+                  onReject={() => {}}
+                  action="reactivate"
+                  triggerButton={
+                    <Button variant="outline" size="sm">
+                      <Undo className="mr-2" />
+                      Re-activate
+                    </Button>
+                  }
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => handleDeleteClient(client.id)}
+                >
+                  <Trash2 className="mr-2" />
+                  Delete
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -82,46 +225,7 @@ export default function ClientsPage() {
                 Clients who have been invited but have not yet accepted.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {pendingClients.length > 0 ? (
-                <ul className="space-y-4">
-                  {pendingClients.map(client => (
-                    <li
-                      key={client.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
-                    >
-                      <div>
-                        <p className="font-semibold">{client.firmName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {client.contactEmail}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ReviewClientDialog
-                          client={client}
-                          onActivate={() =>
-                            handleUpdateClientStatus(client.id, 'active')
-                          }
-                          onReject={() =>
-                            handleUpdateClientStatus(client.id, 'archived')
-                          }
-                          triggerButton={
-                            <Button variant="outline" size="sm">
-                              Review & Activate
-                            </Button>
-                          }
-                          action="activate"
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No pending clients found.</p>
-                </div>
-              )}
-            </CardContent>
+            <CardContent>{renderClientList(pendingClients)}</CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="active">
@@ -132,52 +236,7 @@ export default function ClientsPage() {
                 A list of all your current clients.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {activeClients.length > 0 ? (
-                <ul className="space-y-4">
-                  {activeClients.map(client => (
-                    <li
-                      key={client.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
-                    >
-                      <div>
-                        <p className="font-semibold">{client.firmName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {client.contactEmail}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ReviewClientDialog
-                          client={client}
-                          onActivate={() => {}}
-                          onReject={() => {}}
-                          action="view"
-                          triggerButton={
-                            <Button variant="ghost" size="icon">
-                              <Eye />
-                            </Button>
-                          }
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleUpdateClientStatus(client.id, 'archived')
-                          }
-                        >
-                          <Archive className="mr-2" />
-                          Archive
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No active clients found.</p>
-                </div>
-              )}
-            </CardContent>
+            <CardContent>{renderClientList(activeClients)}</CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="archived">
@@ -188,69 +247,7 @@ export default function ClientsPage() {
                 Clients who are no longer active.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              {archivedClients.length > 0 ? (
-                <ul className="space-y-4">
-                  {archivedClients.map(client => (
-                    <li
-                      key={client.id}
-                      className="flex items-center justify-between p-4 rounded-lg border bg-card"
-                    >
-                      <div>
-                        <p className="font-semibold">{client.firmName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {client.contactEmail}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <ReviewClientDialog
-                          client={client}
-                          onActivate={() => {}}
-                          onReject={() => {}}
-                          action="view"
-                          triggerButton={
-                            <Button variant="ghost" size="icon">
-                              <Eye />
-                            </Button>
-                          }
-                        />
-                        <ReviewClientDialog
-                          client={client}
-                          onActivate={() =>
-                            handleUpdateClientStatus(client.id, 'active')
-                          }
-                          onReject={() => {}}
-                          action="reactivate"
-                          triggerButton={
-                            <Button variant="outline" size="sm">
-                              <Undo className="mr-2" />
-                              Re-activate
-                            </Button>
-                          }
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() =>
-                            setClients(prev =>
-                              prev.filter(c => c.id !== client.id)
-                            )
-                          }
-                        >
-                          <Trash2 className="mr-2" />
-                          Delete
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <p>No archived clients found.</p>
-                </div>
-              )}
-            </CardContent>
+            <CardContent>{renderClientList(archivedClients)}</CardContent>
           </Card>
         </TabsContent>
       </Tabs>
