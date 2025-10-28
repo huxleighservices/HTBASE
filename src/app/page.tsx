@@ -58,13 +58,8 @@ export default function LoginPage() {
   }, [searchQuery]);
 
   const clientsQuery = useMemoFirebase(() => {
-    if (!firestore) {
-      // Return a query that will never return results if firestore is not ready
-      return query(collectionGroup(firestore, 'clients'), where('__never', '==', 'true'));
-    }
-    if (!debouncedSearchQuery || debouncedSearchQuery.length < 3) {
-      // Return a query that will never return results if search query is too short
-      return query(collectionGroup(firestore, 'clients'), where('__never', '==', 'true'));
+    if (!firestore || !debouncedSearchQuery || debouncedSearchQuery.length < 3) {
+      return null; // Return null if firestore or search query is not ready
     }
     return query(
       collectionGroup(firestore, 'clients'),
