@@ -58,10 +58,8 @@ export default function LoginPage() {
   }, [searchQuery]);
 
   const clientsQuery = useMemoFirebase(() => {
-    // CRITICAL: Ensure firestore is initialized before creating a query.
     if (!firestore) {
-      // Return a query that will never return any documents.
-      // This prevents useCollection from making a root query.
+      // Firestore not ready, return a query that will result in no documents
       return query(collectionGroup(firestore, 'clients'), where('displayId', '==', ' nonexistent-id-for-init'));
     }
 
