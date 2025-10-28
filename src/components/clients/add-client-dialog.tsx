@@ -41,11 +41,11 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type AddClientDialogProps = {
   children: ReactNode;
-  onAddClient?: (client: Omit<Client, 'id' | 'status'>) => void;
+  onAddClient?: (client: Omit<Client, 'id' | 'status' | 'displayId'>) => void;
   clientToEdit?: Client;
   onEditClient?: (
     clientId: string,
-    client: Omit<Client, 'id' | 'status'>
+    client: Omit<Client, 'id' | 'status' | 'displayId'>
   ) => void;
 };
 

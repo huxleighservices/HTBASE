@@ -40,6 +40,10 @@
           "type": "string",
           "description": "Unique identifier for the Client entity."
         },
+        "displayId": {
+          "type": "string",
+          "description": "A random 6-character ID for display purposes."
+        },
         "firmName": {
           "type": "string"
         },
@@ -75,6 +79,7 @@
       },
       "required": [
         "id",
+        "displayId",
         "firmName",
         "contactEmail",
         "status"

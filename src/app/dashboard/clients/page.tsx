@@ -32,6 +32,7 @@ import {
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export default function ClientsPage() {
   const { user } = useUser();
@@ -46,17 +47,33 @@ export default function ClientsPage() {
     clientsCollectionRef
   );
 
-  const handleAddClient = (client: Omit<Client, 'id' | 'status'>) => {
+  const generateDisplayId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let id;
+    let isUnique = false;
+    while (!isUnique) {
+      id = '';
+      for (let i = 0; i < 6; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      isUnique = !clients?.some(client => client.displayId === id);
+    }
+    return id;
+  };
+
+  const handleAddClient = (client: Omit<Client, 'id' | 'status' | 'displayId'>) => {
     if (!clientsCollectionRef) return;
+    const displayId = generateDisplayId();
     addDocumentNonBlocking(clientsCollectionRef, {
       ...client,
+      displayId,
       status: 'pending',
     });
   };
 
   const handleUpdateClient = (
     clientId: string,
-    client: Omit<Client, 'id' | 'status'>
+    client: Omit<Client, 'id' | 'status' | 'displayId'>
   ) => {
     if (!firestore || !user) return;
     const clientDocRef = doc(
@@ -115,9 +132,21 @@ export default function ClientsPage() {
 
   const ClientListItem = ({ client }: { client: Client }) => (
     <li className="flex items-center justify-between p-4 rounded-lg border bg-card">
-      <div>
-        <p className="font-semibold">{client.firmName}</p>
-        <p className="text-sm text-muted-foreground">{client.contactEmail}</p>
+      <div className="flex items-center gap-4">
+        {client.displayId && (
+          <Badge
+            variant="secondary"
+            className="text-base font-mono tracking-widest"
+          >
+            {client.displayId}
+          </Badge>
+        )}
+        <div>
+          <p className="font-semibold">{client.firmName}</p>
+          <p className="text-sm text-muted-foreground">
+            {client.contactEmail}
+          </p>
+        </div>
       </div>
       {client.status === 'pending' && (
         <div className="flex items-center gap-2">
@@ -211,8 +240,8 @@ export default function ClientsPage() {
       )}
     </li>
   );
-  
-    if (isLoading) {
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -254,7 +283,11 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {clients && renderClientList(clients.filter(c => c.status === 'pending'), 'pending')}
+              {clients &&
+                renderClientList(
+                  clients.filter(c => c.status === 'pending'),
+                  'pending'
+                )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -267,7 +300,11 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {clients && renderClientList(clients.filter(c => c.status === 'active'), 'active')}
+              {clients &&
+                renderClientList(
+                  clients.filter(c => c.status === 'active'),
+                  'active'
+                )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -280,7 +317,11 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {clients && renderClientList(clients.filter(c => c.status === 'archived'), 'archived')}
+              {clients &&
+                renderClientList(
+                  clients.filter(c => c.status === 'archived'),
+                  'archived'
+                )}
             </CardContent>
           </Card>
         </TabsContent>

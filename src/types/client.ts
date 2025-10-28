@@ -1,5 +1,6 @@
 export type Client = {
   id: string;
+  displayId: string;
   firmName: string;
   legalFirstName: string;
   legalLastName: string;
