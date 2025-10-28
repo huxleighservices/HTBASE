@@ -353,12 +353,16 @@ export default function ClientLaunchPage({
         open={isQualificationOpen}
         onOpenChange={setIsQualificationOpen}
         activeSessionId={activeSessionId}
+        trainingData={client?.trainingData}
       />
       <ColdCallSimulatorDialog
         open={isColdCallOpen}
         onOpenChange={setIsColdCallOpen}
         activeSessionId={activeSessionId}
+        trainingData={client?.trainingData}
       />
     </>
   );
 }
+
+    

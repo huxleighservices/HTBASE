@@ -79,6 +79,10 @@
         "launchPassword": {
           "type": "string",
           "description": "Password to access the client's launch portal."
+        },
+        "trainingData": {
+          "type": "string",
+          "description": "Custom product information or training material for the AI."
         }
       },
       "required": [
@@ -245,3 +249,5 @@
     "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, following the core design principles and strategy mandates. It uses path-based ownership for user-specific data, ensuring clear authorization and efficient querying. The structure avoids hierarchical authorization dependencies by relying solely on `request.auth.uid` and path-based ownership, which simplifies security rules and allows atomic operations. Segregation of data based on access needs simplifies security rules by ensuring all documents in a collection share the same security requirements.\n\nThe `/users/{userId}` collection stores user profiles. The `/users/{userId}/landingPages/{landingPageId}` collection stores landing pages owned by each user. The `/users/{userId}/customizations/{customizationId}` collection stores customizations owned by each user. This structure facilitates straightforward security rules based on path-based ownership, guaranteeing that only the authenticated user can access their respective landing pages and customizations. All `list` operations are secured via path-based ownership, where listing a collection is only allowed if the authenticated user is the owner. \n\nThis design emphasizes Authorization Independence, DBAC (Database-Based Access Control), QAPs (Rules Are Not Filters), and structural segregation, resulting in a robust and maintainable data model."
   }
 }
+
+    

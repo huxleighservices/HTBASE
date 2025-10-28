@@ -13,4 +13,7 @@ export type Client = {
   status: 'pending' | 'active' | 'archived';
   path?: string; // Full path to the document in Firestore
   launchPassword?: string;
+  trainingData?: string;
 };
+
+    

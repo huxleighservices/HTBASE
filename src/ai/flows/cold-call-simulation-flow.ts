@@ -3,8 +3,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { SimulationDifficulty, type ProspectingSimulationOutput } from '@/types/trainer';
+import { SimulationDifficulty } from '@/types/trainer';
 import { pineWiltWindowsGuide } from '@/ai/docs/pine-wilt-windows';
+import type { ProspectingSimulationOutput } from '@/types/trainer';
 
 const ConversationMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -14,6 +15,7 @@ const ConversationMessageSchema = z.object({
 const SimulationInputSchema = z.object({
   difficulty: z.nativeEnum(SimulationDifficulty),
   conversationHistory: z.array(ConversationMessageSchema),
+  trainingData: z.string().optional(),
 });
 
 const SimulationFeedbackSchema = z.object({
@@ -23,17 +25,19 @@ const SimulationFeedbackSchema = z.object({
 });
 
 export async function runColdCallSimulation(input: z.infer<typeof SimulationInputSchema>): Promise<ProspectingSimulationOutput> {
-  const { difficulty, conversationHistory } = input;
+  const { difficulty, conversationHistory, trainingData } = input;
   const userMessageCount = conversationHistory.filter(m => m.role === 'user').length;
   const isComplete = userMessageCount >= 5;
 
-  const systemPrompt = `You are an AI sales training assistant. You are playing the role of a potential customer being cold-called about Pine Wilt Windows. The user is a salesperson in training. Your goal is to simulate a realistic cold-call.
+  const productInfo = trainingData || pineWiltWindowsGuide;
 
-  Here is the product information for Pine Wilt Windows. You should use this to inform your responses, objections, and questions:
-  ${pineWiltWindowsGuide}
+  const systemPrompt = `You are an AI sales training assistant. You are playing the role of a potential customer being cold-called about the product described below. The user is a salesperson in training. Your goal is to simulate a realistic cold-call.
+
+  Here is the product information. You should use this to inform your responses, objections, and questions:
+  ${productInfo}
 
   Your persona is based on the difficulty level:
-  - Easy: You're not busy and are somewhat curious about new windows. You're willing to listen for a minute.
+  - Easy: You're not busy and are somewhat curious about the product. You're willing to listen for a minute.
   - Medium: You are busy and guarded. You're quick to try and get off the phone unless the salesperson gives you a very good reason to stay.
   - Hard: You are annoyed by the call and immediately hostile. You will try to hang up quickly.
 
@@ -83,3 +87,5 @@ export async function runColdCallSimulation(input: z.infer<typeof SimulationInpu
     };
   }
 }
+
+    

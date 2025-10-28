@@ -18,6 +18,7 @@ import {
   Edit,
   Rocket,
   KeyRound,
+  Wrench
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -38,6 +39,7 @@ import { Badge } from '@/components/ui/badge';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { EditPasswordDialog } from '@/components/clients/edit-password-dialog';
+import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
 
 export default function ClientsPage() {
   const { user } = useUser();
@@ -95,7 +97,7 @@ export default function ClientsPage() {
   }, [clients, firestore, user]);
 
   const handleAddClient = (
-    client: Omit<Client, 'id' | 'status' | 'displayId' | 'launchPassword'>
+    client: Omit<Client, 'id' | 'status' | 'displayId' | 'launchPassword' | 'trainingData'>
   ) => {
     if (!clientsCollectionRef) return;
     const displayId = generateDisplayId(clients);
@@ -133,6 +135,18 @@ export default function ClientsPage() {
     );
     updateDocumentNonBlocking(clientDocRef, { launchPassword: password });
   };
+  
+  const handleUpdateTrainingData = (clientId: string, trainingData: string) => {
+    if (!firestore || !user) return;
+    const clientDocRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'clients',
+      clientId
+    );
+    updateDocumentNonBlocking(clientDocRef, { trainingData });
+  }
 
   const handleUpdateClientStatus = (
     clientId: string,
@@ -241,6 +255,14 @@ export default function ClientsPage() {
       )}
       {client.status === 'active' && (
         <div className="flex items-center gap-2">
+          {isServiceAccount && (
+             <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+              <Button variant="outline" size="sm">
+                  <Wrench className="mr-2" />
+                  Setup
+                </Button>
+            </SetupTrainerDialog>
+          )}
           <AddClientDialog
             clientToEdit={client}
             onEditClient={handleUpdateClient}
@@ -396,3 +418,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    

@@ -3,8 +3,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { SimulationDifficulty, type ProspectingSimulationOutput } from '@/types/trainer';
+import { SimulationDifficulty } from '@/types/trainer';
 import { pineWiltWindowsGuide } from '@/ai/docs/pine-wilt-windows';
+import type { ProspectingSimulationOutput } from '@/types/trainer';
+
 
 const ConversationMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -14,6 +16,7 @@ const ConversationMessageSchema = z.object({
 const SimulationInputSchema = z.object({
   difficulty: z.nativeEnum(SimulationDifficulty),
   conversationHistory: z.array(ConversationMessageSchema),
+  trainingData: z.string().optional(),
 });
 
 const SimulationFeedbackSchema = z.object({
@@ -23,14 +26,16 @@ const SimulationFeedbackSchema = z.object({
 });
 
 export async function runClosingSimulation(input: z.infer<typeof SimulationInputSchema>): Promise<ProspectingSimulationOutput> {
-  const { difficulty, conversationHistory } = input;
+  const { difficulty, conversationHistory, trainingData } = input;
   const userMessageCount = conversationHistory.filter(m => m.role === 'user').length;
   const isComplete = userMessageCount >= 5;
 
-  const systemPrompt = `You are an AI sales training assistant. You are playing the role of a prospect at the closing stage for a deal on Pine Wilt Windows. The user is a salesperson in training trying to close the deal.
+  const productInfo = trainingData || pineWiltWindowsGuide;
 
-  Here is the product information for Pine Wilt Windows. You should use this to inform your responses, objections, and questions:
-  ${pineWiltWindowsGuide}
+  const systemPrompt = `You are an AI sales training assistant. You are playing the role of a prospect at the closing stage for a deal on the product described below. The user is a salesperson in training trying to close the deal.
+
+  Here is the product information. You should use this to inform your responses, objections, and questions:
+  ${productInfo}
 
   Your persona is based on the difficulty level:
   - Easy: You are ready to sign. You are enthusiastic and just need a clear prompt to move forward.
@@ -83,3 +88,5 @@ export async function runClosingSimulation(input: z.infer<typeof SimulationInput
     };
   }
 }
+
+    

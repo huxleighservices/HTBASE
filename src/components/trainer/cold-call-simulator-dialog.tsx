@@ -34,10 +34,10 @@ import type { TrainingSession } from '@/types/sessions';
 
 const USER_MESSAGE_LIMIT = 5;
 
-export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId }: { open: boolean, onOpenChange: (open: boolean) => void, activeSessionId: string | null }) {
+export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, trainingData }: { open: boolean, onOpenChange: (open: boolean) => void, activeSessionId: string | null, trainingData?: string }) {
     const { toast } = useToast();
     const { user } = useUser();
-    const [difficulty, setDifficulty] = useState<SimulationDifficulty>('Easy');
+    const [difficulty, setDifficulty] = useState<SimulationDifficulty>(SimulationDifficulty.Easy);
     const [conversation, setConversation] = useState<ConversationMessage[]>([]);
     const [isStarted, setIsStarted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +90,7 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId }:
             const result = await runColdCallSimulation({
                 difficulty,
                 conversationHistory: updatedConversationWithUser,
+                trainingData,
             });
 
             let finalConversation = [...updatedConversationWithUser];
@@ -292,3 +293,5 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId }:
         </Dialog>
     );
 }
+
+    
