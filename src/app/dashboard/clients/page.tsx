@@ -27,6 +27,20 @@ import {
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
+const testClient: Client = {
+  id: 'test-client',
+  firmName: 'Test Client Inc.',
+  legalFirstName: 'Test',
+  legalLastName: 'Client',
+  firmSize: '10-50',
+  firmEstYear: '2022',
+  industry: 'Software',
+  contactEmail: 'test@example.com',
+  contactPhoneNumber: '123-456-7890',
+  location: 'Testville, USA',
+  status: 'active',
+};
+
 export default function ClientsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -36,9 +50,11 @@ export default function ClientsPage() {
     return collection(firestore, 'users', user.uid, 'clients');
   }, [firestore, user]);
 
-  const { data: clients = [], isLoading } = useCollection<Client>(
+  const { data: dbClients = [], isLoading } = useCollection<Client>(
     clientsCollectionRef
   );
+
+  const clients = [testClient, ...dbClients];
 
   const handleAddClient = (client: Omit<Client, 'id' | 'status'>) => {
     if (!clientsCollectionRef) return;
@@ -52,7 +68,7 @@ export default function ClientsPage() {
     clientId: string,
     status: 'active' | 'archived'
   ) => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || clientId === 'test-client') return;
     const clientDocRef = doc(
       firestore,
       'users',
@@ -64,7 +80,7 @@ export default function ClientsPage() {
   };
 
   const handleDeleteClient = (clientId: string) => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || clientId === 'test-client') return;
     const clientDocRef = doc(
       firestore,
       'users',
@@ -80,7 +96,7 @@ export default function ClientsPage() {
   const archivedClients = clients.filter(c => c.status === 'archived');
 
   const renderClientList = (clientList: Client[]) => {
-    if (isLoading) {
+    if (isLoading && clientList.length <= 1) { // Show loading if only test client is present
       return (
         <div className="text-center py-12 text-muted-foreground">
           <p>Loading clients...</p>
@@ -139,6 +155,7 @@ export default function ClientsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleUpdateClientStatus(client.id, 'archived')}
+                  disabled={client.id === 'test-client'}
                 >
                   <Archive className="mr-2" />
                   Archive
@@ -206,7 +223,7 @@ export default function ClientsPage() {
         </AddClientDialog>
       </div>
 
-      <Tabs defaultValue="pending">
+      <Tabs defaultValue="active">
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="pending">Pending</TabsTrigger>
