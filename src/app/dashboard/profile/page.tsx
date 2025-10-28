@@ -32,6 +32,8 @@ export default function ProfilePage() {
     const last = lastName?.[0] || '';
     return `${first}${last}`.toUpperCase();
   };
+  
+  const displayedEmail = userProfile?.email || user?.email;
 
   return (
     <div className="flex flex-col gap-8">
@@ -77,7 +79,7 @@ export default function ProfilePage() {
                 <h2 className="text-2xl font-semibold">
                   {userProfile?.firstName} {userProfile?.lastName}
                 </h2>
-                <p className="text-muted-foreground">{user?.email}</p>
+                <p className="text-muted-foreground">{displayedEmail}</p>
               </div>
             </div>
           )}
@@ -115,7 +117,7 @@ export default function ProfilePage() {
                 <p className="text-sm font-medium text-muted-foreground">
                   Email Address
                 </p>
-                <p className="text-lg">{userProfile?.email}</p>
+                <p className="text-lg">{displayedEmail}</p>
               </div>
             </div>
           )}

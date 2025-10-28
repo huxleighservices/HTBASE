@@ -68,18 +68,24 @@ export default function SettingsPage() {
       form.reset({
         firstName: userProfile.firstName || '',
         lastName: userProfile.lastName || '',
-        email: userProfile.email || '',
+        email: userProfile.email || user?.email || '',
       });
+    } else if (user) {
+        form.reset({
+            firstName: '',
+            lastName: '',
+            email: user.email || '',
+        })
     }
-  }, [userProfile, form]);
+  }, [userProfile, user, form]);
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    if (!userDocRef) return;
+    if (!userDocRef || !user) return;
     setIsSaving(true);
     const profileData = {
-      id: user!.uid,
-      email: user!.email,
+      id: user.uid,
       ...data,
+      email: user.email, // Ensure email from auth is saved
     };
     setDocumentNonBlocking(userDocRef, profileData, { merge: true });
     // The non-blocking function doesn't have a callback for success,
