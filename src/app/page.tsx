@@ -58,8 +58,13 @@ export default function LoginPage() {
   }, [searchQuery]);
 
   const clientsQuery = useMemoFirebase(() => {
-    if (!firestore || !debouncedSearchQuery || debouncedSearchQuery.length < 3) {
-      return null;
+    if (!firestore) {
+      // Return a query that will never return results if firestore is not ready
+      return query(collectionGroup(firestore, 'clients'), where('__never', '==', 'true'));
+    }
+    if (!debouncedSearchQuery || debouncedSearchQuery.length < 3) {
+      // Return a query that will never return results if search query is too short
+      return query(collectionGroup(firestore, 'clients'), where('__never', '==', 'true'));
     }
     return query(
       collectionGroup(firestore, 'clients'),
@@ -174,7 +179,7 @@ export default function LoginPage() {
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
-            {isSearchLoading && (
+            {isSearchLoading && debouncedSearchQuery.length >= 3 && (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>

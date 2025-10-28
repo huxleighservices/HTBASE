@@ -59,7 +59,10 @@ export default function ClientLaunchPage({
   const firestore = useFirestore();
 
   const clientQuery = useMemoFirebase(() => {
-    if (!firestore || !params.clientId) return null;
+    if (!firestore || !params.clientId) {
+      // Return a query that will never return results
+      return query(collectionGroup(firestore, 'clients'), where('__never', '==', 'true'));
+    }
     return query(
       collectionGroup(firestore, 'clients'),
       where('displayId', '==', params.clientId)
