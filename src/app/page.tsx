@@ -224,8 +224,16 @@ export default function LoginPage() {
 
       <footer className="mt-8 text-center text-sm text-muted-foreground">
         <p>
-          &copy; {new Date().getFullYear()} Huxleigh Trainer Base. All Rights
-          Reserved.
+          &copy; {new Date().getFullYear()}{' '}
+          <a
+            href="https://huxleigh.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary"
+          >
+            Huxleigh LLC
+          </a>
+          . All Rights Reserved.
         </p>
       </footer>
     </main>
