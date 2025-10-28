@@ -44,11 +44,10 @@ const sessionFormSchema = z.object({
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
 export default function ClientLaunchPage({
-  params,
+  params: { clientId },
 }: {
   params: { clientId: string };
 }) {
-  const { clientId } = params;
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
