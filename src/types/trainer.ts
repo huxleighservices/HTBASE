@@ -1,5 +1,10 @@
 
-export type SimulationDifficulty = 'Easy' | 'Medium' | 'Hard';
+
+export enum SimulationDifficulty {
+    Easy = 'Easy',
+    Medium = 'Medium',
+    Hard = 'Hard',
+}
 
 export type ConversationMessage = {
     role: 'user' | 'assistant';
@@ -17,3 +22,4 @@ export type ProspectingSimulationOutput = {
     response: string | null;
     feedback: SimulationFeedback | null;
 };
+

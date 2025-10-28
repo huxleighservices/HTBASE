@@ -3,11 +3,16 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { SimulationDifficulty, ConversationMessage, ProspectingSimulationOutput } from '@/types/trainer';
+import { SimulationDifficulty, type ProspectingSimulationOutput } from '@/types/trainer';
+
+const ConversationMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string(),
+});
 
 const SimulationInputSchema = z.object({
   difficulty: z.nativeEnum(SimulationDifficulty),
-  conversationHistory: z.array(z.nativeEnum(ConversationMessage)),
+  conversationHistory: z.array(ConversationMessageSchema),
 });
 
 export async function runProposalSimulation(input: z.infer<typeof SimulationInputSchema>): Promise<ProspectingSimulationOutput> {
