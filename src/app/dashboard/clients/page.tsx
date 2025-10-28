@@ -33,6 +33,7 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useEffect } from 'react';
 
 export default function ClientsPage() {
   const { user } = useUser();
@@ -47,23 +48,42 @@ export default function ClientsPage() {
     clientsCollectionRef
   );
 
-  const generateDisplayId = () => {
+  const generateDisplayId = (currentClients: Client[] | null | undefined) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let id;
     let isUnique = false;
+    const existingIds = new Set(currentClients?.map(c => c.displayId));
     while (!isUnique) {
       id = '';
       for (let i = 0; i < 6; i++) {
         id += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      isUnique = !clients?.some(client => client.displayId === id);
+      isUnique = !existingIds.has(id);
     }
     return id;
   };
 
+  useEffect(() => {
+    if (clients && firestore && user) {
+      clients.forEach(client => {
+        if (!client.displayId) {
+          const newDisplayId = generateDisplayId(clients);
+          const clientDocRef = doc(
+            firestore,
+            'users',
+            user.uid,
+            'clients',
+            client.id
+          );
+          updateDocumentNonBlocking(clientDocRef, { displayId: newDisplayId });
+        }
+      });
+    }
+  }, [clients, firestore, user]);
+
   const handleAddClient = (client: Omit<Client, 'id' | 'status' | 'displayId'>) => {
     if (!clientsCollectionRef) return;
-    const displayId = generateDisplayId();
+    const displayId = generateDisplayId(clients);
     addDocumentNonBlocking(clientsCollectionRef, {
       ...client,
       displayId,
@@ -249,6 +269,10 @@ export default function ClientsPage() {
     );
   }
 
+  const pendingClients = clients?.filter(c => c.status === 'pending') || [];
+  const activeClients = clients?.filter(c => c.status === 'active') || [];
+  const archivedClients = clients?.filter(c => c.status === 'archived') || [];
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex justify-between items-center">
@@ -283,11 +307,7 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {clients &&
-                renderClientList(
-                  clients.filter(c => c.status === 'pending'),
-                  'pending'
-                )}
+              {renderClientList(pendingClients, 'pending')}
             </CardContent>
           </Card>
         </TabsContent>
@@ -300,11 +320,7 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {clients &&
-                renderClientList(
-                  clients.filter(c => c.status === 'active'),
-                  'active'
-                )}
+              {renderClientList(activeClients, 'active')}
             </CardContent>
           </Card>
         </TabsContent>
@@ -317,11 +333,7 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {clients &&
-                renderClientList(
-                  clients.filter(c => c.status === 'archived'),
-                  'archived'
-                )}
+              {renderClientList(archivedClients, 'archived')}
             </CardContent>
           </Card>
         </TabsContent>
