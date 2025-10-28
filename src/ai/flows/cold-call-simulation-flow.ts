@@ -4,6 +4,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { SimulationDifficulty, type ProspectingSimulationOutput } from '@/types/trainer';
+import { pineWiltWindowsGuide } from '@/ai/docs/pine-wilt-windows';
 
 const ConversationMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -15,24 +16,70 @@ const SimulationInputSchema = z.object({
   conversationHistory: z.array(ConversationMessageSchema),
 });
 
+const SimulationFeedbackSchema = z.object({
+  overallAssessment: z.string().describe('A brief, overall assessment of the user\'s performance.'),
+  positivePoints: z.array(z.string()).describe('A list of specific things the user did well.'),
+  areasForImprovement: z.array(z.string()).describe('A list of specific areas where the user can improve.'),
+});
+
 export async function runColdCallSimulation(input: z.infer<typeof SimulationInputSchema>): Promise<ProspectingSimulationOutput> {
-  // Placeholder implementation
-  console.log('Running cold call simulation with input:', input);
+  const { difficulty, conversationHistory } = input;
+  const userMessageCount = conversationHistory.filter(m => m.role === 'user').length;
+  const isComplete = userMessageCount >= 5;
 
-  const isComplete = input.conversationHistory.filter(m => m.role === 'user').length >= 5;
+  const systemPrompt = `You are an AI sales training assistant. You are playing the role of a potential customer being cold-called about Pine Wilt Windows. The user is a salesperson in training. Your goal is to simulate a realistic cold-call.
 
-  let feedback = null;
+  Here is the product information for Pine Wilt Windows. You should use this to inform your responses, objections, and questions:
+  ${pineWiltWindowsGuide}
+
+  Your persona is based on the difficulty level:
+  - Easy: You're not busy and are somewhat curious about new windows. You're willing to listen for a minute.
+  - Medium: You are busy and guarded. You're quick to try and get off the phone unless the salesperson gives you a very good reason to stay.
+  - Hard: You are annoyed by the call and immediately hostile. You will try to hang up quickly.
+
+  Engage in a conversation with the user. After 5 user messages, the simulation will end.
+  `;
+  
   if (isComplete) {
-    feedback = {
-      overallAssessment: 'This is a placeholder overall assessment for the cold call simulation.',
-      positivePoints: ['Your opening was strong.', 'You handled the gatekeeper well.'],
-      areasForImprovement: ['Your tone could be more confident.', 'Have a clearer call to action.'],
+    const feedbackResponse = await ai.generate({
+      prompt: `The following is a transcript of a sales cold call simulation. The user is the salesperson and the assistant is the prospect.
+      Please provide feedback on the user's performance based on the transcript.
+
+      Transcript:
+      ${conversationHistory.map(m => `${m.role}: ${m.content}`).join('\n')}
+
+      Based on the conversation, provide an overall assessment, a few positive points, and a few areas for improvement for the salesperson's cold calling skills.
+      `,
+      model: 'googleai/gemini-2.5-flash',
+      output: {
+        schema: SimulationFeedbackSchema,
+      },
+    });
+
+    const feedback = feedbackResponse.output();
+    return {
+      isComplete: true,
+      response: null,
+      feedback,
+    };
+  } else {
+    const response = await ai.generate({
+      prompt: `Conversation History:
+      ${conversationHistory.map(m => `${m.role}: ${m.content}`).join('\n')}
+      user: ${conversationHistory[conversationHistory.length - 1].content}
+      
+      Based on the persona for difficulty '${difficulty}', generate the prospect's response. Your opening line should be something like "Hello?".`,
+      model: 'googleai/gemini-2.5-flash',
+      system: systemPrompt,
+      output: {
+        schema: z.object({ response: z.string() })
+      }
+    });
+    
+    return {
+      isComplete: false,
+      response: response.output()!.response,
+      feedback: null,
     };
   }
-
-  return {
-    isComplete,
-    response: isComplete ? null : 'This is a placeholder AI response for the cold call simulation.',
-    feedback,
-  };
 }
