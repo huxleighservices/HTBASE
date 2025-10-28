@@ -20,11 +20,9 @@ import {
   useAuth,
   useUser,
   useFirestore,
-  useCollection,
-  useMemoFirebase,
 } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { collectionGroup, query, where, limit } from 'firebase/firestore';
+import { collectionGroup, query, where, limit, getDocs } from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { FirebaseError } from 'firebase/app';
 
@@ -38,8 +36,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<Client[]>([]);
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -57,27 +58,42 @@ export default function LoginPage() {
     };
   }, [searchQuery]);
 
-  const clientsQuery = useMemoFirebase(() => {
-    if (!firestore) {
-      // Firestore not ready, return a query that will result in no documents
-      return query(collectionGroup(firestore, 'clients'), where('displayId', '==', ' nonexistent-id-for-init'));
-    }
+  useEffect(() => {
+    const fetchClients = async () => {
+      // Only run query if firestore is available and search query is long enough
+      if (!firestore || !debouncedSearchQuery || debouncedSearchQuery.length < 3) {
+        setSearchResults([]);
+        setIsSearchLoading(false);
+        return;
+      }
 
-    if (!debouncedSearchQuery || debouncedSearchQuery.length < 3) {
-      // Not enough characters to search, return a query that will result in no documents
-      return query(collectionGroup(firestore, 'clients'), where('displayId', '==', ' '));
-    }
-    return query(
-      collectionGroup(firestore, 'clients'),
-      where('displayId', '>=', debouncedSearchQuery.toUpperCase()),
-      where('displayId', '<=', debouncedSearchQuery.toUpperCase() + '\uf8ff'),
-      where('status', '==', 'active'),
-      limit(5)
-    );
+      setIsSearchLoading(true);
+      try {
+        const clientsQuery = query(
+          collectionGroup(firestore, 'clients'),
+          where('displayId', '>=', debouncedSearchQuery.toUpperCase()),
+          where('displayId', '<=', debouncedSearchQuery.toUpperCase() + '\uf8ff'),
+          where('status', '==', 'active'),
+          limit(5)
+        );
+
+        const querySnapshot = await getDocs(clientsQuery);
+        const clients = querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id,
+        })) as Client[];
+        setSearchResults(clients);
+      } catch (e) {
+        console.error("Error searching clients:", e);
+        setSearchResults([]);
+        // Optionally set an error state to show in the UI
+      } finally {
+        setIsSearchLoading(false);
+      }
+    };
+
+    fetchClients();
   }, [firestore, debouncedSearchQuery]);
-
-  const { data: searchResults, isLoading: isSearchLoading } =
-    useCollection<Client>(clientsQuery);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,12 +196,12 @@ export default function LoginPage() {
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
-            {isSearchLoading && debouncedSearchQuery.length >= 3 && (
+            {isSearchLoading && (
               <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             )}
-            {searchResults && searchResults.length > 0 && (
+            {!isSearchLoading && searchResults.length > 0 && (
               <div className="space-y-2">
                 {searchResults.map(client => (
                   <Button
@@ -199,7 +215,7 @@ export default function LoginPage() {
                 ))}
               </div>
             )}
-            {debouncedSearchQuery.length >= 3 && !isSearchLoading && (!searchResults || searchResults.length === 0) && (
+            {!isSearchLoading && debouncedSearchQuery.length >= 3 && searchResults.length === 0 && (
               <p className="text-center text-sm text-muted-foreground">
                 No active clients found for '{debouncedSearchQuery}'.
               </p>
