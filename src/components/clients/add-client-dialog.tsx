@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -22,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useEffect } from 'react';
 import type { Client } from '@/types/client';
 
 const formSchema = z.object({
@@ -40,15 +41,24 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type AddClientDialogProps = {
   children: ReactNode;
-  onAddClient: (client: Omit<Client, 'id' | 'status'>) => void;
+  onAddClient?: (client: Omit<Client, 'id' | 'status'>) => void;
+  clientToEdit?: Client;
+  onEditClient?: (
+    clientId: string,
+    client: Omit<Client, 'id' | 'status'>
+  ) => void;
 };
 
 export function AddClientDialog({
   children,
   onAddClient,
+  clientToEdit,
+  onEditClient,
 }: AddClientDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(1);
+
+  const isEditMode = !!clientToEdit;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -65,6 +75,21 @@ export function AddClientDialog({
     },
   });
 
+  useEffect(() => {
+    if (clientToEdit && isOpen) {
+      form.reset(clientToEdit);
+    } else if (!isEditMode && isOpen) {
+      form.reset();
+      setStep(1);
+    }
+  }, [isOpen, clientToEdit, form, isEditMode]);
+  
+  useEffect(() => {
+    if (isEditMode) {
+      setStep(1); // Start at step 1 for editing
+    }
+  }, [isEditMode]);
+
   const handleNext = async () => {
     const fieldsToValidate: (keyof FormValues)[] = [
       'firmName',
@@ -78,17 +103,21 @@ export function AddClientDialog({
       setStep(2);
     }
   };
-  
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       form.reset();
       setStep(1);
     }
     setIsOpen(open);
-  }
+  };
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    onAddClient(data);
+    if (isEditMode && onEditClient && clientToEdit) {
+      onEditClient(clientToEdit.id, data);
+    } else if (onAddClient) {
+      onAddClient(data);
+    }
     handleOpenChange(false);
   };
 
@@ -97,9 +126,13 @@ export function AddClientDialog({
       <div onClick={() => setIsOpen(true)}>{children}</div>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add New Client</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? 'Edit Client' : 'Add New Client'}
+          </DialogTitle>
           <DialogDescription>
-            Enter the client information below. Step {step} of 2.
+            {isEditMode
+              ? 'Update the client information below.'
+              : `Enter the client information below. Step ${step} of 2.`}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -237,7 +270,7 @@ export function AddClientDialog({
                   Cancel
                 </Button>
               </DialogClose>
-              {step === 1 && (
+              {!isEditMode && step === 1 && (
                 <Button type="button" onClick={handleNext}>
                   Next
                 </Button>
@@ -251,8 +284,15 @@ export function AddClientDialog({
                   >
                     Back
                   </Button>
-                  <Button type="submit">Add Client</Button>
+                  <Button type="submit">
+                    {isEditMode ? 'Save Changes' : 'Add Client'}
+                  </Button>
                 </>
+              )}
+               {isEditMode && step === 1 && (
+                <Button type="button" onClick={handleNext}>
+                  Next
+                </Button>
               )}
             </DialogFooter>
           </form>

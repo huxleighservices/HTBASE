@@ -9,7 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { PlusCircle, Search, Archive, Trash2, Eye, Undo } from 'lucide-react';
+import {
+  PlusCircle,
+  Search,
+  Archive,
+  Trash2,
+  Eye,
+  Undo,
+  Edit,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
@@ -64,6 +72,21 @@ export default function ClientsPage() {
     });
   };
 
+  const handleUpdateClient = (
+    clientId: string,
+    client: Omit<Client, 'id' | 'status'>
+  ) => {
+    if (!firestore || !user || clientId === 'test-client') return;
+    const clientDocRef = doc(
+      firestore,
+      'users',
+      user.uid,
+      'clients',
+      clientId
+    );
+    updateDocumentNonBlocking(clientDocRef, client);
+  };
+
   const handleUpdateClientStatus = (
     clientId: string,
     status: 'active' | 'archived'
@@ -96,7 +119,8 @@ export default function ClientsPage() {
   const archivedClients = clients.filter(c => c.status === 'archived');
 
   const renderClientList = (clientList: Client[]) => {
-    if (isLoading && clientList.length <= 1) { // Show loading if only test client is present
+    if (isLoading && clientList.length <= 1) {
+      // Show loading if only test client is present
       return (
         <div className="text-center py-12 text-muted-foreground">
           <p>Loading clients...</p>
@@ -125,10 +149,22 @@ export default function ClientsPage() {
             </div>
             {client.status === 'pending' && (
               <div className="flex items-center gap-2">
+                <AddClientDialog
+                  clientToEdit={client}
+                  onEditClient={handleUpdateClient}
+                >
+                  <Button variant="ghost" size="icon">
+                    <Edit />
+                  </Button>
+                </AddClientDialog>
                 <ReviewClientDialog
                   client={client}
-                  onActivate={() => handleUpdateClientStatus(client.id, 'active')}
-                  onReject={() => handleUpdateClientStatus(client.id, 'archived')}
+                  onActivate={() =>
+                    handleUpdateClientStatus(client.id, 'active')
+                  }
+                  onReject={() =>
+                    handleUpdateClientStatus(client.id, 'archived')
+                  }
                   triggerButton={
                     <Button variant="outline" size="sm">
                       Review & Activate
@@ -140,6 +176,14 @@ export default function ClientsPage() {
             )}
             {client.status === 'active' && (
               <div className="flex items-center gap-2">
+                <AddClientDialog
+                  clientToEdit={client}
+                  onEditClient={handleUpdateClient}
+                >
+                  <Button variant="ghost" size="icon">
+                    <Edit />
+                  </Button>
+                </AddClientDialog>
                 <ReviewClientDialog
                   client={client}
                   onActivate={() => {}}
@@ -154,7 +198,9 @@ export default function ClientsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleUpdateClientStatus(client.id, 'archived')}
+                  onClick={() =>
+                    handleUpdateClientStatus(client.id, 'archived')
+                  }
                   disabled={client.id === 'test-client'}
                 >
                   <Archive className="mr-2" />
@@ -177,7 +223,9 @@ export default function ClientsPage() {
                 />
                 <ReviewClientDialog
                   client={client}
-                  onActivate={() => handleUpdateClientStatus(client.id, 'active')}
+                  onActivate={() =>
+                    handleUpdateClientStatus(client.id, 'active')
+                  }
                   onReject={() => {}}
                   action="reactivate"
                   triggerButton={
