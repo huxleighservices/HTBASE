@@ -56,7 +56,7 @@ export async function runDiscoverySimulation(input: z.infer<typeof SimulationInp
       },
     });
 
-    const feedback = feedbackResponse.output();
+    const feedback = feedbackResponse.output;
     return {
       isComplete: true,
       response: null,
@@ -78,7 +78,7 @@ export async function runDiscoverySimulation(input: z.infer<typeof SimulationInp
     
     return {
       isComplete: false,
-      response: response.output()!.response,
+      response: response.output!.response,
       feedback: null,
     };
   }

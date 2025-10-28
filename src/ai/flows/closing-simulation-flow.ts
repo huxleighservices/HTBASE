@@ -56,7 +56,7 @@ export async function runClosingSimulation(input: z.infer<typeof SimulationInput
       },
     });
 
-    const feedback = feedbackResponse.output();
+    const feedback = feedbackResponse.output;
     return {
       isComplete: true,
       response: null,
@@ -78,7 +78,7 @@ export async function runClosingSimulation(input: z.infer<typeof SimulationInput
     
     return {
       isComplete: false,
-      response: response.output()!.response,
+      response: response.output!.response,
       feedback: null,
     };
   }
