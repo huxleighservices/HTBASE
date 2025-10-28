@@ -14,13 +14,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  useUser,
   useFirestore,
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
 } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, collectionGroup } from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { Loader2, Upload, Link as LinkIcon } from 'lucide-react';
 import { Logo } from '@/components/icons/logo';
@@ -58,29 +57,26 @@ export default function ClientLaunchPage({
   const [sessionCreated, setSessionCreated] = useState(false);
   const [links, setLinks] = useState<string[]>(['']);
 
-  const { user } = useUser();
   const firestore = useFirestore();
 
   const clientQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // In a real multi-user environment, you would not find the user's uid this way.
-    // This is a simplification for the single-user context of this prototype.
-    const allUsersCollection = collection(firestore, 'users');
-    // A query to find the user that has this client. This is inefficient.
-    // A better data model would be a top-level `clients` collection where each client doc has a `userId`.
-    // For this prototype, we assume we can find the user eventually.
-    // This part of the logic is brittle and for demonstration only.
-    // A real app would look up the client directly by its ID if the collection was at the root.
-    // Since clients are in a subcollection, we must know the user ID.
-    // We're taking a shortcut by assuming the displayId is globally unique and the current user is the owner.
+    if (!firestore) return null;
     return query(
-      collection(firestore, 'users', user.uid, 'clients'),
+      collectionGroup(firestore, 'clients'),
       where('displayId', '==', params.clientId)
     );
-  }, [firestore, user, params.clientId]);
+  }, [firestore, params.clientId]);
 
   const { data: clients, isLoading } = useCollection<Client>(clientQuery);
   const client = clients?.[0];
+
+  // We need to get the full path to the client document to add a session
+  // This is a bit of a workaround because we don't know the user ID.
+  // A better data model would have a top-level `sessions` collection.
+  const getClientDocPath = (client: Client | undefined) => {
+    if (!client || !client.path) return null;
+    return client.path;
+  }
 
   const sessionForm = useForm<SessionFormValues>({
     resolver: zodResolver(sessionFormSchema),
@@ -103,13 +99,11 @@ export default function ClientLaunchPage({
   };
 
   const handleSessionSubmit: SubmitHandler<SessionFormValues> = data => {
-    if (!client || !user) return;
+    const clientDocPath = getClientDocPath(client);
+    if (!clientDocPath || !firestore) return;
     const sessionCollectionRef = collection(
       firestore,
-      'users',
-      user.uid,
-      'clients',
-      client.id,
+      clientDocPath,
       'sessions'
     );
     addDocumentNonBlocking(sessionCollectionRef, data);
@@ -126,7 +120,7 @@ export default function ClientLaunchPage({
     setLinks(newLinks);
   };
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />

@@ -11,4 +11,5 @@ export type Client = {
   contactPhoneNumber: string;
   location: string;
   status: 'pending' | 'active' | 'archived';
+  path?: string; // Full path to the document in Firestore
 };
