@@ -31,6 +31,7 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
 export default function ClientsPage() {
   const { user } = useUser();
@@ -210,6 +211,14 @@ export default function ClientsPage() {
       )}
     </li>
   );
+  
+    if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -245,7 +254,6 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoading && <p>Loading clients...</p>}
                 {clients && renderClientList(clients.filter(c => c.status === 'pending'), 'pending')}
             </CardContent>
           </Card>
@@ -259,7 +267,6 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoading && <p>Loading clients...</p>}
                 {clients && renderClientList(clients.filter(c => c.status === 'active'), 'active')}
             </CardContent>
           </Card>
@@ -273,7 +280,6 @@ export default function ClientsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoading && <p>Loading clients...</p>}
                 {clients && renderClientList(clients.filter(c => c.status === 'archived'), 'archived')}
             </CardContent>
           </Card>
