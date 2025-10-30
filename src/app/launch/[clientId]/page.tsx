@@ -233,7 +233,7 @@ export default function ClientLaunchPage() {
                 unoptimized
               />
             ) : (
-                <CardTitle className="font-headline text-2xl">
+                <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>
                     {tagline}
                 </CardTitle>
             )}
@@ -275,7 +275,7 @@ export default function ClientLaunchPage() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle className="font-headline">Create New Session for {client?.firmName}</CardTitle>
+            <CardTitle className={cn("font-headline", customization?.foregroundColor && 'text-foreground')}>Create New Session for {client?.firmName}</CardTitle>
             <CardDescription
               className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}
             >
@@ -366,7 +366,7 @@ export default function ClientLaunchPage() {
                 className="mb-4"
                 unoptimized
               />
-              <CardTitle className="font-headline text-2xl">
+              <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>
                 {tagline}
               </CardTitle>
               <CardDescription
@@ -383,7 +383,7 @@ export default function ClientLaunchPage() {
                       <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <MessageSquare className="size-6" />
                       </div>
-                      <CardTitle className="font-headline text-lg">
+                      <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>
                         Messenger Scenario Runner
                       </CardTitle>
                     </div>
@@ -403,7 +403,7 @@ export default function ClientLaunchPage() {
                       <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Phone className="size-6" />
                       </div>
-                      <CardTitle className="font-headline text-lg">
+                      <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>
                         Cold Call Simulator
                       </CardTitle>
                     </div>
@@ -442,3 +442,5 @@ export default function ClientLaunchPage() {
     </>
   );
 }
+
+    
