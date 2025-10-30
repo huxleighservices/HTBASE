@@ -238,7 +238,7 @@ export default function ClientLaunchPage() {
                 </CardTitle>
             )}
             <CardDescription
-              className={cn(customization?.foregroundColor && 'text-foreground')}
+              className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}
             >
               {description}
             </CardDescription>
@@ -246,7 +246,7 @@ export default function ClientLaunchPage() {
           <form onSubmit={handlePasswordSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className={cn(customization?.foregroundColor && 'text-foreground')}>Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -254,6 +254,7 @@ export default function ClientLaunchPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')}
                 />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
@@ -276,7 +277,7 @@ export default function ClientLaunchPage() {
           <CardHeader>
             <CardTitle className="font-headline">Create New Session for {client?.firmName}</CardTitle>
             <CardDescription
-              className={cn(customization?.foregroundColor && 'text-foreground')}
+              className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}
             >
               Enter the details below to start a new training session.
             </CardDescription>
@@ -290,9 +291,9 @@ export default function ClientLaunchPage() {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>First Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -303,9 +304,9 @@ export default function ClientLaunchPage() {
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Last Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -317,9 +318,9 @@ export default function ClientLaunchPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                      <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Email Address</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="email" {...field} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -330,9 +331,9 @@ export default function ClientLaunchPage() {
                   name="companyName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name</FormLabel>
+                      <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Company Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -369,7 +370,7 @@ export default function ClientLaunchPage() {
                 {tagline}
               </CardTitle>
               <CardDescription
-                className={cn(customization?.foregroundColor && 'text-foreground')}
+                className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}
               >
                 Select a training module to begin.
               </CardDescription>
@@ -386,7 +387,7 @@ export default function ClientLaunchPage() {
                         Messenger Scenario Runner
                       </CardTitle>
                     </div>
-                    <CardDescription className="pt-2">
+                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>
                       Practice real-world conversations with an AI-powered chat simulator.
                     </CardDescription>
                   </CardHeader>
@@ -406,7 +407,7 @@ export default function ClientLaunchPage() {
                         Cold Call Simulator
                       </CardTitle>
                     </div>
-                    <CardDescription className="pt-2">
+                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>
                       Hone your sales skills by practicing cold calls with an AI prospect.
                     </CardDescription>
                   </CardHeader>
@@ -441,5 +442,3 @@ export default function ClientLaunchPage() {
     </>
   );
 }
-
-    
