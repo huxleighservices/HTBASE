@@ -51,7 +51,7 @@ export const generateSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async ({ text, gender }) => {
-    const voiceName = gender === 'Male' ? 'en-US-Standard-C' : 'en-US-Standard-E';
+    const voiceName = gender === 'Male' ? 'achernar' : 'orus';
 
     const { media } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-preview-tts',
