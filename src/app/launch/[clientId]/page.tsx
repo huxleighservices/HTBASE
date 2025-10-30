@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -122,14 +123,21 @@ export default function ClientLaunchPage() {
       const root = document.documentElement;
       if (customization.primaryColor)
         root.style.setProperty('--primary', customization.primaryColor);
-      if (customization.backgroundColor)
+      if (customization.backgroundColor) {
         root.style.setProperty('--background', customization.backgroundColor);
+        root.style.setProperty('--card', customization.backgroundColor);
+      }
       if (customization.accentColor)
         root.style.setProperty('--accent', customization.accentColor);
       if (customization.foregroundColor)
         root.style.setProperty('--foreground', customization.foregroundColor);
        if (customization.fontFamily) {
-        document.body.style.fontFamily = customization.fontFamily;
+        const fontName = customization.fontFamily.replace(/ /g, '+');
+        const link = document.createElement('link');
+        link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;700&display=swap`;
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+        root.style.setProperty('--font-headline', `'${customization.fontFamily}', sans-serif`);
       }
     }
     // Cleanup function to reset styles when component unmounts or customization changes
@@ -137,9 +145,10 @@ export default function ClientLaunchPage() {
       const root = document.documentElement;
       root.style.removeProperty('--primary');
       root.style.removeProperty('--background');
+      root.style.removeProperty('--card');
       root.style.removeProperty('--accent');
       root.style.removeProperty('--foreground');
-      document.body.style.fontFamily = '';
+      root.style.removeProperty('--font-headline');
     };
   }, [customization]);
 
@@ -211,9 +220,9 @@ export default function ClientLaunchPage() {
             <Image
               src={logoSrc}
               alt="Company Logo"
-              width={48}
-              height={48}
-              className="text-primary"
+              width={80}
+              height={80}
+              className="mb-4"
               unoptimized
             />
             <CardTitle className="font-headline text-2xl">{tagline}</CardTitle>
@@ -252,7 +261,7 @@ export default function ClientLaunchPage() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle>Create New Session for {client?.firmName}</CardTitle>
+            <CardTitle className="font-headline">Create New Session for {client?.firmName}</CardTitle>
             <CardDescription>
               Enter the details below to start a new training session.
             </CardDescription>
@@ -336,13 +345,13 @@ export default function ClientLaunchPage() {
               <Image
                 src={logoSrc}
                 alt="Company Logo"
-                width={48}
-                height={48}
-                className="text-primary"
+                width={80}
+                height={80}
+                className="mb-4"
                 unoptimized
               />
               <CardTitle className="font-headline text-2xl">
-                AI Trainer for {tagline}
+                {tagline}
               </CardTitle>
               <CardDescription>
                 Select a training module to begin.
@@ -417,3 +426,5 @@ export default function ClientLaunchPage() {
     </>
   );
 }
+
+    

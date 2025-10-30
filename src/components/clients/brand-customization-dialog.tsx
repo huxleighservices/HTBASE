@@ -109,7 +109,7 @@ const ColorPicker = ({
   onChange: (value: string) => void;
   label: string;
 }) => {
-  const [h, s, l] = value ? value.split(' ').map(v => parseFloat(v.replace('%', ''))) : [0, 0, 0];
+  const [h, s, l] = value ? value.split(' ').map(v => parseFloat(v.replace('%', ''))) : [NaN, NaN, NaN];
 
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHex = e.target.value;
@@ -281,7 +281,7 @@ export function BrandCustomizationDialog({
                       name="tagline"
                       render={({ field }) => (
                           <FormItem>
-                          <FormLabel>Tagline / Firm Name</FormLabel>
+                          <FormLabel>Tagline / Sub-heading</FormLabel>
                           <FormControl>
                               <Input {...field} disabled={isLoading} />
                           </FormControl>
@@ -294,7 +294,7 @@ export function BrandCustomizationDialog({
                       name="fontFamily"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Font Family</FormLabel>
+                          <FormLabel>Header Font</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger disabled={isLoading}>
@@ -317,7 +317,7 @@ export function BrandCustomizationDialog({
                       name="primaryColor"
                       render={({ field }) => (
                           <ColorPicker
-                          label="Primary Color"
+                          label="Button Color"
                           value={field.value}
                           onChange={field.onChange}
                           />
@@ -339,7 +339,7 @@ export function BrandCustomizationDialog({
                       name="backgroundColor"
                       render={({ field }) => (
                           <ColorPicker
-                          label="Background Color"
+                          label="Window Background Color"
                           value={field.value}
                           onChange={field.onChange}
                           />

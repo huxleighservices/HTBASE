@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -10,10 +11,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['"Space Grotesk"', 'sans-serif'],
-        headline: ['"Space Grotesk"', 'sans-serif'],
+        body: ['var(--font-inter)', 'sans-serif'],
+        headline: ['var(--font-headline, var(--font-space-grotesk))', 'sans-serif'],
         code: ['monospace'],
-        sans: ['var(--font-sans)', 'sans-serif'],
+        sans: ['var(--font-inter)', 'sans-serif'],
         'space-grotesk': ['var(--font-space-grotesk)', 'sans-serif'],
         montserrat: ['var(--font-montserrat)', 'sans-serif'],
         inter: ['var(--font-inter)', 'sans-serif'],
@@ -104,3 +105,5 @@ export default {
   },
   plugins: [require('tailwindcss-animate')],
 } satisfies Config;
+
+    
