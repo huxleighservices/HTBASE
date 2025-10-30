@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "User": {
@@ -154,36 +153,39 @@
         "createdAt"
       ]
     },
-    "LandingPage": {
+    "BrandCustomization": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "LandingPage",
+      "title": "BrandCustomization",
       "type": "object",
-      "description": "Represents the customizable landing page for a white-label client.",
+      "description": "Stores the brand customization settings for a client's launch portal.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the LandingPage entity."
+          "description": "Should always be 'config'"
         },
-        "userId": {
+        "primaryColor": {
           "type": "string",
-          "description": "Reference to the User who owns this landing page. (Relationship: User 1:N LandingPage)"
+          "description": "Primary color in HSL format (e.g., '262.1 83.3% 57.8%')."
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "Background color in HSL format."
+        },
+        "accentColor": {
+          "type": "string",
+          "description": "Accent color in HSL format."
         },
         "logoUrl": {
           "type": "string",
-          "description": "URL of the logo for the landing page.",
-          "format": "uri"
+          "format": "uri",
+          "description": "URL for the client's logo."
         },
         "tagline": {
           "type": "string",
-          "description": "Tagline displayed on the landing page."
+          "description": "Custom tagline or name for the portal."
         }
       },
-      "required": [
-        "id",
-        "userId",
-        "logoUrl",
-        "tagline"
-      ]
+      "required": ["id"]
     }
   },
   "auth": {
@@ -199,7 +201,7 @@
         "definition": {
           "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/User"
           },
           "description": "Collection to store user profiles. Only the authenticated user can read/write their own profile.",
           "params": [
@@ -215,7 +217,7 @@
         "definition": {
           "entityName": "Client",
           "schema": {
-            "$ref": "#/backend/entities/Client"
+            "$ref": "#/entities/Client"
           },
           "description": "Subcollection to store clients for a specific user.",
           "params": [
@@ -235,7 +237,7 @@
         "definition": {
           "entityName": "TrainingSession",
           "schema": {
-            "$ref": "#/backend/entities/TrainingSession"
+            "$ref": "#/entities/TrainingSession"
           },
           "description": "Subcollection to store training sessions for a specific client.",
           "params": [
@@ -254,23 +256,16 @@
           ]
         }
       },
-      {
-        "path": "/users/{userId}/landingPages/{landingPageId}",
+       {
+        "path": "/users/{userId}/clients/{clientId}/customization/{customizationId}",
         "definition": {
-          "entityName": "LandingPage",
-          "schema": {
-            "$ref": "#/backend/entities/LandingPage"
-          },
-          "description": "Collection to store landing pages owned by a specific user.  Each LandingPage document stores customizable landing page details. Path-based ownership ensures only the user can access this data.",
+          "entityName": "BrandCustomization",
+          "schema": { "$ref": "#/entities/BrandCustomization" },
+          "description": "Stores brand customization for a specific client portal. The document ID should be a singleton, like 'config'.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the landing page."
-            },
-            {
-              "name": "landingPageId",
-              "description": "The unique identifier of the landing page."
-            }
+            { "name": "userId", "description": "The user owner." },
+            { "name": "clientId", "description": "The client being customized." },
+            { "name": "customizationId", "description": "Singleton ID, e.g., 'config'." }
           ]
         }
       }

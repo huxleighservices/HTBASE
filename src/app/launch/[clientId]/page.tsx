@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,8 +18,10 @@ import {
   where,
   collectionGroup,
   getDocs,
+  doc,
+  getDoc,
 } from 'firebase/firestore';
-import type { Client } from '@/types/client';
+import type { Client, BrandCustomization } from '@/types/client';
 import { Loader2, MessageSquare, Phone } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,7 +38,7 @@ import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulato
 import Image from 'next/image';
 import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
 import { SessionManager } from '@/components/trainer/session-manager';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { useParams } from 'next/navigation';
 
 const sessionFormSchema = z.object({
@@ -59,18 +60,19 @@ export default function ClientLaunchPage() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   const [client, setClient] = useState<Client | null>(null);
+  const [customization, setCustomization] =
+    useState<BrandCustomization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
   const [isColdCallOpen, setIsColdCallOpen] = useState(false);
 
   useEffect(() => {
-    const fetchClient = async () => {
-      if (!firestore || !clientId) {
-        return;
-      }
+    const fetchClientAndCustomization = async () => {
+      if (!firestore || !clientId) return;
       setIsLoading(true);
       try {
         const clientQuery = query(
@@ -78,26 +80,61 @@ export default function ClientLaunchPage() {
           where('displayId', '==', clientId)
         );
         const querySnapshot = await getDocs(clientQuery);
+
         if (!querySnapshot.empty) {
           const clientDoc = querySnapshot.docs[0];
-          setClient({
+          const fetchedClient = {
             ...(clientDoc.data() as Omit<Client, 'id'>),
             id: clientDoc.id,
             path: clientDoc.ref.path,
-          });
+          };
+          setClient(fetchedClient);
+
+          // Fetch customization data
+          const customizationRef = doc(
+            firestore,
+            fetchedClient.path,
+            'customization',
+            'config'
+          );
+          const customizationSnap = await getDoc(customizationRef);
+          if (customizationSnap.exists()) {
+            setCustomization(customizationSnap.data() as BrandCustomization);
+          }
         } else {
           setClient(null);
+          setCustomization(null);
         }
       } catch (e) {
-        console.error('Error fetching client:', e);
+        console.error('Error fetching client data:', e);
         setClient(null);
+        setCustomization(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchClient();
+    fetchClientAndCustomization();
   }, [firestore, clientId]);
+
+  useEffect(() => {
+    if (customization) {
+      const root = document.documentElement;
+      if (customization.primaryColor)
+        root.style.setProperty('--primary', customization.primaryColor);
+      if (customization.backgroundColor)
+        root.style.setProperty('--background', customization.backgroundColor);
+      if (customization.accentColor)
+        root.style.setProperty('--accent', customization.accentColor);
+    }
+    // Cleanup function to reset styles when component unmounts or customization changes
+    return () => {
+      const root = document.documentElement;
+      root.style.removeProperty('--primary');
+      root.style.removeProperty('--background');
+      root.style.removeProperty('--accent');
+    };
+  }, [customization]);
 
   const getClientDocPath = (client: Client | undefined | null) => {
     if (!client || !client.path) return null;
@@ -127,15 +164,14 @@ export default function ClientLaunchPage() {
   const handleSessionSubmit: SubmitHandler<SessionFormValues> = async data => {
     const clientDocPath = getClientDocPath(client);
     if (!clientDocPath || !firestore) return;
-    
-    // We only create the session on the client, Firestore doc is created later.
-    // This allows us to have an ID ready for simulations.
-    // For simplicity, using a timestamp-based ID.
+
     const newSessionId = `session_${Date.now()}`;
     setActiveSessionId(newSessionId);
     setSessionCreated(true);
-};
+  };
 
+  const logoSrc = customization?.logoUrl || '/logo.png';
+  const tagline = customization?.tagline || client?.firmName || 'Client Portal';
 
   if (isLoading) {
     return (
@@ -166,15 +202,14 @@ export default function ClientLaunchPage() {
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
             <Image
-              src="/logo.png"
+              src={logoSrc}
               alt="Company Logo"
               width={48}
               height={48}
               className="text-primary"
+              unoptimized
             />
-            <CardTitle className="font-headline text-2xl">
-              {client?.firmName || 'Client Portal'}
-            </CardTitle>
+            <CardTitle className="font-headline text-2xl">{tagline}</CardTitle>
             <CardDescription>
               This portal is password protected.
             </CardDescription>
@@ -290,9 +325,17 @@ export default function ClientLaunchPage() {
       <main className="min-h-screen bg-dot p-4 md:p-8">
         <div className="mx-auto max-w-4xl">
           <Card>
-            <CardHeader>
+            <CardHeader className="items-center text-center">
+              <Image
+                src={logoSrc}
+                alt="Company Logo"
+                width={48}
+                height={48}
+                className="text-primary"
+                unoptimized
+              />
               <CardTitle className="font-headline text-2xl">
-                AI Trainer for {client?.firmName}
+                AI Trainer for {tagline}
               </CardTitle>
               <CardDescription>
                 Select a training module to begin.
@@ -344,7 +387,7 @@ export default function ClientLaunchPage() {
                 </Card>
               </div>
               <div className="pt-6">
-                 <SessionManager clientPath={getClientDocPath(client)} />
+                <SessionManager clientPath={getClientDocPath(client)} />
               </div>
             </CardContent>
           </Card>

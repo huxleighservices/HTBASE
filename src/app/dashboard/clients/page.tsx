@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,8 @@ import {
   Edit,
   Rocket,
   KeyRound,
-  Wrench
+  Wrench,
+  Palette,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -40,6 +40,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { EditPasswordDialog } from '@/components/clients/edit-password-dialog';
 import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
+import { BrandCustomizationDialog } from '@/components/clients/brand-customization-dialog';
 
 export default function ClientsPage() {
   const { user } = useUser();
@@ -256,12 +257,20 @@ export default function ClientsPage() {
       {client.status === 'active' && (
         <div className="flex items-center gap-2">
           {isServiceAccount && (
+            <>
              <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
               <Button variant="outline" size="sm">
                   <Wrench className="mr-2" />
                   Setup
                 </Button>
             </SetupTrainerDialog>
+            <BrandCustomizationDialog client={client}>
+               <Button variant="outline" size="sm">
+                  <Palette className="mr-2" />
+                  Customize
+                </Button>
+            </BrandCustomizationDialog>
+            </>
           )}
           <AddClientDialog
             clientToEdit={client}
@@ -418,5 +427,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-
-    

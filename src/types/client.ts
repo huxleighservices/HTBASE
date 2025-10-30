@@ -16,4 +16,11 @@ export type Client = {
   trainingData?: string;
 };
 
-    
+export type BrandCustomization = {
+  id: 'config';
+  primaryColor?: string;
+  backgroundColor?: string;
+  accentColor?: string;
+  logoUrl?: string;
+  tagline?: string;
+};
