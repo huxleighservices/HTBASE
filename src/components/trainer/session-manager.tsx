@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -15,19 +14,23 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { BookUser, Loader2, ThumbsUp, Lightbulb, Bot, User } from 'lucide-react';
+import { BookUser, Loader2, ThumbsUp, Lightbulb, Bot, User, Trash2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { TrainingSession, TrainingResult } from '@/types/sessions';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Button } from '../ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+import { deleteSession } from '@/firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 export function SessionManager({ clientPath }: { clientPath: string | null }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const sessionsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !clientPath) return null;
@@ -35,6 +38,15 @@ export function SessionManager({ clientPath }: { clientPath: string | null }) {
   }, [firestore, clientPath]);
 
   const { data: sessions, isLoading } = useCollection<TrainingSession>(sessionsCollectionRef);
+
+  const handleDeleteSession = (sessionId: string) => {
+    if (!clientPath) return;
+    deleteSession(clientPath, sessionId);
+    toast({
+      title: 'Session Deleted',
+      description: 'The training session has been removed.',
+    });
+  };
 
   return (
     <Card>
@@ -64,14 +76,39 @@ export function SessionManager({ clientPath }: { clientPath: string | null }) {
           <Accordion type="single" collapsible className="w-full">
             {sessions.map(session => (
               <AccordionItem key={session.id} value={session.id}>
-                <AccordionTrigger>
-                  <div>
-                    <p className="font-semibold">{session.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {session.createdAt?.toDate ? format(session.createdAt.toDate(), 'PPP') : 'Date not available'}
-                    </p>
-                  </div>
-                </AccordionTrigger>
+                <div className="flex items-center w-full">
+                    <AccordionTrigger className="flex-grow">
+                        <div>
+                            <p className="font-semibold text-left">{session.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                            {session.createdAt?.toDate ? format(session.createdAt.toDate(), 'PPP') : 'Date not available'}
+                            </p>
+                        </div>
+                    </AccordionTrigger>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="ml-2 shrink-0">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will permanently delete the session "{session.name}" and all its associated results. This action cannot be undone.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteSession(session.id)} className={cn(
+                                "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            )}>
+                                Delete Session
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
                 <AccordionContent>
                   {session.results && session.results.length > 0 ? (
                     <div className="space-y-4">

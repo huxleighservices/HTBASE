@@ -13,6 +13,7 @@ import {
   Firestore,
   setDoc,
   serverTimestamp,
+  deleteDoc,
 } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
 import { initializeFirebase } from '.';
@@ -62,4 +63,10 @@ export async function addResultToSession(clientPath: string, sessionId: string, 
     await updateDoc(sessionRef, {
         results: arrayUnion(result)
     });
+}
+
+export async function deleteSession(clientPath: string, sessionId: string) {
+    const db = firestore || getFirestore();
+    const sessionRef = doc(db, clientPath, 'sessions', sessionId);
+    await deleteDoc(sessionRef);
 }
