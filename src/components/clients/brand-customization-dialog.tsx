@@ -38,7 +38,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '../ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Separator } from '../ui/separator';
 
 const fontOptions = ["Space Grotesk", "Montserrat", "Arial", "Times New Roman", "Inter", "Georgia"];
 
@@ -50,23 +49,6 @@ const formSchema = z.object({
   logoUrl: z.string().url().or(z.literal('')),
   tagline: z.string(),
   fontFamily: z.string(),
-  passwordScreenDescription: z.string(),
-  passwordScreenPasswordLabel: z.string(),
-  passwordScreenUnlockButton: z.string(),
-  sessionScreenTitle: z.string(),
-  sessionScreenDescription: z.string(),
-  sessionScreenFirstNameLabel: z.string(),
-  sessionScreenLastNameLabel: z.string(),
-  sessionScreenEmailLabel: z.string(),
-  sessionScreenCompanyLabel: z.string(),
-  sessionScreenLaunchButton: z.string(),
-  trainerScreenDescription: z.string(),
-  messengerTitle: z.string(),
-  messengerDescription: z.string(),
-  messengerButton: z.string(),
-  coldCallTitle: z.string(),
-  coldCallDescription: z.string(),
-  coldCallButton: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -210,25 +192,8 @@ export function BrandCustomizationDialog({
       accentColor: '181 100% 74%',
       foregroundColor: '210 10% 23%',
       logoUrl: '',
-      tagline: client.firmName,
+      tagline: '',
       fontFamily: 'Space Grotesk',
-      passwordScreenDescription: 'This portal is password protected.',
-      passwordScreenPasswordLabel: 'Password',
-      passwordScreenUnlockButton: 'Unlock Portal',
-      sessionScreenTitle: `Create New Session for ${client.firmName}`,
-      sessionScreenDescription: 'Enter the details below to start a new training session.',
-      sessionScreenFirstNameLabel: 'First Name',
-      sessionScreenLastNameLabel: 'Last Name',
-      sessionScreenEmailLabel: 'Email Address',
-      sessionScreenCompanyLabel: 'Company Name',
-      sessionScreenLaunchButton: 'Create Session & Launch Trainer',
-      trainerScreenDescription: 'Select a training module to begin.',
-      messengerTitle: 'Messenger Scenario Runner',
-      messengerDescription: 'Practice real-world conversations with an AI-powered chat simulator.',
-      messengerButton: 'Start Scenario',
-      coldCallTitle: 'Cold Call Simulator',
-      coldCallDescription: 'Hone your sales skills by practicing cold calls with an AI prospect.',
-      coldCallButton: 'Start Simulation',
   };
 
   const form = useForm<FormValues>({
@@ -264,22 +229,6 @@ export function BrandCustomizationDialog({
   
   const isLoading = isSaving || isCustomizationLoading;
 
-  const renderTextField = (name: keyof FormValues, label: string) => (
-    <FormField
-      control={form.control}
-      name={name}
-      render={({ field }) => (
-          <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-              <Input {...field} disabled={isLoading} />
-          </FormControl>
-          <FormMessage />
-          </FormItem>
-      )}
-    />
-  );
-
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -301,8 +250,32 @@ export function BrandCustomizationDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
              <ScrollArea className="h-[60vh] flex-grow pr-6">
                 <div className="space-y-6">
-                    {renderTextField('logoUrl', 'Logo URL')}
-                    {renderTextField('tagline', 'Tagline / Sub-heading')}
+                    <FormField
+                      control={form.control}
+                      name="logoUrl"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Logo URL</FormLabel>
+                          <FormControl>
+                              <Input {...field} disabled={isLoading} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="tagline"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Tagline / Sub-heading</FormLabel>
+                          <FormControl>
+                              <Input {...field} disabled={isLoading} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
                     
                     <FormField
                       control={form.control}
@@ -371,32 +344,6 @@ export function BrandCustomizationDialog({
                           />
                       )}
                     />
-                    
-                    <Separator/>
-                    <h4 className="text-lg font-semibold">Password Screen Text</h4>
-                    {renderTextField('passwordScreenDescription', 'Description')}
-                    {renderTextField('passwordScreenPasswordLabel', 'Password Input Label')}
-                    {renderTextField('passwordScreenUnlockButton', 'Unlock Button Text')}
-
-                    <Separator/>
-                    <h4 className="text-lg font-semibold">Session Screen Text</h4>
-                    {renderTextField('sessionScreenTitle', 'Title')}
-                    {renderTextField('sessionScreenDescription', 'Description')}
-                    {renderTextField('sessionScreenFirstNameLabel', 'First Name Label')}
-                    {renderTextField('sessionScreenLastNameLabel', 'Last Name Label')}
-                    {renderTextField('sessionScreenEmailLabel', 'Email Label')}
-                    {renderTextField('sessionScreenCompanyLabel', 'Company Label')}
-                    {renderTextField('sessionScreenLaunchButton', 'Launch Button Text')}
-                    
-                    <Separator/>
-                    <h4 className="text-lg font-semibold">Trainer Screen Text</h4>
-                    {renderTextField('trainerScreenDescription', 'Description')}
-                    {renderTextField('messengerTitle', 'Messenger Card Title')}
-                    {renderTextField('messengerDescription', 'Messenger Card Description')}
-                    {renderTextField('messengerButton', 'Messenger Card Button Text')}
-                    {renderTextField('coldCallTitle', 'Cold Call Card Title')}
-                    {renderTextField('coldCallDescription', 'Cold Call Card Description')}
-                    {renderTextField('coldCallButton', 'Cold Call Card Button Text')}
 
                 </div>
             </ScrollArea>

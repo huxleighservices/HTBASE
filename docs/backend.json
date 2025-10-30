@@ -193,57 +193,6 @@
           "type": "string",
           "description": "The font family for the portal.",
           "enum": ["Montserrat", "Arial", "Times New Roman", "Inter", "Georgia", "Space Grotesk"]
-        },
-        "passwordScreenDescription": {
-            "type": "string"
-        },
-        "passwordScreenPasswordLabel": {
-            "type": "string"
-        },
-        "passwordScreenUnlockButton": {
-            "type": "string"
-        },
-        "sessionScreenTitle": {
-            "type": "string"
-        },
-        "sessionScreenDescription": {
-            "type": "string"
-        },
-        "sessionScreenFirstNameLabel": {
-            "type": "string"
-        },
-        "sessionScreenLastNameLabel": {
-            "type": "string"
-        },
-        "sessionScreenEmailLabel": {
-            "type": "string"
-        },
-        "sessionScreenCompanyLabel": {
-            "type": "string"
-        },
-        "sessionScreenLaunchButton": {
-            "type": "string"
-        },
-        "trainerScreenDescription": {
-            "type": "string"
-        },
-        "messengerTitle": {
-            "type": "string"
-        },
-        "messengerDescription": {
-            "type": "string"
-        },
-        "messengerButton": {
-            "type": "string"
-        },
-        "coldCallTitle": {
-            "type": "string"
-        },
-        "coldCallDescription": {
-            "type": "string"
-        },
-        "coldCallButton": {
-            "type": "string"
         }
       },
       "required": ["id"]
