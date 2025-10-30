@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -59,7 +60,21 @@ const HSLSlider = ({
   onChange: (value: string) => void;
   label: string;
 }) => {
-  const [h, s, l] = value.split(' ').map(Number);
+  const [h, s, l] = value.split(' ').map(v => parseFloat(v.replace('%', '')));
+
+  const handleHueChange = ([newH]: number[]) => {
+    if (isNaN(newH)) return;
+    onChange(`${newH} ${s}% ${l}%`);
+  };
+  const handleSaturationChange = ([newS]: number[]) => {
+    if (isNaN(newS)) return;
+    onChange(`${h} ${newS}% ${l}%`);
+  };
+  const handleLightnessChange = ([newL]: number[]) => {
+    if (isNaN(newL)) return;
+    onChange(`${h} ${s}% ${newL}%`);
+  };
+
   return (
     <div className="space-y-2">
       <FormLabel>{label}</FormLabel>
@@ -73,22 +88,22 @@ const HSLSlider = ({
             min={0}
             max={360}
             step={1}
-            value={[h]}
-            onValueChange={([newH]) => onChange(`${newH} ${s}% ${l}%`)}
+            value={!isNaN(h) ? [h] : [0]}
+            onValueChange={handleHueChange}
           />
           <Slider
             min={0}
             max={100}
             step={1}
-            value={[s]}
-            onValueChange={([newS]) => onChange(`${h} ${newS}% ${l}%`)}
+            value={!isNaN(s) ? [s] : [0]}
+            onValueChange={handleSaturationChange}
           />
           <Slider
             min={0}
             max={100}
             step={1}
-            value={[l]}
-            onValueChange={([newL]) => onChange(`${h} ${s}% ${newL}%`)}
+            value={!isNaN(l) ? [l] : [0]}
+            onValueChange={handleLightnessChange}
           />
         </div>
       </div>
