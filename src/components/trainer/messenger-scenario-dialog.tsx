@@ -21,8 +21,10 @@ import { ProspectingSimulatorDialog } from './prospecting-simulator-dialog';
 import { QualificationSimulatorDialog } from './qualification-simulator-dialog';
 import { ProposalSimulatorDialog } from './proposal-simulator-dialog';
 import { ClosingSimulatorDialog } from './closing-simulator-dialog';
+import { DiscoverySimulatorDialog } from './discovery-simulator-dialog';
+import { Microscope } from 'lucide-react';
 
-type Scenario = 'prospecting' | 'qualification' | 'proposal' | 'closing';
+type Scenario = 'prospecting' | 'qualification' | 'proposal' | 'closing' | 'discovery';
 
 export function MessengerScenarioDialog({
   open,
@@ -53,6 +55,12 @@ export function MessengerScenarioDialog({
       icon: Search,
       title: 'Prospecting',
       description: 'Practice your initial outreach and making a first impression.',
+    },
+    {
+      id: 'discovery' as Scenario,
+      icon: Microscope,
+      title: 'Discovery',
+      description: 'Practice asking questions to uncover client needs.',
     },
     {
       id: 'qualification' as Scenario,
@@ -115,6 +123,13 @@ export function MessengerScenarioDialog({
         open={activeScenario === 'prospecting'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        trainingData={trainingData}
+      />
+       <DiscoverySimulatorDialog
+        open={activeScenario === 'discovery'}
+        onOpenChange={handleSubDialogChange}
+        activeSessionId={activeSessionId}
+        trainingData={trainingData}
       />
       <QualificationSimulatorDialog
         open={activeScenario === 'qualification'}
@@ -126,11 +141,13 @@ export function MessengerScenarioDialog({
         open={activeScenario === 'proposal'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        trainingData={trainingData}
       />
       <ClosingSimulatorDialog
         open={activeScenario === 'closing'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        trainingData={trainingData}
       />
     </>
   );

@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SimulationDifficulty, ConversationMessage, ProspectingSimulationOutput } from '@/types/trainer';
+import { SimulationDifficulty, type ConversationMessage, type ProspectingSimulationOutput } from '@/types/trainer';
 import { runProspectingSimulation } from '@/ai/flows/prospecting-simulation-flow';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -34,10 +34,10 @@ import type { TrainingSession } from '@/types/sessions';
 
 const USER_MESSAGE_LIMIT = 5;
 
-export function ProspectingSimulatorDialog({ open, onOpenChange, activeSessionId }: { open: boolean, onOpenChange: (open: boolean) => void, activeSessionId: string | null }) {
+export function ProspectingSimulatorDialog({ open, onOpenChange, activeSessionId, trainingData }: { open: boolean, onOpenChange: (open: boolean) => void, activeSessionId: string | null, trainingData?: string }) {
     const { toast } = useToast();
     const { user } = useUser();
-    const [difficulty, setDifficulty] = useState<SimulationDifficulty>('Easy');
+    const [difficulty, setDifficulty] = useState<SimulationDifficulty>(SimulationDifficulty.Easy);
     const [conversation, setConversation] = useState<ConversationMessage[]>([]);
     const [isStarted, setIsStarted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +90,7 @@ export function ProspectingSimulatorDialog({ open, onOpenChange, activeSessionId
             const result = await runProspectingSimulation({
                 difficulty,
                 conversationHistory: updatedConversationWithUser,
+                trainingData,
             });
 
             let finalConversation = [...updatedConversationWithUser];
