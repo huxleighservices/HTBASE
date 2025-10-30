@@ -11,6 +11,8 @@ import {
   query,
   orderBy,
   Firestore,
+  setDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
 import { initializeFirebase } from '.';
@@ -25,10 +27,10 @@ try {
 }
 
 
-export function onSessionsUpdate(userId: string, callback: (sessions: TrainingSession[]) => void) {
+export function onSessionsUpdate(clientPath: string, callback: (sessions: TrainingSession[]) => void) {
     const db = firestore || getFirestore();
     const sessionsQuery = query(
-        collection(db, 'users', userId, 'sessions'),
+        collection(db, clientPath, 'sessions'),
         orderBy('createdAt', 'desc')
     );
 
@@ -43,9 +45,20 @@ export function onSessionsUpdate(userId: string, callback: (sessions: TrainingSe
     return unsubscribe;
 }
 
-export async function addResultToSession(userId: string, sessionId: string, result: TrainingResult) {
+export async function createSession(clientPath: string, sessionId: string, sessionName: string) {
     const db = firestore || getFirestore();
-    const sessionRef = doc(db, 'users', userId, 'sessions', sessionId);
+    const sessionRef = doc(db, clientPath, 'sessions', sessionId);
+    await setDoc(sessionRef, {
+        id: sessionId,
+        name: sessionName,
+        createdAt: serverTimestamp(),
+        results: [],
+    });
+}
+
+export async function addResultToSession(clientPath: string, sessionId: string, result: TrainingResult) {
+    const db = firestore || getFirestore();
+    const sessionRef = doc(db, clientPath, 'sessions', sessionId);
     await updateDoc(sessionRef, {
         results: arrayUnion(result)
     });

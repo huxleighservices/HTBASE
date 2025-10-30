@@ -28,11 +28,13 @@ export function MessengerScenarioDialog({
   open,
   onOpenChange,
   activeSessionId,
+  clientPath,
   trainingData,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   activeSessionId: string | null;
+  clientPath: string | null;
   trainingData?: string;
 }) {
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
@@ -115,24 +117,28 @@ export function MessengerScenarioDialog({
         open={activeScenario === 'prospecting'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        clientPath={clientPath}
         trainingData={trainingData}
       />
       <QualificationSimulatorDialog
         open={activeScenario === 'qualification'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        clientPath={clientPath}
         trainingData={trainingData}
       />
       <ProposalSimulatorDialog
         open={activeScenario === 'proposal'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        clientPath={clientPath}
         trainingData={trainingData}
       />
       <ClosingSimulatorDialog
         open={activeScenario === 'closing'}
         onOpenChange={handleSubDialogChange}
         activeSessionId={activeSessionId}
+        clientPath={clientPath}
         trainingData={trainingData}
       />
     </>

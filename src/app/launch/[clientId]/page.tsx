@@ -128,17 +128,15 @@ export default function ClientLaunchPage({
   const handleSessionSubmit: SubmitHandler<SessionFormValues> = async data => {
     const clientDocPath = getClientDocPath(client);
     if (!clientDocPath || !firestore) return;
-    const sessionCollectionRef = collection(
-      firestore,
-      clientDocPath,
-      'sessions'
-    );
-    const newDocRef = await addDocumentNonBlocking(sessionCollectionRef, data);
-    if (newDocRef) {
-      setActiveSessionId(newDocRef.id);
-    }
+    
+    // We only create the session on the client, Firestore doc is created later.
+    // This allows us to have an ID ready for simulations.
+    // For simplicity, using a timestamp-based ID.
+    const newSessionId = `session_${Date.now()}`;
+    setActiveSessionId(newSessionId);
     setSessionCreated(true);
-  };
+};
+
 
   if (isLoading) {
     return (
@@ -376,12 +374,14 @@ export default function ClientLaunchPage({
         open={isMessengerScenarioOpen}
         onOpenChange={setIsMessengerScenarioOpen}
         activeSessionId={activeSessionId}
+        clientPath={getClientDocPath(client)}
         trainingData={client?.trainingData}
       />
       <ColdCallSimulatorDialog
         open={isColdCallOpen}
         onOpenChange={setIsColdCallOpen}
         activeSessionId={activeSessionId}
+        clientPath={getClientDocPath(client)}
         trainingData={client?.trainingData}
       />
     </>

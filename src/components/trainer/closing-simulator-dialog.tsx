@@ -27,16 +27,14 @@ import { SimulationDifficulty, type ConversationMessage, type ProspectingSimulat
 import { runClosingSimulation } from '@/ai/flows/closing-simulation-flow';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUser } from '@/firebase';
-import { addResultToSession, onSessionsUpdate } from '@/firebase/firestore';
+import { addResultToSession, onSessionsUpdate, createSession } from '@/firebase/firestore';
 import type { TrainingSession } from '@/types/sessions';
-
+import { format } from 'date-fns';
 
 const USER_MESSAGE_LIMIT = 5;
 
-export function ClosingSimulatorDialog({ open, onOpenChange, activeSessionId, trainingData }: { open: boolean, onOpenChange: (open: boolean) => void, activeSessionId: string | null, trainingData?: string }) {
+export function ClosingSimulatorDialog({ open, onOpenChange, activeSessionId, clientPath, trainingData }: { open: boolean, onOpenChange: (open: boolean) => void, activeSessionId: string | null, clientPath: string | null, trainingData?: string }) {
     const { toast } = useToast();
-    const { user } = useUser();
     const [difficulty, setDifficulty] = useState<SimulationDifficulty>(SimulationDifficulty.Easy);
     const [conversation, setConversation] = useState<ConversationMessage[]>([]);
     const [isStarted, setIsStarted] = useState(false);
@@ -52,10 +50,10 @@ export function ClosingSimulatorDialog({ open, onOpenChange, activeSessionId, tr
     const isComplete = feedback !== null;
 
     useEffect(() => {
-        if (!user) return;
-        const unsubscribe = onSessionsUpdate(user.uid, setSessions);
+        if (!clientPath) return;
+        const unsubscribe = onSessionsUpdate(clientPath, setSessions);
         return () => unsubscribe();
-    }, [user]);
+    }, [clientPath]);
 
     const resetSimulation = () => {
         setConversation([]);
@@ -82,7 +80,13 @@ export function ClosingSimulatorDialog({ open, onOpenChange, activeSessionId, tr
         setConversation(updatedConversationWithUser);
         setCurrentMessage('');
         setIsLoading(true);
-        if (!isStarted) setIsStarted(true);
+        if (!isStarted) {
+            setIsStarted(true);
+            if (clientPath && activeSessionId) {
+                const sessionName = `Session - ${format(new Date(), 'MMM d, yyyy h:mm a')}`;
+                await createSession(clientPath, activeSessionId, sessionName);
+            }
+        }
 
         try {
             const result = await runClosingSimulation({
@@ -112,13 +116,13 @@ export function ClosingSimulatorDialog({ open, onOpenChange, activeSessionId, tr
     };
     
     const handleSaveResult = async () => {
-        if (!user || !sessionToSaveTo || !feedback) {
+        if (!clientPath || !sessionToSaveTo || !feedback) {
             toast({ title: "Cannot Save", description: "No session selected or feedback not generated.", variant: "destructive"});
             return;
         }
         setIsSaving(true);
         try {
-            await addResultToSession(user.uid, sessionToSaveTo, {
+            await addResultToSession(clientPath, sessionToSaveTo, {
                 phase: "Closing",
                 difficulty: difficulty,
                 conversation: conversation,
