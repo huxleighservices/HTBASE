@@ -175,6 +175,10 @@
           "type": "string",
           "description": "Accent color in HSL format."
         },
+        "foregroundColor": {
+          "type": "string",
+          "description": "Text color in HSL format."
+        },
         "logoUrl": {
           "type": "string",
           "format": "uri",
@@ -183,6 +187,11 @@
         "tagline": {
           "type": "string",
           "description": "Custom tagline or name for the portal."
+        },
+        "fontFamily": {
+          "type": "string",
+          "description": "The font family for the portal.",
+          "enum": ["Montserrat", "Arial", "Times New Roman", "Inter", "Georgia", "Space Grotesk"]
         }
       },
       "required": ["id"]

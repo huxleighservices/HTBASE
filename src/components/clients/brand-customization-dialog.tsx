@@ -37,13 +37,18 @@ import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '../ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+
+const fontOptions = ["Space Grotesk", "Montserrat", "Arial", "Times New Roman", "Inter", "Georgia"];
 
 const formSchema = z.object({
   primaryColor: z.string(),
   backgroundColor: z.string(),
   accentColor: z.string(),
+  foregroundColor: z.string(),
   logoUrl: z.string().url().or(z.literal('')),
   tagline: z.string(),
+  fontFamily: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -186,8 +191,10 @@ export function BrandCustomizationDialog({
       primaryColor: '181 100% 74%',
       backgroundColor: '180 100% 97%',
       accentColor: '181 100% 74%',
+      foregroundColor: '210 10% 23%',
       logoUrl: '',
       tagline: '',
+      fontFamily: 'Space Grotesk'
     },
   });
 
@@ -197,16 +204,20 @@ export function BrandCustomizationDialog({
         primaryColor: customization.primaryColor || '181 100% 74%',
         backgroundColor: customization.backgroundColor || '180 100% 97%',
         accentColor: customization.accentColor || '181 100% 74%',
+        foregroundColor: customization.foregroundColor || '210 10% 23%',
         logoUrl: customization.logoUrl || '',
         tagline: customization.tagline || '',
+        fontFamily: customization.fontFamily || 'Space Grotesk',
       });
     } else {
         form.reset({
             primaryColor: '181 100% 74%',
             backgroundColor: '180 100% 97%',
             accentColor: '181 100% 74%',
+            foregroundColor: '210 10% 23%',
             logoUrl: '',
             tagline: client.firmName,
+            fontFamily: 'Space Grotesk',
         })
     }
   }, [customization, client, form]);
@@ -249,68 +260,101 @@ export function BrandCustomizationDialog({
              <ScrollArea className="h-[60vh] flex-grow pr-6">
                 <div className="space-y-6">
                     <FormField
-                    control={form.control}
-                    name="logoUrl"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Logo URL</FormLabel>
-                        <FormControl>
-                            <Input
-                            {...field}
-                            placeholder="https://example.com/logo.png"
-                            disabled={isLoading}
-                            />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                      control={form.control}
+                      name="logoUrl"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Logo URL</FormLabel>
+                          <FormControl>
+                              <Input
+                              {...field}
+                              placeholder="https://example.com/logo.png"
+                              disabled={isLoading}
+                              />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
                     />
                     <FormField
-                    control={form.control}
-                    name="tagline"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="tagline"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Tagline / Firm Name</FormLabel>
+                          <FormControl>
+                              <Input {...field} disabled={isLoading} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="fontFamily"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Tagline / Firm Name</FormLabel>
-                        <FormControl>
-                            <Input {...field} disabled={isLoading} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel>Font Family</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger disabled={isLoading}>
+                                <SelectValue placeholder="Select a font" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {fontOptions.map(font => (
+                                <SelectItem key={font} value={font} style={{ fontFamily: font }}>{font}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
 
                     <Controller
-                    control={form.control}
-                    name="primaryColor"
-                    render={({ field }) => (
-                        <ColorPicker
-                        label="Primary Color"
-                        value={field.value}
-                        onChange={field.onChange}
-                        />
-                    )}
+                      control={form.control}
+                      name="primaryColor"
+                      render={({ field }) => (
+                          <ColorPicker
+                          label="Primary Color"
+                          value={field.value}
+                          onChange={field.onChange}
+                          />
+                      )}
+                    />
+                     <Controller
+                      control={form.control}
+                      name="foregroundColor"
+                      render={({ field }) => (
+                          <ColorPicker
+                          label="Text Color"
+                          value={field.value}
+                          onChange={field.onChange}
+                          />
+                      )}
                     />
                     <Controller
-                    control={form.control}
-                    name="backgroundColor"
-                    render={({ field }) => (
-                        <ColorPicker
-                        label="Background Color"
-                        value={field.value}
-                        onChange={field.onChange}
-                        />
-                    )}
+                      control={form.control}
+                      name="backgroundColor"
+                      render={({ field }) => (
+                          <ColorPicker
+                          label="Background Color"
+                          value={field.value}
+                          onChange={field.onChange}
+                          />
+                      )}
                     />
                     <Controller
-                    control={form.control}
-                    name="accentColor"
-                    render={({ field }) => (
-                        <ColorPicker
-                        label="Accent Color"
-                        value={field.value}
-                        onChange={field.onChange}
-                        />
-                    )}
+                      control={form.control}
+                      name="accentColor"
+                      render={({ field }) => (
+                          <ColorPicker
+                          label="Accent Color"
+                          value={field.value}
+                          onChange={field.onChange}
+                          />
+                      )}
                     />
                 </div>
             </ScrollArea>

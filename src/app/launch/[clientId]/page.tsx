@@ -126,6 +126,11 @@ export default function ClientLaunchPage() {
         root.style.setProperty('--background', customization.backgroundColor);
       if (customization.accentColor)
         root.style.setProperty('--accent', customization.accentColor);
+      if (customization.foregroundColor)
+        root.style.setProperty('--foreground', customization.foregroundColor);
+       if (customization.fontFamily) {
+        document.body.style.fontFamily = customization.fontFamily;
+      }
     }
     // Cleanup function to reset styles when component unmounts or customization changes
     return () => {
@@ -133,6 +138,8 @@ export default function ClientLaunchPage() {
       root.style.removeProperty('--primary');
       root.style.removeProperty('--background');
       root.style.removeProperty('--accent');
+      root.style.removeProperty('--foreground');
+      document.body.style.fontFamily = '';
     };
   }, [customization]);
 

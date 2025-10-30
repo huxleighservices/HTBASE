@@ -21,6 +21,8 @@ export type BrandCustomization = {
   primaryColor?: string;
   backgroundColor?: string;
   accentColor?: string;
+  foregroundColor?: string;
   logoUrl?: string;
   tagline?: string;
+  fontFamily?: string;
 };

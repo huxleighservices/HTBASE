@@ -13,7 +13,13 @@ export default {
         body: ['"Space Grotesk"', 'sans-serif'],
         headline: ['"Space Grotesk"', 'sans-serif'],
         code: ['monospace'],
-        sans: ['var(--font-sans)', 'sans-serif']
+        sans: ['var(--font-sans)', 'sans-serif'],
+        'space-grotesk': ['var(--font-space-grotesk)', 'sans-serif'],
+        montserrat: ['var(--font-montserrat)', 'sans-serif'],
+        inter: ['var(--font-inter)', 'sans-serif'],
+        arial: ['Arial', 'sans-serif'],
+        'times-new-roman': ['"Times New Roman"', 'serif'],
+        georgia: ['Georgia', 'serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
