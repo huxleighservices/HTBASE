@@ -1,3 +1,4 @@
+
 export type Client = {
   id: string;
   displayId: string;
@@ -25,4 +26,28 @@ export type BrandCustomization = {
   logoUrl?: string;
   tagline?: string;
   fontFamily?: string;
+
+  // Password Screen
+  passwordScreenDescription?: string;
+  passwordScreenPasswordLabel?: string;
+  passwordScreenUnlockButton?: string;
+  
+  // Session Screen
+  sessionScreenTitle?: string;
+  sessionScreenDescription?: string;
+  sessionScreenFirstNameLabel?: string;
+  sessionScreenLastNameLabel?: string;
+  sessionScreenEmailLabel?: string;
+  sessionScreenCompanyLabel?: string;
+  sessionScreenLaunchButton?: string;
+
+  // Trainer Screen
+  trainerScreenDescription?: string;
+  messengerTitle?: string;
+  messengerDescription?: string;
+  messengerButton?: string;
+  coldCallTitle?: string;
+  coldCallDescription?: string;
+  coldCallButton?: string;
+
 };

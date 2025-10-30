@@ -188,7 +188,7 @@ export default function ClientLaunchPage() {
 
   const logoSrc = customization?.logoUrl || '/logo.png';
   const tagline = customization?.tagline || client?.firmName || 'Client Portal';
-  const description = 'This portal is password protected.';
+  const description = customization?.passwordScreenDescription || 'This portal is password protected.';
 
 
   if (isLoading) {
@@ -219,14 +219,20 @@ export default function ClientLaunchPage() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Card className="w-full max-w-sm">
           <CardHeader className="items-center text-center">
-            <Image
-              src={logoSrc}
-              alt="Company Logo"
-              width={120}
-              height={120}
-              className="mb-4"
-              unoptimized
-            />
+             {customization?.logoUrl ? (
+               <Image
+                src={customization.logoUrl}
+                alt="Company Logo"
+                width={120}
+                height={120}
+                className="mb-4"
+                unoptimized
+              />
+            ) : (
+                <CardTitle className="font-headline text-2xl">
+                    {tagline}
+                </CardTitle>
+            )}
             <CardDescription>
               {description}
             </CardDescription>
@@ -234,7 +240,7 @@ export default function ClientLaunchPage() {
           <form onSubmit={handlePasswordSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{customization?.passwordScreenPasswordLabel || 'Password'}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -248,7 +254,7 @@ export default function ClientLaunchPage() {
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full">
-                Unlock Portal
+                {customization?.passwordScreenUnlockButton || 'Unlock Portal'}
               </Button>
             </CardFooter>
           </form>
@@ -262,9 +268,9 @@ export default function ClientLaunchPage() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
         <Card className="w-full max-w-lg">
           <CardHeader>
-            <CardTitle className="font-headline">Create New Session for {client?.firmName}</CardTitle>
+            <CardTitle className="font-headline">{customization?.sessionScreenTitle || `Create New Session for ${client?.firmName}`}</CardTitle>
             <CardDescription>
-              Enter the details below to start a new training session.
+              {customization?.sessionScreenDescription || 'Enter the details below to start a new training session.'}
             </CardDescription>
           </CardHeader>
           <Form {...sessionForm}>
@@ -276,7 +282,7 @@ export default function ClientLaunchPage() {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel>{customization?.sessionScreenFirstNameLabel || 'First Name'}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -289,7 +295,7 @@ export default function ClientLaunchPage() {
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel>{customization?.sessionScreenLastNameLabel || 'Last Name'}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -303,7 +309,7 @@ export default function ClientLaunchPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address</FormLabel>
+                      <FormLabel>{customization?.sessionScreenEmailLabel || 'Email Address'}</FormLabel>
                       <FormControl>
                         <Input type="email" {...field} />
                       </FormControl>
@@ -316,7 +322,7 @@ export default function ClientLaunchPage() {
                   name="companyName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name</FormLabel>
+                      <FormLabel>{customization?.sessionScreenCompanyLabel || 'Company Name'}</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -327,7 +333,7 @@ export default function ClientLaunchPage() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" className="w-full">
-                  Create Session & Launch Trainer
+                  {customization?.sessionScreenLaunchButton || 'Create Session & Launch Trainer'}
                 </Button>
               </CardFooter>
             </form>
@@ -355,7 +361,7 @@ export default function ClientLaunchPage() {
                 {tagline}
               </CardTitle>
               <CardDescription>
-                Select a training module to begin.
+                {customization?.trainerScreenDescription || 'Select a training module to begin.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -367,17 +373,16 @@ export default function ClientLaunchPage() {
                         <MessageSquare className="size-6" />
                       </div>
                       <CardTitle className="font-headline text-lg">
-                        Messenger Scenario Runner
+                        {customization?.messengerTitle || 'Messenger Scenario Runner'}
                       </CardTitle>
                     </div>
                     <CardDescription className="pt-2">
-                      Practice real-world conversations with an AI-powered chat
-                      simulator.
+                      {customization?.messengerDescription || 'Practice real-world conversations with an AI-powered chat simulator.'}
                     </CardDescription>
                   </CardHeader>
                   <CardFooter>
                     <Button onClick={() => setIsMessengerScenarioOpen(true)}>
-                      Start Scenario
+                      {customization?.messengerButton || 'Start Scenario'}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -388,17 +393,16 @@ export default function ClientLaunchPage() {
                         <Phone className="size-6" />
                       </div>
                       <CardTitle className="font-headline text-lg">
-                        Cold Call Simulator
+                        {customization?.coldCallTitle || 'Cold Call Simulator'}
                       </CardTitle>
                     </div>
                     <CardDescription className="pt-2">
-                      Hone your sales skills by practicing cold calls with an AI
-                      prospect.
+                      {customization?.coldCallDescription || 'Hone your sales skills by practicing cold calls with an AI prospect.'}
                     </CardDescription>
                   </CardHeader>
                   <CardFooter>
                     <Button onClick={() => setIsColdCallOpen(true)}>
-                      Start Simulation
+                      {customization?.coldCallButton || 'Start Simulation'}
                     </Button>
                   </CardFooter>
                 </Card>
