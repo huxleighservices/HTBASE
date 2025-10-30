@@ -188,7 +188,6 @@ export default function ClientLaunchPage() {
 
   const logoSrc = customization?.logoUrl || '/logo.png';
   const tagline = customization?.tagline || client?.firmName || 'Client Portal';
-  const title = customization?.tagline || 'Client Portal';
   const description = 'This portal is password protected.';
 
 
@@ -228,7 +227,6 @@ export default function ClientLaunchPage() {
               className="mb-4"
               unoptimized
             />
-            <CardTitle className="font-headline text-2xl">{title}</CardTitle>
             <CardDescription>
               {description}
             </CardDescription>
