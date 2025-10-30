@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFirestore, addDocumentNonBlocking } from '@/firebase';
 import {
   collection,
   query,
@@ -22,7 +21,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import type { Client } from '@/types/client';
-import { Loader2, MessageSquare, Phone, BookUser } from 'lucide-react';
+import { Loader2, MessageSquare, Phone } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,6 +36,8 @@ import {
 import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulator-dialog';
 import Image from 'next/image';
 import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
+import { SessionManager } from '@/components/trainer/session-manager';
+import { useFirestore } from '@/firebase';
 
 const sessionFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -345,26 +346,7 @@ export default function ClientLaunchPage({
                 </Card>
               </div>
               <div className="pt-6">
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <BookUser className="size-6" />
-                      </div>
-                      <CardTitle className="font-headline text-lg">
-                        Session Manager
-                      </CardTitle>
-                    </div>
-                    <CardDescription className="pt-2">
-                      Review your past training sessions and performance.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 text-muted-foreground">
-                      <p>Session history will be displayed here.</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                 <SessionManager clientPath={getClientDocPath(client)} />
               </div>
             </CardContent>
           </Card>
