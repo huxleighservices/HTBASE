@@ -419,7 +419,7 @@ export default function ClientLaunchPage() {
                 </Card>
               </div>
               <div className="pt-6">
-                <SessionManager clientPath={getClientDocPath(client)} />
+                <SessionManager clientPath={getClientDocPath(client)} customization={customization} />
               </div>
             </CardContent>
           </Card>

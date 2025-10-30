@@ -27,8 +27,9 @@ import { Button } from '../ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { deleteSession } from '@/firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import type { BrandCustomization } from '@/types/client';
 
-export function SessionManager({ clientPath }: { clientPath: string | null }) {
+export function SessionManager({ clientPath, customization }: { clientPath: string | null; customization: BrandCustomization | null; }) {
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -55,9 +56,9 @@ export function SessionManager({ clientPath }: { clientPath: string | null }) {
           <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <BookUser className="size-6" />
           </div>
-          <CardTitle className="font-headline text-lg">Session Manager</CardTitle>
+          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Session Manager</CardTitle>
         </div>
-        <CardDescription className="pt-2">
+        <CardDescription className={cn("pt-2", customization?.foregroundColor && 'text-foreground opacity-70')}>
           Review your past training sessions and performance.
         </CardDescription>
       </CardHeader>
