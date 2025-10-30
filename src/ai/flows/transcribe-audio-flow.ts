@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow for transcribing audio to text using Gemini.
@@ -37,4 +36,3 @@ const transcribeAudioFlow = ai.defineFlow(
 export async function transcribeAudio(audioDataUri: string): Promise<{text: string}> {
   return transcribeAudioFlow(audioDataUri);
 }
-
