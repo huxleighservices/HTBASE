@@ -188,8 +188,8 @@ export default function ClientLaunchPage() {
 
   const logoSrc = customization?.logoUrl || '/logo.png';
   const tagline = customization?.tagline || client?.firmName || 'Client Portal';
-  const title = (customization?.logoUrl ? customization?.tagline : client?.firmName) || 'Client Portal';
-  const description = customization?.logoUrl ? client?.firmName : 'This portal is password protected.';
+  const title = customization?.tagline || 'Client Portal';
+  const description = 'This portal is password protected.';
 
 
   if (isLoading) {
