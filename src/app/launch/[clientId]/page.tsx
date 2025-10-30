@@ -188,6 +188,9 @@ export default function ClientLaunchPage() {
 
   const logoSrc = customization?.logoUrl || '/logo.png';
   const tagline = customization?.tagline || client?.firmName || 'Client Portal';
+  const title = (customization?.logoUrl ? customization?.tagline : client?.firmName) || 'Client Portal';
+  const description = customization?.logoUrl ? client?.firmName : 'This portal is password protected.';
+
 
   if (isLoading) {
     return (
@@ -220,14 +223,14 @@ export default function ClientLaunchPage() {
             <Image
               src={logoSrc}
               alt="Company Logo"
-              width={80}
-              height={80}
+              width={120}
+              height={120}
               className="mb-4"
               unoptimized
             />
-            <CardTitle className="font-headline text-2xl">{tagline}</CardTitle>
+            <CardTitle className="font-headline text-2xl">{title}</CardTitle>
             <CardDescription>
-              This portal is password protected.
+              {description}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handlePasswordSubmit}>
@@ -345,8 +348,8 @@ export default function ClientLaunchPage() {
               <Image
                 src={logoSrc}
                 alt="Company Logo"
-                width={80}
-                height={80}
+                width={120}
+                height={120}
                 className="mb-4"
                 unoptimized
               />
@@ -426,5 +429,3 @@ export default function ClientLaunchPage() {
     </>
   );
 }
-
-    
