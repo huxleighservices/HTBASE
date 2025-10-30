@@ -38,6 +38,7 @@ import Image from 'next/image';
 import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
 import { SessionManager } from '@/components/trainer/session-manager';
 import { useFirestore } from '@/firebase';
+import { useParams } from 'next/navigation';
 
 const sessionFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -48,12 +49,9 @@ const sessionFormSchema = z.object({
 
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
-export default function ClientLaunchPage({
-  params,
-}: {
-  params: { clientId: string };
-}) {
-  const { clientId } = params;
+export default function ClientLaunchPage() {
+  const params = useParams();
+  const clientId = params.clientId as string;
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
