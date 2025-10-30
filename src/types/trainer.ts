@@ -26,9 +26,8 @@ export type ProspectingSimulationOutput = {
 
 // Types for Voice Call Simulation
 export type CallPersona = {
-    role: 'Recruitment Chair' | 'President' | 'New Member' | 'Treasurer';
     gender: 'Male' | 'Female';
-    attitude: 'Friendly' | 'Skeptical' | 'Busy' | 'Hostile';
+    attitude: 'Cold' | 'Warm' | 'Ready to Buy';
     qualification: 'Good Fit' | 'Bad Fit' | 'Unsure';
 };
 

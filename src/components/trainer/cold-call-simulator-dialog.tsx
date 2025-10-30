@@ -36,9 +36,8 @@ import { format } from 'date-fns';
 const USER_TURN_LIMIT = 5;
 
 const defaultPersona: CallPersona = {
-    role: 'Recruitment Chair',
     gender: 'Female',
-    attitude: 'Friendly',
+    attitude: 'Warm',
     qualification: 'Good Fit',
 };
 
@@ -260,31 +259,16 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
                  <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 overflow-hidden">
                     {/* Left Panel: Controls & Feedback */}
                     <div className="md:col-span-1 flex flex-col gap-4 p-1 min-h-0">
-                         <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Role</Label>
-                                <Select value={persona.role} onValueChange={(v) => setPersona(p => ({...p, role: v as CallPersona['role']}))} disabled={isStarted}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Recruitment Chair">Recruitment</SelectItem>
-                                        <SelectItem value="President">President</SelectItem>
-                                        <SelectItem value="New Member">New Member</SelectItem>
-                                        <SelectItem value="Treasurer">Treasurer</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                             <div className="space-y-2">
-                                <Label>Attitude</Label>
-                                <Select value={persona.attitude} onValueChange={(v) => setPersona(p => ({...p, attitude: v as CallPersona['attitude']}))} disabled={isStarted}>
-                                    <SelectTrigger><SelectValue/></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Friendly">Friendly</SelectItem>
-                                        <SelectItem value="Skeptical">Skeptical</SelectItem>
-                                        <SelectItem value="Busy">Busy</SelectItem>
-                                        <SelectItem value="Hostile">Hostile</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                         <div className="space-y-2">
+                            <Label>Attitude</Label>
+                            <Select value={persona.attitude} onValueChange={(v) => setPersona(p => ({...p, attitude: v as CallPersona['attitude']}))} disabled={isStarted}>
+                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Cold">Cold</SelectItem>
+                                    <SelectItem value="Warm">Warm</SelectItem>
+                                    <SelectItem value="Ready to Buy">Ready to Buy</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         
                         <div className="p-4 rounded-lg bg-muted/30 flex-grow flex flex-col min-h-0">

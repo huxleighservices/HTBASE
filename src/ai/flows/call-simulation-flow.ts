@@ -13,9 +13,8 @@ import { pineWiltWindowsGuide } from '../docs/pine-wilt-windows';
 const USER_TURN_LIMIT = 5;
 
 const CallPersonaSchema = z.object({
-    role: z.enum(['Recruitment Chair', 'President', 'New Member', 'Treasurer']),
     gender: z.enum(['Male', 'Female']),
-    attitude: z.enum(['Friendly', 'Skeptical', 'Busy', 'Hostile']),
+    attitude: z.enum(['Cold', 'Warm', 'Ready to Buy']),
     qualification: z.enum(['Good Fit', 'Bad Fit', 'Unsure']),
 });
 
@@ -64,7 +63,6 @@ PRODUCT INFORMATION:
 {{{trainingData}}}
 
 YOUR PERSONA:
--   Role: {{{persona.role}}}
 -   Attitude: {{{persona.attitude}}}
 -   Qualification: {{{persona.qualification}}}
 -   Gender: {{{persona.gender}}} (This should subtly influence your language and tone, but do not state it.)
@@ -87,9 +85,9 @@ YOUR TASK:
 {{else}}
     This is a conversational turn. Enter SIMULATION MODE.
     -   Respond verbally to the user's last statement, staying perfectly in character based on your persona and the provided PRODUCT INFORMATION.
-    -   **Friendly/Good Fit**: Be agreeable, ask positive questions. "That sounds interesting, tell me more."
-    -   **Skeptical/Unsure**: Be hesitant. Ask for proof or details from the product info. "How do I know this will actually work for us? What's the U-factor on those windows?"
-    -   **Busy/Hostile/Bad Fit**: Be dismissive, short, and try to end the call. "I only have a minute, what's the point?" or "This isn't for us."
+    -   **Ready to Buy/Good Fit**: Be enthusiastic and ready to proceed. Ask closing questions like "This sounds great, what are the next steps?"
+    -   **Warm/Unsure**: Be open and interested, but with some clarifying questions. "Okay, I'm listening. How does the pricing work?" or "Can you explain the difference between X and Y?"
+    -   **Cold/Bad Fit**: Be dismissive, short, and try to end the call. "I'm not interested, thanks." or "Now's not a good time."
     -   Your response should be something you would naturally say in a phone call. Keep it concise (1-3 sentences).
     -   Generate ONLY the 'response' field.
     -   'isComplete' should be false.
