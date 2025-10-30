@@ -36,6 +36,7 @@ import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
+import { ScrollArea } from '../ui/scroll-area';
 
 const formSchema = z.object({
   primaryColor: z.string(),
@@ -70,7 +71,7 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 function hexToHsl(hex: string): string | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a/f\d]{2})$/i.exec(hex);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return null;
   let r = parseInt(result[1], 16) / 255;
   let g = parseInt(result[2], 16) / 255;
@@ -103,7 +104,7 @@ const ColorPicker = ({
   onChange: (value: string) => void;
   label: string;
 }) => {
-  const [h, s, l] = value.split(' ').map(v => parseFloat(v.replace('%', '')));
+  const [h, s, l] = value ? value.split(' ').map(v => parseFloat(v.replace('%', ''))) : [0, 0, 0];
 
   const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newHex = e.target.value;
@@ -117,7 +118,7 @@ const ColorPicker = ({
   const handleSaturationChange = ([newS]: number[]) => { if (isNaN(newS)) return; onChange(`${h} ${newS}% ${l}%`); };
   const handleLightnessChange = ([newL]: number[]) => { if (isNaN(newL)) return; onChange(`${h} ${s}% ${newL}%`); };
 
-  const hexValue = hslToHex(h, s, l);
+  const hexValue = !isNaN(h) && !isNaN(s) && !isNaN(l) ? hslToHex(h, s, l) : '#000000';
 
   return (
     <div className="space-y-4 rounded-md border p-4">
@@ -244,73 +245,76 @@ export function BrandCustomizationDialog({
             </div>
         ) : (
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="logoUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Logo URL</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="https://example.com/logo.png"
-                      disabled={isLoading}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full">
+             <ScrollArea className="h-[60vh] flex-grow pr-6">
+                <div className="space-y-6">
+                    <FormField
+                    control={form.control}
+                    name="logoUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Logo URL</FormLabel>
+                        <FormControl>
+                            <Input
+                            {...field}
+                            placeholder="https://example.com/logo.png"
+                            disabled={isLoading}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="tagline"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tagline / Firm Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled={isLoading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormField
+                    control={form.control}
+                    name="tagline"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Tagline / Firm Name</FormLabel>
+                        <FormControl>
+                            <Input {...field} disabled={isLoading} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
 
-            <Controller
-              control={form.control}
-              name="primaryColor"
-              render={({ field }) => (
-                <ColorPicker
-                  label="Primary Color"
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="backgroundColor"
-              render={({ field }) => (
-                <ColorPicker
-                  label="Background Color"
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-            <Controller
-              control={form.control}
-              name="accentColor"
-              render={({ field }) => (
-                <ColorPicker
-                  label="Accent Color"
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              )}
-            />
-
-            <DialogFooter>
+                    <Controller
+                    control={form.control}
+                    name="primaryColor"
+                    render={({ field }) => (
+                        <ColorPicker
+                        label="Primary Color"
+                        value={field.value}
+                        onChange={field.onChange}
+                        />
+                    )}
+                    />
+                    <Controller
+                    control={form.control}
+                    name="backgroundColor"
+                    render={({ field }) => (
+                        <ColorPicker
+                        label="Background Color"
+                        value={field.value}
+                        onChange={field.onChange}
+                        />
+                    )}
+                    />
+                    <Controller
+                    control={form.control}
+                    name="accentColor"
+                    render={({ field }) => (
+                        <ColorPicker
+                        label="Accent Color"
+                        value={field.value}
+                        onChange={field.onChange}
+                        />
+                    )}
+                    />
+                </div>
+            </ScrollArea>
+            <DialogFooter className='pt-6'>
               <DialogClose asChild>
                 <Button type="button" variant="secondary" disabled={isLoading}>
                   Cancel
@@ -330,3 +334,5 @@ export function BrandCustomizationDialog({
     </Dialog>
   );
 }
+
+    
