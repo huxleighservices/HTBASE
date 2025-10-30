@@ -22,7 +22,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import type { Client } from '@/types/client';
-import { Loader2, MessageSquare, Phone } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, BookUser } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,9 +34,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { QualificationSimulatorDialog } from '@/components/trainer/qualification-simulator-dialog';
 import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulator-dialog';
 import Image from 'next/image';
+import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
 
 const sessionFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -48,10 +48,11 @@ const sessionFormSchema = z.object({
 type SessionFormValues = z.infer<typeof sessionFormSchema>;
 
 export default function ClientLaunchPage({
-  params: { clientId },
+  params,
 }: {
   params: { clientId: string };
 }) {
+  const { clientId } = params;
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +64,7 @@ export default function ClientLaunchPage({
 
   const firestore = useFirestore();
 
-  const [isQualificationOpen, setIsQualificationOpen] = useState(false);
+  const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
   const [isColdCallOpen, setIsColdCallOpen] = useState(false);
 
   useEffect(() => {
@@ -318,7 +319,7 @@ export default function ClientLaunchPage({
                     </CardDescription>
                   </CardHeader>
                   <CardFooter>
-                    <Button onClick={() => setIsQualificationOpen(true)}>
+                    <Button onClick={() => setIsMessengerScenarioOpen(true)}>
                       Start Scenario
                     </Button>
                   </CardFooter>
@@ -345,13 +346,35 @@ export default function ClientLaunchPage({
                   </CardFooter>
                 </Card>
               </div>
+              <div className="pt-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <BookUser className="size-6" />
+                      </div>
+                      <CardTitle className="font-headline text-lg">
+                        Session Manager
+                      </CardTitle>
+                    </div>
+                    <CardDescription className="pt-2">
+                      Review your past training sessions and performance.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 text-muted-foreground">
+                      <p>Session history will be displayed here.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </CardContent>
           </Card>
         </div>
       </main>
-      <QualificationSimulatorDialog
-        open={isQualificationOpen}
-        onOpenChange={setIsQualificationOpen}
+      <MessengerScenarioDialog
+        open={isMessengerScenarioOpen}
+        onOpenChange={setIsMessengerScenarioOpen}
         activeSessionId={activeSessionId}
         trainingData={client?.trainingData}
       />
@@ -364,5 +387,3 @@ export default function ClientLaunchPage({
     </>
   );
 }
-
-    
