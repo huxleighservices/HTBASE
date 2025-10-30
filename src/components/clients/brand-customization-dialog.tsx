@@ -51,9 +51,52 @@ type BrandCustomizationDialogProps = {
   client: Client;
 };
 
-const HSLSlider = ({
-  value,
-  onChange,
+// --- Color Conversion Utilities ---
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (0 <= h && h < 60) { [r, g, b] = [c, x, 0]; }
+  else if (60 <= h && h < 120) { [r, g, b] = [x, c, 0]; }
+  else if (120 <= h && h < 180) { [r, g, b] = [0, c, x]; }
+  else if (180 <= h && h < 240) { [r, g, b] = [0, x, c]; }
+  else if (240 <= h && h < 300) { [r, g, b] = [x, 0, c]; }
+  else if (300 <= h && h < 360) { [r, g, b] = [c, 0, x]; }
+  const toHex = (n: number) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function hexToHsl(hex: string): string | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a/f\d]{2})$/i.exec(hex);
+  if (!result) return null;
+  let r = parseInt(result[1], 16) / 255;
+  let g = parseInt(result[2], 16) / 255;
+  let b = parseInt(result[3], 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  h = Math.round(h * 360);
+  s = Math.round(s * 100);
+  l = Math.round(l * 100);
+  return `${h} ${s}% ${l}%`;
+}
+
+
+const ColorPicker = ({
+  value, // HSL string value
+  onChange, // expects HSL string
   label,
 }: {
   value: string;
@@ -62,49 +105,46 @@ const HSLSlider = ({
 }) => {
   const [h, s, l] = value.split(' ').map(v => parseFloat(v.replace('%', '')));
 
-  const handleHueChange = ([newH]: number[]) => {
-    if (isNaN(newH)) return;
-    onChange(`${newH} ${s}% ${l}%`);
-  };
-  const handleSaturationChange = ([newS]: number[]) => {
-    if (isNaN(newS)) return;
-    onChange(`${h} ${newS}% ${l}%`);
-  };
-  const handleLightnessChange = ([newL]: number[]) => {
-    if (isNaN(newL)) return;
-    onChange(`${h} ${s}% ${newL}%`);
+  const handleHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newHex = e.target.value;
+    const newHsl = hexToHsl(newHex);
+    if (newHsl) {
+      onChange(newHsl);
+    }
   };
 
+  const handleHueChange = ([newH]: number[]) => { if (isNaN(newH)) return; onChange(`${newH} ${s}% ${l}%`); };
+  const handleSaturationChange = ([newS]: number[]) => { if (isNaN(newS)) return; onChange(`${h} ${newS}% ${l}%`); };
+  const handleLightnessChange = ([newL]: number[]) => { if (isNaN(newL)) return; onChange(`${h} ${s}% ${newL}%`); };
+
+  const hexValue = hslToHex(h, s, l);
+
   return (
-    <div className="space-y-2">
-      <FormLabel>{label}</FormLabel>
-      <div className="flex gap-2 items-center">
-        <div
-          className="w-8 h-8 rounded-md border"
-          style={{ backgroundColor: `hsl(${value})` }}
-        />
-        <div className="flex-grow space-y-1">
-          <Slider
-            min={0}
-            max={360}
-            step={1}
-            value={!isNaN(h) ? [h] : [0]}
-            onValueChange={handleHueChange}
-          />
-          <Slider
-            min={0}
-            max={100}
-            step={1}
-            value={!isNaN(s) ? [s] : [0]}
-            onValueChange={handleSaturationChange}
-          />
-          <Slider
-            min={0}
-            max={100}
-            step={1}
-            value={!isNaN(l) ? [l] : [0]}
-            onValueChange={handleLightnessChange}
-          />
+    <div className="space-y-4 rounded-md border p-4">
+      <div className="flex items-center justify-between">
+        <FormLabel>{label}</FormLabel>
+        <div className="flex items-center gap-2">
+           <div className="w-8 h-8 rounded-md border" style={{ backgroundColor: `hsl(${value})` }} />
+           <Input
+                value={hexValue}
+                onChange={handleHexChange}
+                className="w-24 font-mono text-sm"
+                aria-label={`${label} Hex Code`}
+            />
+        </div>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <FormLabel className="text-xs text-muted-foreground">Hue</FormLabel>
+          <Slider min={0} max={360} step={1} value={!isNaN(h) ? [h] : [0]} onValueChange={handleHueChange} />
+        </div>
+        <div>
+          <FormLabel className="text-xs text-muted-foreground">Saturation</FormLabel>
+          <Slider min={0} max={100} step={1} value={!isNaN(s) ? [s] : [0]} onValueChange={handleSaturationChange} />
+        </div>
+        <div>
+          <FormLabel className="text-xs text-muted-foreground">Lightness</FormLabel>
+          <Slider min={0} max={100} step={1} value={!isNaN(l) ? [l] : [0]} onValueChange={handleLightnessChange} />
         </div>
       </div>
     </div>
@@ -240,7 +280,7 @@ export function BrandCustomizationDialog({
               control={form.control}
               name="primaryColor"
               render={({ field }) => (
-                <HSLSlider
+                <ColorPicker
                   label="Primary Color"
                   value={field.value}
                   onChange={field.onChange}
@@ -251,7 +291,7 @@ export function BrandCustomizationDialog({
               control={form.control}
               name="backgroundColor"
               render={({ field }) => (
-                <HSLSlider
+                <ColorPicker
                   label="Background Color"
                   value={field.value}
                   onChange={field.onChange}
@@ -262,7 +302,7 @@ export function BrandCustomizationDialog({
               control={form.control}
               name="accentColor"
               render={({ field }) => (
-                <HSLSlider
+                <ColorPicker
                   label="Accent Color"
                   value={field.value}
                   onChange={field.onChange}
