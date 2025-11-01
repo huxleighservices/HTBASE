@@ -27,10 +27,9 @@ import { runCallSimulation } from '@/ai/flows/call-simulation-flow';
 import { transcribeAudio } from '@/ai/flows/transcribe-audio-flow';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { addResultToSession, onSessionsUpdate, createSession } from '@/firebase/firestore';
-import type { TrainingSession } from '@/types/sessions';
+import { addResultToSession, onSessionsUpdate } from '@/firebase/firestore';
+import type { Session } from '@/types/session';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { format } from 'date-fns';
 
 
 const USER_TURN_LIMIT = 5;
@@ -58,7 +57,7 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
     const audioChunksRef = useRef<Blob[]>([]);
 
     // Session Saving State
-    const [sessions, setSessions] = useState<TrainingSession[]>([]);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [sessionToSaveTo, setSessionToSaveTo] = useState<string | null>(activeSessionId);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -168,12 +167,7 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
 
         if (!isStarted) {
             setIsStarted(true);
-            if (clientPath && activeSessionId) {
-                const sessionName = `Session - ${format(new Date(), 'MMM d, yyyy h:mm a')}`;
-                await createSession(clientPath, activeSessionId, sessionName);
-            }
         }
-
 
         try {
             // 1. Transcribe audio
@@ -343,7 +337,7 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
                                     <h4 className="font-bold">Simulation Complete!</h4>
                                     <p className="text-sm">Review your feedback. You can now save this result.</p>
                                     <div className="flex items-center justify-center gap-2">
-                                        <Select onValueChange={setSessionToSaveTo} defaultValue={sessionToSaveTo || ''}><SelectTrigger className="w-[250px] bg-background/70"><SelectValue placeholder="Select session to save..." /></SelectTrigger><SelectContent>{sessions.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select>
+                                        <Select onValueChange={setSessionToSaveTo} defaultValue={sessionToSaveTo || ''}><SelectTrigger className="w-[250px] bg-background/70"><SelectValue placeholder="Select session to save..." /></SelectTrigger><SelectContent>{sessions.map(s => <SelectItem key={s.id} value={s.id}>{s.sessionName}</SelectItem>)}</SelectContent></Select>
                                         <Button onClick={handleSaveResult} disabled={isSaving || !sessionToSaveTo}>{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}{isSaving ? 'Saving...' : 'Save Result'}</Button>
                                     </div>
                                 </div>

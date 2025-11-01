@@ -97,32 +97,35 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Session",
       "type": "object",
-      "description": "Represents a training session for a client.",
+      "description": "Represents a training session for a client, protected by a PIN.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the Session entity."
         },
-        "firstName": {
-          "type": "string"
-        },
-        "lastName": {
-          "type": "string"
-        },
-        "email": {
+        "sessionName": {
           "type": "string",
-          "format": "email"
+          "description": "User-defined name for the session."
         },
         "companyName": {
-          "type": "string"
+          "type": "string",
+          "description": "The company name associated with the session."
+        },
+        "pin": {
+          "type": "string",
+          "description": "A 4-digit PIN to access the session."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time"
         }
       },
       "required": [
         "id",
-        "firstName",
-        "lastName",
-        "email",
-        "companyName"
+        "sessionName",
+        "companyName",
+        "pin",
+        "createdAt"
       ]
     },
     "TrainingSession": {
@@ -245,9 +248,9 @@
       {
         "path": "/users/{userId}/clients/{clientId}/sessions/{sessionId}",
         "definition": {
-          "entityName": "TrainingSession",
+          "entityName": "Session",
           "schema": {
-            "$ref": "#/entities/TrainingSession"
+            "$ref": "#/entities/Session"
           },
           "description": "Subcollection to store training sessions for a specific client.",
           "params": [

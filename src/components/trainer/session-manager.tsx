@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -16,7 +17,8 @@ import {
 } from '@/components/ui/accordion';
 import { BookUser, Loader2, ThumbsUp, Lightbulb, Bot, User, Trash2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import type { TrainingSession, TrainingResult } from '@/types/sessions';
+import type { TrainingResult } from '@/types/sessions';
+import type { Session } from '@/types/session';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
@@ -38,7 +40,7 @@ export function SessionManager({ clientPath, customization }: { clientPath: stri
     return query(collection(firestore, clientPath, 'sessions'), orderBy('createdAt', 'desc'));
   }, [firestore, clientPath]);
 
-  const { data: sessions, isLoading } = useCollection<TrainingSession>(sessionsCollectionRef);
+  const { data: sessions, isLoading } = useCollection<Session & { results?: TrainingResult[] }>(sessionsCollectionRef);
 
   const handleDeleteSession = (sessionId: string) => {
     if (!clientPath) return;
@@ -80,7 +82,7 @@ export function SessionManager({ clientPath, customization }: { clientPath: stri
                 <div className="flex items-center w-full">
                     <AccordionTrigger className="flex-grow">
                         <div>
-                            <p className="font-semibold text-left">{session.name}</p>
+                            <p className="font-semibold text-left">{session.sessionName}</p>
                             <p className="text-sm text-muted-foreground">
                             {session.createdAt?.toDate ? format(session.createdAt.toDate(), 'PPP') : 'Date not available'}
                             </p>
@@ -96,7 +98,7 @@ export function SessionManager({ clientPath, customization }: { clientPath: stri
                             <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will permanently delete the session "{session.name}" and all its associated results. This action cannot be undone.
+                                This will permanently delete the session "{session.sessionName}" and all its associated results. This action cannot be undone.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

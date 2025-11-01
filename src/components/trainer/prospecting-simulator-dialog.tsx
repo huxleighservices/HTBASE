@@ -27,8 +27,8 @@ import { SimulationDifficulty, type ConversationMessage, type ProspectingSimulat
 import { runProspectingSimulation } from '@/ai/flows/prospecting-simulation-flow';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { addResultToSession, onSessionsUpdate, createSession } from '@/firebase/firestore';
-import type { TrainingSession } from '@/types/sessions';
+import { addResultToSession, onSessionsUpdate } from '@/firebase/firestore';
+import type { Session } from '@/types/session';
 import { format } from 'date-fns';
 
 const USER_MESSAGE_LIMIT = 5;
@@ -42,7 +42,7 @@ export function ProspectingSimulatorDialog({ open, onOpenChange, activeSessionId
     const [currentMessage, setCurrentMessage] = useState('');
     const [feedback, setFeedback] = useState<ProspectingSimulationOutput['feedback'] | null>(null);
 
-    const [sessions, setSessions] = useState<TrainingSession[]>([]);
+    const [sessions, setSessions] = useState<Session[]>([]);
     const [sessionToSaveTo, setSessionToSaveTo] = useState<string | null>(activeSessionId);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -84,10 +84,6 @@ export function ProspectingSimulatorDialog({ open, onOpenChange, activeSessionId
         setIsLoading(true);
         if (!isStarted) {
             setIsStarted(true);
-            if (clientPath && activeSessionId) {
-                const sessionName = `Session - ${format(new Date(), 'MMM d, yyyy h:mm a')}`;
-                await createSession(clientPath, activeSessionId, sessionName);
-            }
         }
 
         try {
@@ -256,7 +252,7 @@ export function ProspectingSimulatorDialog({ open, onOpenChange, activeSessionId
                                                 <SelectValue placeholder="Select session to save..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {sessions.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                {sessions.map(s => <SelectItem key={s.id} value={s.id}>{s.sessionName}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                         <Button onClick={handleSaveResult} disabled={isSaving || !sessionToSaveTo}>

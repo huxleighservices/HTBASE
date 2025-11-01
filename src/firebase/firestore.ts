@@ -17,7 +17,8 @@ import {
 } from 'firebase/firestore';
 import { getFirestore } from 'firebase/firestore';
 import { initializeFirebase } from '.';
-import type { TrainingResult, TrainingSession } from '@/types/sessions';
+import type { TrainingResult } from '@/types/sessions';
+import type { Session } from '@/types/session';
 
 let firestore: Firestore;
 try {
@@ -28,7 +29,7 @@ try {
 }
 
 
-export function onSessionsUpdate(clientPath: string, callback: (sessions: TrainingSession[]) => void) {
+export function onSessionsUpdate(clientPath: string, callback: (sessions: Session[]) => void) {
     const db = firestore || getFirestore();
     const sessionsQuery = query(
         collection(db, clientPath, 'sessions'),
@@ -36,25 +37,14 @@ export function onSessionsUpdate(clientPath: string, callback: (sessions: Traini
     );
 
     const unsubscribe = onSnapshot(sessionsQuery, (querySnapshot) => {
-        const sessions: TrainingSession[] = [];
+        const sessions: Session[] = [];
         querySnapshot.forEach((doc) => {
-            sessions.push({ id: doc.id, ...doc.data() } as TrainingSession);
+            sessions.push({ id: doc.id, ...doc.data() } as Session);
         });
         callback(sessions);
     });
 
     return unsubscribe;
-}
-
-export async function createSession(clientPath: string, sessionId: string, sessionName: string) {
-    const db = firestore || getFirestore();
-    const sessionRef = doc(db, clientPath, 'sessions', sessionId);
-    await setDoc(sessionRef, {
-        id: sessionId,
-        name: sessionName,
-        createdAt: serverTimestamp(),
-        results: [],
-    });
 }
 
 export async function addResultToSession(clientPath: string, sessionId: string, result: TrainingResult) {

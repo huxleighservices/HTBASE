@@ -1,7 +1,7 @@
 export type Session = {
   id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  sessionName: string;
   companyName: string;
+  pin: string;
+  createdAt: any;
 };
