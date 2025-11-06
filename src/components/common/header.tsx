@@ -44,6 +44,7 @@ export function Header() {
   const { data: userProfile } = useDoc(userDocRef);
 
   const isManager = userProfile?.role === 'manager';
+  const isAdmin = userProfile?.role === 'admin';
 
   const navLinks = useMemo(() => {
     const defaultLinks = [
@@ -51,12 +52,12 @@ export function Header() {
     ];
     if (isManager) {
       defaultLinks.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
-    } else {
+    } else if (isAdmin) {
       defaultLinks.push({ href: "/dashboard/clients", label: "Clients" });
     }
     defaultLinks.push({ href: "/dashboard/settings", label: "Settings" });
     return defaultLinks;
-  }, [isManager]);
+  }, [isManager, isAdmin]);
   
   const handleLogout = () => {
     signOut(auth).then(() => {
