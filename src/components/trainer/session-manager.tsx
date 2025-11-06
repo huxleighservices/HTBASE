@@ -16,9 +16,9 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { BookUser, Loader2, ThumbsUp, Lightbulb, Bot, User, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import type { TrainingResult } from '@/types/sessions';
-import { collection, query, orderBy, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
+import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
