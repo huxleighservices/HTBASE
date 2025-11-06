@@ -3,7 +3,7 @@
 
 import type { ReactNode } from "react";
 import { Header } from "@/components/common/header";
-import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useUser, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -29,6 +29,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const isLoading = isUserLoading || isProfileLoading;
 
+  useEffect(() => {
+    // When profile is done loading and we have a user but no profile document
+    if (!isProfileLoading && user && !userProfile) {
+      if (userDocRef) {
+        // Create a user profile document if it doesn't exist.
+        // This ensures every authenticated user is represented in the admin panel.
+        setDocumentNonBlocking(userDocRef, {
+          id: user.uid,
+          email: user.email,
+          role: user.email === 'service@huxleigh.com' ? 'admin' : 'user',
+          firstName: user.email?.split('@')[0] || 'New',
+          lastName: 'User',
+        }, { merge: true });
+      }
+    }
+  }, [isProfileLoading, user, userProfile, userDocRef]);
+
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -41,21 +59,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return null;
   }
   
-  if (user.email === 'service@huxleigh.com' && !userProfile) {
-    // Special case to bootstrap the admin user
-    const { setDocumentNonBlocking } = require('@/firebase/non-blocking-updates');
-    if (userDocRef) {
-      setDocumentNonBlocking(userDocRef, {
-        id: user.uid,
-        email: user.email,
-        role: 'admin',
-        firstName: 'Service',
-        lastName: 'Account',
-      }, { merge: true });
-    }
-  }
-
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
