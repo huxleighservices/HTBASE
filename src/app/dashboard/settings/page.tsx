@@ -29,9 +29,10 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
+import { AdminPanel } from '@/components/admin/admin-panel';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -88,16 +89,18 @@ export default function SettingsPage() {
       email: user.email, // Ensure email from auth is saved
     };
     setDocumentNonBlocking(userDocRef, profileData, { merge: true });
-    // The non-blocking function doesn't have a callback for success,
-    // so we optimistically show the toast.
+    
     setTimeout(() => {
       setIsSaving(false);
       toast({
         title: 'Profile Updated',
         description: 'Your settings have been saved successfully.',
       });
-    }, 500); // Simulate a short delay
+    }, 500); 
   };
+  
+  const isServiceAccount = user?.email === 'service@huxleigh.com';
+  const isAdmin = userProfile?.role === 'admin' || isServiceAccount;
 
   return (
     <div className="flex flex-col gap-8">
@@ -177,6 +180,8 @@ export default function SettingsPage() {
           </Form>
         </CardContent>
       </Card>
+      
+      {isAdmin && <AdminPanel />}
     </div>
   );
 }

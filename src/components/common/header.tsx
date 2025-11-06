@@ -13,14 +13,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Menu, X } from "lucide-react";
+import { LogOut, User, Settings, Menu, X, Briefcase } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc } from 'firebase/firestore';
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Sheet,
   SheetContent,
@@ -43,11 +43,20 @@ export function Header() {
 
   const { data: userProfile } = useDoc(userDocRef);
 
-  const navLinks = [
-    { href: "/dashboard", label: "Home" },
-    { href: "/dashboard/clients", label: "Clients" },
-    { href: "/dashboard/settings", label: "Settings" },
-  ];
+  const isManager = userProfile?.role === 'manager';
+
+  const navLinks = useMemo(() => {
+    const defaultLinks = [
+      { href: "/dashboard", label: "Home" },
+    ];
+    if (isManager) {
+      defaultLinks.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
+    } else {
+      defaultLinks.push({ href: "/dashboard/clients", label: "Clients" });
+    }
+    defaultLinks.push({ href: "/dashboard/settings", label: "Settings" });
+    return defaultLinks;
+  }, [isManager]);
   
   const handleLogout = () => {
     signOut(auth).then(() => {

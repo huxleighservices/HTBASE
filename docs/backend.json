@@ -23,6 +23,15 @@
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user.",
+          "enum": ["admin", "manager", "user"]
+        },
+        "assignedClientId": {
+            "type": "string",
+            "description": "The 6-digit display ID of the client assigned to a manager."
         }
       },
       "required": [

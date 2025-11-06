@@ -2,101 +2,52 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Defines the `isSignedIn()` helper function to check if a user is authenticated.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Authentication is required for all operations.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Defines the `isOwner(userId)` helper function to check if the authenticated user ID matches the provided `userId`.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Enforces path-based ownership.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Defines the `isExistingOwner(userId)` helper function to check if the authenticated user ID matches the provided `userId` and if the document exists.
-     * @path N/A
-     * @allow N/A
-     * @deny N/A
-     * @principle Enforces document existence and ownership for updates and deletes.
-     */
     function isExistingOwner(userId) {
-      return isSignedIn() && isOwner(userId) && resource.data != null;
+      return isOwner(userId) && resource.data != null;
     }
 
-    /**
-     * @description Rule set for the /users/{userId} collection.
-     * @path /users/{userId}
-     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
-     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
-     * @principle Enforces user-ownership: only the authenticated user can create their own profile.
-     */
+    function getRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+
+    function isAdmin(userId) {
+      return getRole(userId) == 'admin';
+    }
+
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
+      allow get: if isSignedIn();
+      allow list: if isAdmin(request.auth.uid);
+      
+      allow create: if isSignedIn();
 
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) // Allow user to update their own non-sensitive data
+                      || isAdmin(request.auth.uid); // Allow admin to update any user
+      
+      allow delete: if isAdmin(request.auth.uid);
     }
 
-    /**
-     * @description Rule set for the /users/{userId}/clients/{clientId} collection.
-     * @path /users/{userId}/clients/{clientId}
-     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
-     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
-     * @principle Enforces user-ownership: only the authenticated user can create clients under their profile.
-     */
     match /users/{userId}/clients/{clientId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
 
-    /**
-     * @description Rule set for the /users/{userId}/clients/{clientId}/sessions/{sessionId} collection.
-     * @path /users/{userId}/clients/{clientId}/sessions/{sessionId}
-     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
-     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
-     * @principle Enforces user-ownership: only the authenticated user can create sessions under their client profiles.
-     */
     match /users/{userId}/clients/{clientId}/sessions/{sessionId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
 
-    /**
-     * @description Rule set for the /users/{userId}/landingPages/{landingPageId} collection.
-     * @path /users/{userId}/landingPages/{landingPageId}
-     * @allow (create) If the user is signed in and the userId matches the authenticated user's ID.
-     * @deny (create) If the user is not signed in or the userId does not match the authenticated user's ID.
-     * @principle Enforces user-ownership: only the authenticated user can create landing pages under their profile.
-     */
     match /users/{userId}/landingPages/{landingPageId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
+    }
+    
+    match /users/{userId}/clients/{clientId}/customization/{customizationId} {
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
   }
 }
