@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -36,9 +35,14 @@ export default function MyTrainerPage() {
 
   useEffect(() => {
     const fetchClientData = async () => {
-      if (!firestore || !userProfile || userProfile.role !== 'manager' || !userProfile.assignedClientId) {
+       if (!firestore || !userProfile) {
         setIsClientLoading(false);
-        setClient(null); // Explicitly set client to null
+        return;
+       }
+
+      if (userProfile.role !== 'manager' || !userProfile.assignedClientId) {
+        setClient(null);
+        setIsClientLoading(false);
         return;
       }
 
@@ -63,12 +67,13 @@ export default function MyTrainerPage() {
         setIsClientLoading(false);
       }
     };
-
-    if (userProfile) {
+    
+    // We should only attempt to fetch client data when the user profile has finished loading.
+    if (!isProfileLoading && userProfile) {
       fetchClientData();
-    } else if (!isProfileLoading) {
-        // If profile isn't loading and is null, we can stop client loading
-        setIsClientLoading(false);
+    } else if (!isProfileLoading && !userProfile) {
+      // If the profile has loaded but is null/empty, there's nothing to do.
+      setIsClientLoading(false);
     }
   }, [firestore, userProfile, isProfileLoading]);
 
@@ -121,7 +126,7 @@ export default function MyTrainerPage() {
                 </CardDescription>
             </div>
             <Button>
-                <PlusCircle />
+                <PlusCircle className="mr-2" />
                 Add New Key
             </Button>
         </CardHeader>
