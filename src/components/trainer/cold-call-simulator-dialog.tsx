@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Phone, Mic, Loader2, Sparkles, ThumbsUp, Lightbulb, Trash2, Bot, User, Save, Circle, Radio } from 'lucide-react';
+import { Phone, Mic, Loader2, Sparkles, ThumbsUp, Lightbulb, Trash2, Bot, User, Save, Radio } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -27,8 +27,7 @@ import { runCallSimulation } from '@/ai/flows/call-simulation-flow';
 import { transcribeAudio } from '@/ai/flows/transcribe-audio-flow';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { addResultToSession, onSessionsUpdate } from '@/firebase/firestore';
-import type { Session } from '@/types/session';
+import { addResultToSession } from '@/firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 
@@ -57,8 +56,6 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
     const audioChunksRef = useRef<Blob[]>([]);
 
     // Session Saving State
-    const [sessions, setSessions] = useState<Session[]>([]);
-    const [sessionToSaveTo, setSessionToSaveTo] = useState<string | null>(activeSessionId);
     const [isSaving, setIsSaving] = useState(false);
 
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -80,13 +77,6 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
                 });
         }
     }, [open]);
-    
-    // Fetch user's sessions for saving results
-    useEffect(() => {
-        if (!clientPath) return;
-        const unsubscribe = onSessionsUpdate(clientPath, setSessions);
-        return () => unsubscribe();
-    }, [clientPath]);
 
     // Reset simulation state when dialog is opened or session changes
     const resetSimulation = useCallback(() => {
@@ -95,11 +85,10 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
         setIsStarted(false);
         setIsLoading(false);
         setFeedback(null);
-        setSessionToSaveTo(activeSessionId);
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
         }
-    }, [activeSessionId]);
+    }, []);
 
     useEffect(() => {
         if (open) {
@@ -216,19 +205,19 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
     };
     
     const handleSaveResult = async () => {
-        if (!clientPath || !sessionToSaveTo || !feedback) {
-            toast({ title: "Cannot Save", description: "No session selected or feedback not generated.", variant: "destructive"});
+        if (!clientPath || !activeSessionId || !feedback) {
+            toast({ title: "Cannot Save", description: "Could not save the result. Client or session information is missing.", variant: "destructive"});
             return;
         }
         setIsSaving(true);
         try {
-            await addResultToSession(clientPath, sessionToSaveTo, {
+            await addResultToSession(clientPath, activeSessionId, {
                 phase: "Cold Call",
                 difficulty: persona.attitude,
                 conversation: conversation.map(c => ({ role: c.role, content: c.text })),
                 feedback: feedback,
             });
-            toast({ title: "Result Saved", description: "Your training result has been saved to the session."});
+            toast({ title: "Result Saved", description: "Your training result has been saved."});
             onOpenChange(false);
         } catch (error: any) {
             toast({ title: "Save Failed", description: error.message, variant: "destructive"});
@@ -337,8 +326,10 @@ export function ColdCallSimulatorDialog({ open, onOpenChange, activeSessionId, c
                                     <h4 className="font-bold">Simulation Complete!</h4>
                                     <p className="text-sm">Review your feedback. You can now save this result.</p>
                                     <div className="flex items-center justify-center gap-2">
-                                        <Select onValueChange={setSessionToSaveTo} defaultValue={sessionToSaveTo || ''}><SelectTrigger className="w-[250px] bg-background/70"><SelectValue placeholder="Select session to save..." /></SelectTrigger><SelectContent>{sessions.map(s => <SelectItem key={s.id} value={s.id}>{s.sessionName}</SelectItem>)}</SelectContent></Select>
-                                        <Button onClick={handleSaveResult} disabled={isSaving || !sessionToSaveTo}>{isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}{isSaving ? 'Saving...' : 'Save Result'}</Button>
+                                        <Button onClick={handleSaveResult} disabled={isSaving}>
+                                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
+                                            {isSaving ? 'Saving...' : 'Save Result'}
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (

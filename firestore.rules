@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,9 +11,32 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource.data != null;
+    // This function checks if the requesting user is the owner of the client document
+    // by traversing up the resource path.
+    function isClientOwner() {
+      let userId = request.path[2];
+      return isOwner(userId);
     }
+    
+    function isManagerOfClient() {
+        // Path: /users/{userId}/clients/{clientId}/...
+        let ownerId = request.path[2];
+        let clientRef = get(/databases/$(database)/documents/users/$(ownerId));
+        // A manager is someone who has an `assignedClientId` that matches the {clientId} in the path.
+        // This rule is tricky because we don't know the manager's UID directly from the path.
+        // A better approach is to check if the current user has the 'manager' role and their assignedClientId matches.
+        // This requires a read to the current user's profile.
+        let currentUserProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        let requestedClientId = request.path[4]; // assuming /users/{ownerId}/clients/{clientId}
+
+        // We need to get the displayId from the actual client document to compare.
+        let clientDoc = get(/databases/$(database)/documents/users/$(ownerId)/clients/$(requestedClientId)).data;
+
+        return isSignedIn() 
+                && currentUserProfile.role == 'manager' 
+                && currentUserProfile.assignedClientId == clientDoc.displayId;
+    }
+
 
     function getRole(userId) {
       return get(/databases/$(database)/documents/users/$(userId)).data.role;
@@ -35,18 +59,18 @@ service cloud.firestore {
     }
 
     match /users/{userId}/clients/{clientId} {
+      // Admins and the direct owner can manage clients.
       allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
 
-    match /users/{userId}/clients/{clientId}/sessions/{sessionId} {
-      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
+    match /users/{userId}/clients/{clientId}/accessKeys/{accessKeyId} {
+        // The owner of the client (admin) or an assigned manager can manage access keys.
+        allow read, list, create, delete: if isOwner(userId) || isManagerOfClient();
+        // No update allowed, keys should be created/deleted.
     }
 
-    match /users/{userId}/landingPages/{landingPageId} {
-      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
-    }
-    
     match /users/{userId}/clients/{clientId}/customization/{customizationId} {
+      // Admins and the direct owner can manage customization.
       allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
   }

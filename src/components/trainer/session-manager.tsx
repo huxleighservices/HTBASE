@@ -16,10 +16,10 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { BookUser, Loader2, ThumbsUp, Lightbulb, Bot, User, Trash2 } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { TrainingResult } from '@/types/sessions';
 import type { Session } from '@/types/session';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '../ui/scroll-area';
@@ -27,29 +27,43 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { deleteSession } from '@/firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandCustomization } from '@/types/client';
 
 export function SessionManager({ clientPath, customization }: { clientPath: string | null; customization: BrandCustomization | null; }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user } = useUser();
 
-  const sessionsCollectionRef = useMemoFirebase(() => {
+  // For access keys, we store results on a single document. For managers/admins, we could use sessions.
+  // For simplicity in this new flow, we'll store all results under one "master" session doc for the client.
+  const resultsDocRef = useMemoFirebase(() => {
     if (!firestore || !clientPath) return null;
-    return query(collection(firestore, clientPath, 'sessions'), orderBy('createdAt', 'desc'));
+    return doc(firestore, clientPath, 'sessions', 'access-key-session');
   }, [firestore, clientPath]);
 
-  const { data: sessions, isLoading } = useCollection<Session & { results?: TrainingResult[] }>(sessionsCollectionRef);
+  const { data: resultsDoc, isLoading } = useDoc<{results?: TrainingResult[]}>(resultsDocRef);
 
-  const handleDeleteSession = (sessionId: string) => {
-    if (!clientPath) return;
-    deleteSession(clientPath, sessionId);
-    toast({
-      title: 'Session Deleted',
-      description: 'The training session has been removed.',
-    });
+  const handleDeleteResult = async (resultToRemove: TrainingResult) => {
+    if (!resultsDocRef) return;
+    try {
+      await updateDoc(resultsDocRef, {
+        results: arrayRemove(resultToRemove)
+      });
+      toast({
+        title: 'Result Deleted',
+        description: 'The training result has been removed.',
+      });
+    } catch (error: any) {
+       toast({
+        title: 'Deletion Failed',
+        description: error.message || 'Could not remove the result.',
+        variant: 'destructive',
+      });
+    }
   };
+
+  const results = resultsDoc?.results?.sort((a, b) => (b.createdAt as any) - (a.createdAt as any)) || [];
 
   return (
     <Card>
@@ -58,10 +72,10 @@ export function SessionManager({ clientPath, customization }: { clientPath: stri
           <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <BookUser className="size-6" />
           </div>
-          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Session Manager</CardTitle>
+          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Training Results</CardTitle>
         </div>
         <CardDescription className={cn("pt-2", customization?.foregroundColor && 'text-foreground opacity-70')}>
-          Review your past training sessions and performance.
+          Review past training simulations and performance feedback.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -70,21 +84,21 @@ export function SessionManager({ clientPath, customization }: { clientPath: stri
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
-        {!isLoading && (!sessions || sessions.length === 0) && (
+        {!isLoading && results.length === 0 && (
           <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 text-muted-foreground">
-            <p>No saved sessions found.</p>
+            <p>No saved training results found.</p>
           </div>
         )}
-        {!isLoading && sessions && sessions.length > 0 && (
+        {!isLoading && results.length > 0 && (
           <Accordion type="single" collapsible className="w-full">
-            {sessions.map(session => (
-              <AccordionItem key={session.id} value={session.id}>
+            {results.map((result, index) => (
+              <AccordionItem key={index} value={`result-${index}`}>
                 <div className="flex items-center w-full">
                     <AccordionTrigger className="flex-grow">
                         <div>
-                            <p className="font-semibold text-left">{session.sessionName}</p>
+                            <p className="font-semibold text-left">{result.phase} Simulation</p>
                             <p className="text-sm text-muted-foreground">
-                            {session.createdAt?.toDate ? format(session.createdAt.toDate(), 'PPP') : 'Date not available'}
+                            {result.createdAt?.toDate ? format(result.createdAt.toDate(), 'PPP p') : 'Date not available'}
                             </p>
                         </div>
                     </AccordionTrigger>
@@ -98,30 +112,22 @@ export function SessionManager({ clientPath, customization }: { clientPath: stri
                             <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This will permanently delete the session "{session.sessionName}" and all its associated results. This action cannot be undone.
+                                This will permanently delete this training result. This action cannot be undone.
                             </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteSession(session.id)} className={cn(
+                            <AlertDialogAction onClick={() => handleDeleteResult(result)} className={cn(
                                 "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             )}>
-                                Delete Session
+                                Delete Result
                             </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
                 </div>
                 <AccordionContent>
-                  {session.results && session.results.length > 0 ? (
-                    <div className="space-y-4">
-                      {session.results.map((result, index) => (
-                        <ResultCard key={index} result={result} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm p-4 text-center">No results saved for this session.</p>
-                  )}
+                    <ResultCard result={result} />
                 </AccordionContent>
               </AccordionItem>
             ))}

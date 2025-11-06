@@ -14,11 +14,10 @@ import {
   setDoc,
   serverTimestamp,
   deleteDoc,
+  getFirestore,
 } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
 import { initializeFirebase } from '.';
 import type { TrainingResult } from '@/types/sessions';
-import type { Session } from '@/types/session';
 
 let firestore: Firestore;
 try {
@@ -29,34 +28,20 @@ try {
 }
 
 
-export function onSessionsUpdate(clientPath: string, callback: (sessions: Session[]) => void) {
+export async function addResultToSession(clientPath: string, sessionId: string, result: Omit<TrainingResult, 'createdAt'>) {
     const db = firestore || getFirestore();
-    const sessionsQuery = query(
-        collection(db, clientPath, 'sessions'),
-        orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(sessionsQuery, (querySnapshot) => {
-        const sessions: Session[] = [];
-        querySnapshot.forEach((doc) => {
-            sessions.push({ id: doc.id, ...doc.data() } as Session);
-        });
-        callback(sessions);
-    });
-
-    return unsubscribe;
-}
-
-export async function addResultToSession(clientPath: string, sessionId: string, result: TrainingResult) {
-    const db = firestore || getFirestore();
+    // In the new flow, all results for a client are stored in a single document
+    // named after the session ID ('access-key-session').
     const sessionRef = doc(db, clientPath, 'sessions', sessionId);
-    await updateDoc(sessionRef, {
-        results: arrayUnion(result)
-    });
-}
+    
+    const resultWithTimestamp = {
+        ...result,
+        createdAt: serverTimestamp()
+    };
 
-export async function deleteSession(clientPath: string, sessionId: string) {
-    const db = firestore || getFirestore();
-    const sessionRef = doc(db, clientPath, 'sessions', sessionId);
-    await deleteDoc(sessionRef);
+    // We use set with merge:true to create the doc if it doesn't exist,
+    // and arrayUnion to add the new result to the 'results' array.
+    await setDoc(sessionRef, {
+        results: arrayUnion(resultWithTimestamp)
+    }, { merge: true });
 }

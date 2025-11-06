@@ -85,10 +85,6 @@
           "type": "string",
           "enum": ["pending", "active", "archived"]
         },
-        "launchPassword": {
-          "type": "string",
-          "description": "Password to access the client's launch portal."
-        },
         "trainingData": {
           "type": "string",
           "description": "Custom product information or training material for the AI."
@@ -102,69 +98,31 @@
         "status"
       ]
     },
-    "Session": {
+    "AccessKey": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Session",
+      "title": "AccessKey",
       "type": "object",
-      "description": "Represents a training session for a client, protected by a PIN.",
+      "description": "Represents a temporary user credential for client access.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Session entity."
+          "description": "The Firebase Auth UID of the temporary user."
         },
-        "sessionName": {
+        "email": {
           "type": "string",
-          "description": "User-defined name for the session."
+          "format": "email",
+          "description": "The email/username for the access key."
         },
-        "companyName": {
+        "displayName": {
           "type": "string",
-          "description": "The company name associated with the session."
-        },
-        "pin": {
-          "type": "string",
-          "description": "A 4-digit PIN to access the session."
+          "description": "A friendly name for the key (e.g., 'Trainee 1')."
         },
         "createdAt": {
             "type": "string",
             "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "sessionName",
-        "companyName",
-        "pin",
-        "createdAt"
-      ]
-    },
-    "TrainingSession": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "TrainingSession",
-      "description": "Represents a user's training session, containing multiple results.",
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "results": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "createdAt"
-      ]
+      "required": ["id", "email", "displayName", "createdAt"]
     },
     "BrandCustomization": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -255,26 +213,15 @@
         }
       },
       {
-        "path": "/users/{userId}/clients/{clientId}/sessions/{sessionId}",
+        "path": "/users/{userId}/clients/{clientId}/accessKeys/{accessKeyId}",
         "definition": {
-          "entityName": "Session",
-          "schema": {
-            "$ref": "#/entities/Session"
-          },
-          "description": "Subcollection to store training sessions for a specific client.",
+          "entityName": "AccessKey",
+          "schema": { "$ref": "#/entities/AccessKey" },
+          "description": "Subcollection to store temporary access keys for a client.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the client."
-            },
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            },
-            {
-              "name": "sessionId",
-              "description": "The unique identifier of the session."
-            }
+            { "name": "userId", "description": "The user owner of the client." },
+            { "name": "clientId", "description": "The client the key belongs to." },
+            { "name": "accessKeyId", "description": "The UID of the temporary auth user." }
           ]
         }
       },
@@ -292,6 +239,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be secure, scalable, and easily debuggable, following the core design principles and strategy mandates. It uses path-based ownership for user-specific data, ensuring clear authorization and efficient querying. The structure avoids hierarchical authorization dependencies by relying solely on `request.auth.uid` and path-based ownership, which simplifies security rules and allows atomic operations. Segregation of data based on access needs simplifies security rules by ensuring all documents in a collection share the same security requirements.\n\nThe `/users/{userId}` collection stores user profiles. The `/users/{userId}/landingPages/{landingPageId}` collection stores landing pages owned by each user. The `/users/{userId}/customizations/{customizationId}` collection stores customizations owned by each user. This structure facilitates straightforward security rules based on path-based ownership, guaranteeing that only the authenticated user can access their respective landing pages and customizations. All `list` operations are secured via path-based ownership, where listing a collection is only allowed if the authenticated user is the owner. \n\nThis design emphasizes Authorization Independence, DBAC (Database-Based Access Control), QAPs (Rules Are Not Filters), and structural segregation, resulting in a robust and maintainable data model."
+    "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }

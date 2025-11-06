@@ -27,9 +27,7 @@ import { SimulationDifficulty, type ConversationMessage, type ProspectingSimulat
 import { runQualificationSimulation } from '@/ai/flows/qualification-simulation-flow';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { addResultToSession, onSessionsUpdate } from '@/firebase/firestore';
-import type { Session } from '@/types/session';
-import { format } from 'date-fns';
+import { addResultToSession } from '@/firebase/firestore';
 
 const USER_MESSAGE_LIMIT = 5;
 
@@ -41,19 +39,10 @@ export function QualificationSimulatorDialog({ open, onOpenChange, activeSession
     const [isLoading, setIsLoading] = useState(false);
     const [currentMessage, setCurrentMessage] = useState('');
     const [feedback, setFeedback] = useState<ProspectingSimulationOutput['feedback'] | null>(null);
-    
-    const [sessions, setSessions] = useState<Session[]>([]);
-    const [sessionToSaveTo, setSessionToSaveTo] = useState<string | null>(activeSessionId);
     const [isSaving, setIsSaving] = useState(false);
 
     const userMessagesCount = conversation.filter(m => m.role === 'user').length;
     const isComplete = feedback !== null;
-
-    useEffect(() => {
-        if (!clientPath) return;
-        const unsubscribe = onSessionsUpdate(clientPath, setSessions);
-        return () => unsubscribe();
-    }, [clientPath]);
 
     const resetSimulation = () => {
         setConversation([]);
@@ -61,14 +50,13 @@ export function QualificationSimulatorDialog({ open, onOpenChange, activeSession
         setCurrentMessage('');
         setFeedback(null);
         setIsLoading(false);
-        setSessionToSaveTo(activeSessionId);
     };
     
     useEffect(() => {
         if (open) {
             resetSimulation();
         }
-    }, [open, activeSessionId]);
+    }, [open]);
 
     const handleSendMessage = async (e: FormEvent) => {
         e.preventDefault();
@@ -112,19 +100,19 @@ export function QualificationSimulatorDialog({ open, onOpenChange, activeSession
     };
     
     const handleSaveResult = async () => {
-        if (!clientPath || !sessionToSaveTo || !feedback) {
-            toast({ title: "Cannot Save", description: "No session selected or feedback not generated.", variant: "destructive"});
+        if (!clientPath || !activeSessionId || !feedback) {
+            toast({ title: "Cannot Save", description: "Could not save the result. Client or session information is missing.", variant: "destructive"});
             return;
         }
         setIsSaving(true);
         try {
-            await addResultToSession(clientPath, sessionToSaveTo, {
+            await addResultToSession(clientPath, activeSessionId, {
                 phase: "Qualification",
                 difficulty: difficulty,
                 conversation: conversation,
                 feedback: feedback,
             });
-            toast({ title: "Result Saved", description: "Your training result has been saved to the session."});
+            toast({ title: "Result Saved", description: "Your training result has been saved."});
             onOpenChange(false);
         } catch (error: any) {
             toast({ title: "Save Failed", description: error.message, variant: "destructive"});
@@ -243,17 +231,9 @@ export function QualificationSimulatorDialog({ open, onOpenChange, activeSession
                              {isComplete ? (
                                 <div className="text-center p-4 bg-green-500/10 text-green-500 rounded-lg space-y-3">
                                     <h4 className="font-bold">Simulation Complete!</h4>
-                                    <p className="text-sm">Review your feedback on the left. You can now save this result to a session.</p>
+                                    <p className="text-sm">Review your feedback on the left. You can now save this result.</p>
                                      <div className="flex items-center justify-center gap-2">
-                                        <Select onValueChange={setSessionToSaveTo} defaultValue={sessionToSaveTo || ''}>
-                                            <SelectTrigger className="w-[250px] bg-background/70">
-                                                <SelectValue placeholder="Select session to save..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {sessions.map(s => <SelectItem key={s.id} value={s.id}>{s.sessionName}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button onClick={handleSaveResult} disabled={isSaving || !sessionToSaveTo}>
+                                        <Button onClick={handleSaveResult} disabled={isSaving}>
                                             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Save className="mr-2 h-4 w-4" />}
                                             {isSaving ? 'Saving...' : 'Save Result'}
                                         </Button>
@@ -291,4 +271,3 @@ export function QualificationSimulatorDialog({ open, onOpenChange, activeSession
         </Dialog>
     );
 }
-    
