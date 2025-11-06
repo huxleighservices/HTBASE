@@ -35,11 +35,13 @@ export default function MyTrainerPage() {
 
   useEffect(() => {
     const fetchClientData = async () => {
-       if (!firestore || !userProfile) {
+      // This function should only run when we are certain we have a user profile.
+      if (!firestore || !userProfile) {
         setIsClientLoading(false);
         return;
-       }
+      }
 
+      // Check for the manager role and assigned client ID.
       if (userProfile.role !== 'manager' || !userProfile.assignedClientId) {
         setClient(null);
         setIsClientLoading(false);
@@ -58,6 +60,7 @@ export default function MyTrainerPage() {
           const clientDoc = querySnapshot.docs[0];
           setClient({ ...clientDoc.data(), id: clientDoc.id } as Client);
         } else {
+          console.log(`No client found with displayId: ${userProfile.assignedClientId}`);
           setClient(null);
         }
       } catch (error) {
@@ -68,15 +71,17 @@ export default function MyTrainerPage() {
       }
     };
     
-    // We should only attempt to fetch client data when the user profile has finished loading.
-    if (!isProfileLoading && userProfile) {
+    // The key change: This logic block now correctly handles the loading sequence.
+    // It waits until the user profile is no longer loading.
+    if (!isProfileLoading) {
+      // Once the profile has loaded, we then call fetchClientData.
+      // fetchClientData itself will handle the cases where userProfile is null
+      // or doesn't have the required properties.
       fetchClientData();
-    } else if (!isProfileLoading && !userProfile) {
-      // If the profile has loaded but is null/empty, there's nothing to do.
-      setIsClientLoading(false);
     }
   }, [firestore, userProfile, isProfileLoading]);
 
+  // Combined loading state for a cleaner check.
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
 
   if (isLoading) {
@@ -90,6 +95,7 @@ export default function MyTrainerPage() {
     );
   }
 
+  // After loading, check if the user is a manager and has a client.
   if (userProfile?.role !== 'manager' || !client) {
     return (
        <div className="flex flex-col gap-8 items-center text-center mt-16">
@@ -105,6 +111,7 @@ export default function MyTrainerPage() {
     );
   }
 
+  // Only render the main content if everything is loaded and checks pass.
   return (
     <div className="flex flex-col gap-8">
       <div>
