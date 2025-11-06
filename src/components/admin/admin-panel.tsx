@@ -21,7 +21,6 @@ import {
   useCollection,
   useFirestore,
   useMemoFirebase,
-  updateDocumentNonBlocking,
 } from '@/firebase';
 import type { UserProfile } from '@/types/user';
 import { collection, doc, writeBatch } from 'firebase/firestore';
@@ -55,7 +54,9 @@ export function AdminPanel() {
 
   useEffect(() => {
     if (initialUsers) {
-      setUsers(initialUsers);
+      // Sort users to ensure a consistent order
+      const sortedUsers = [...initialUsers].sort((a, b) => a.email.localeCompare(b.email));
+      setUsers(sortedUsers);
       setIsDirty(false); // Reset dirty state when initial data loads
     }
   }, [initialUsers]);
@@ -87,10 +88,10 @@ export function AdminPanel() {
         const initialUser = initialUsers?.find(u => u.id === user.id);
         if (JSON.stringify(user) !== JSON.stringify(initialUser)) {
             const userDocRef = doc(firestore, 'users', user.id);
-            // Ensure all fields are present, even if undefined
-            const dataToSave: Partial<UserProfile> = {
+            // Only update the fields that can be changed in the admin panel
+            const dataToSave: Partial<Pick<UserProfile, 'role' | 'assignedClientId'>> = {
                 role: user.role,
-                assignedClientId: user.assignedClientId
+                assignedClientId: user.assignedClientId || '', // Ensure it's not undefined
             };
             batch.update(userDocRef, dataToSave);
         }
@@ -168,7 +169,7 @@ export function AdminPanel() {
                     {user.role === 'manager' ? (
                       <Input
                         value={user.assignedClientId || ''}
-                        onChange={(e) => handleUserUpdate(user.id, 'assignedClientId', e.target.value)}
+                        onChange={(e) => handleUserUpdate(user.id, 'assignedClientId', e.target.value.toUpperCase())}
                         placeholder="6-digit client ID"
                         className="w-[150px]"
                         maxLength={6}
@@ -192,4 +193,3 @@ export function AdminPanel() {
     </Card>
   );
 }
-

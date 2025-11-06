@@ -29,9 +29,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    // This effect runs when the user is loaded but the profile might not be.
-    // It ensures a user document is created in Firestore if it's missing.
-    if (user && userDocRef && !isProfileLoading && !userProfile) {
+    if (user && !isProfileLoading && !userProfile) {
       const email = user.email || 'no-email@example.com';
       const newProfile: UserProfile = {
         id: user.uid,
@@ -40,10 +38,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         firstName: user.displayName?.split(' ')[0] || email.split('@')[0] || 'New',
         lastName: user.displayName?.split(' ')[1] || 'User',
       };
-      // Use setDoc with merge:true to create the doc without overwriting if it was created just now.
-      setDocumentNonBlocking(userDocRef, newProfile, { merge: true });
+      if (userDocRef) {
+        setDocumentNonBlocking(userDocRef, newProfile, { merge: true });
+      }
     }
-  }, [user, userDocRef, isProfileLoading, userProfile]);
+  }, [user, isProfileLoading, userProfile, userDocRef]);
+
 
   const isLoading = isUserLoading || (user && isProfileLoading);
 
