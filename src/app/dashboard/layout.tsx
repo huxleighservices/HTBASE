@@ -35,11 +35,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (userDocRef) {
         // Create a user profile document if it doesn't exist.
         // This ensures every authenticated user is represented in the admin panel.
+        const email = user.email || 'no-email@example.com';
         setDocumentNonBlocking(userDocRef, {
           id: user.uid,
-          email: user.email,
-          role: user.email === 'service@huxleigh.com' ? 'admin' : 'user',
-          firstName: user.email?.split('@')[0] || 'New',
+          email: email,
+          role: email === 'service@huxleigh.com' ? 'admin' : 'user',
+          firstName: email.split('@')[0] || 'New',
           lastName: 'User',
         }, { merge: true });
       }
