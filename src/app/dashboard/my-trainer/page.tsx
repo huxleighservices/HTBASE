@@ -4,17 +4,15 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/types/user';
-import type { Client } from '@/types/client';
 
 export default function MyTrainerPage() {
   const { user } = useUser();
@@ -30,29 +28,22 @@ export default function MyTrainerPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
-    const fetchClientAndRedirect = async () => {
+    const checkRoleAndRedirect = async () => {
       if (!isProfileLoading && userProfile) {
-        if (userProfile.role !== 'manager' || !userProfile.assignedClientId) {
-          // If not a manager or no client assigned, maybe redirect to dashboard
-          // For now, we'll just stop loading and show a message.
-           setIsLoading(false);
-          return;
+        if (userProfile.role === 'manager' && userProfile.assignedClientId) {
+          // If a manager has an assigned client, redirect them to the launch page.
+          router.push(`/launch/${userProfile.assignedClientId}`);
+        } else {
+          // For non-managers or managers without assignments, stop loading.
+          setIsLoading(false);
         }
-        
-        try {
-            // This is a workaround to handle the case where the manager's client is not found
-            // In a real app, you might want to show a more specific error message.
-            router.push(`/launch/${userProfile.assignedClientId}`);
-
-        } catch (error) {
-            console.error("Error fetching manager's client:", error);
-            setIsLoading(false);
-        }
-
+      } else if (!isProfileLoading && !userProfile) {
+        // If profile loading is done but there's no profile, stop loading.
+        setIsLoading(false);
       }
     };
-    fetchClientAndRedirect();
-  }, [userProfile, isProfileLoading, firestore, router]);
+    checkRoleAndRedirect();
+  }, [userProfile, isProfileLoading, router]);
 
 
   if (isLoading || isProfileLoading) {
@@ -66,7 +57,7 @@ export default function MyTrainerPage() {
     );
   }
 
-
+  // Fallback content for managers without an assignment or non-managers who somehow land here.
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -84,7 +75,7 @@ export default function MyTrainerPage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            You have not been assigned to a client trainer. Please contact an administrator.
+            You have not been assigned to a client trainer. Please contact an administrator for access.
           </p>
         </CardContent>
       </Card>

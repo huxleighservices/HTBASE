@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Menu, X, Briefcase } from "lucide-react";
+import { LogOut, User, Settings, Menu, X, Briefcase, Users } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -47,16 +47,17 @@ export function Header() {
   const isAdmin = userProfile?.role === 'admin';
 
   const navLinks = useMemo(() => {
-    const defaultLinks = [
+    const links = [
       { href: "/dashboard", label: "Home" },
     ];
-    if (isManager) {
-      defaultLinks.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
-    } else if (isAdmin) {
-      defaultLinks.push({ href: "/dashboard/clients", label: "Clients" });
+    if (isAdmin) {
+      links.push({ href: "/dashboard/clients", label: "Clients" });
     }
-    defaultLinks.push({ href: "/dashboard/settings", label: "Settings" });
-    return defaultLinks;
+    if (isManager) {
+      links.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
+    }
+    links.push({ href: "/dashboard/settings", label: "Settings" });
+    return links;
   }, [isManager, isAdmin]);
   
   const handleLogout = () => {
