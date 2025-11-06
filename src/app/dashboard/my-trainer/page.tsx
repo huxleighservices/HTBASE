@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -37,11 +38,16 @@ export default function MyTrainerPage() {
     const fetchClientData = async () => {
       // This function should only run when we are certain we have a user profile.
       if (!firestore || !userProfile) {
-        setIsClientLoading(false);
+        // If there's no profile, we can't find a client.
+        // This handles cases where the profile is loading or genuinely doesn't exist.
+        if (!isProfileLoading) {
+            setClient(null);
+            setIsClientLoading(false);
+        }
         return;
       }
-
-      // Check for the manager role and assigned client ID.
+      
+      // Now that we have a profile, check for manager role and assigned client ID.
       if (userProfile.role !== 'manager' || !userProfile.assignedClientId) {
         setClient(null);
         setIsClientLoading(false);
@@ -71,12 +77,10 @@ export default function MyTrainerPage() {
       }
     };
     
-    // This effect should only run when the profile is no longer loading.
-    // This prevents a race condition where we check for a client before the
-    // userProfile (and thus assignedClientId) is available.
-    if (!isProfileLoading) {
-      fetchClientData();
-    }
+    // The key change: This effect now depends on `userProfile`.
+    // It will re-run whenever `userProfile` changes (e.g., after loading is complete).
+    fetchClientData();
+
   }, [firestore, userProfile, isProfileLoading]);
 
   // Combined loading state for a cleaner check.

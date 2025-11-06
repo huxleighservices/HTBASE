@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -23,7 +24,7 @@ import {
   updateDocumentNonBlocking,
 } from '@/firebase';
 import type { UserProfile } from '@/types/user';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import { Loader2, Shield } from 'lucide-react';
 import {
   Select,
@@ -33,33 +34,87 @@ import {
   SelectValue,
 } from '../ui/select';
 import { Input } from '../ui/input';
+import { useState, useEffect } from 'react';
+import { Button } from '../ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export function AdminPanel() {
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const usersCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'users');
   }, [firestore]);
 
-  const { data: users, isLoading } = useCollection<UserProfile>(usersCollectionRef);
+  const { data: initialUsers, isLoading } = useCollection<UserProfile>(usersCollectionRef);
 
-  const handleRoleChange = (userId: string, newRole: string) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', userId);
-    const updates: Partial<UserProfile> = { role: newRole as UserProfile['role'] };
-    // When changing a user to not be a manager, clear their assigned client
-    if (newRole !== 'manager') {
-        updates.assignedClientId = '';
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialUsers) {
+      setUsers(initialUsers);
+      setIsDirty(false); // Reset dirty state when initial data loads
     }
-    updateDocumentNonBlocking(userDocRef, updates);
+  }, [initialUsers]);
+
+  const handleUserUpdate = (userId: string, field: keyof UserProfile, value: string) => {
+    setUsers(currentUsers =>
+      currentUsers.map(user => {
+        if (user.id === userId) {
+          const updatedUser = { ...user, [field]: value };
+          // If role is changed to not 'manager', clear assignedClientId
+          if (field === 'role' && value !== 'manager') {
+            updatedUser.assignedClientId = '';
+          }
+          return updatedUser;
+        }
+        return user;
+      })
+    );
+    setIsDirty(true);
+  };
+  
+  const handleSaveChanges = async () => {
+    if (!firestore || !isDirty) return;
+    setIsSaving(true);
+    
+    const batch = writeBatch(firestore);
+
+    users.forEach(user => {
+        const initialUser = initialUsers?.find(u => u.id === user.id);
+        if (JSON.stringify(user) !== JSON.stringify(initialUser)) {
+            const userDocRef = doc(firestore, 'users', user.id);
+            // Ensure all fields are present, even if undefined
+            const dataToSave: Partial<UserProfile> = {
+                role: user.role,
+                assignedClientId: user.assignedClientId
+            };
+            batch.update(userDocRef, dataToSave);
+        }
+    });
+
+    try {
+        await batch.commit();
+        toast({
+            title: "Users Updated",
+            description: "All pending changes have been saved successfully.",
+        });
+        setIsDirty(false);
+    } catch (error) {
+        console.error("Error saving user changes:", error);
+        toast({
+            title: "Error",
+            description: "Could not save user changes. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
 
-  const handleClientAssignment = (userId: string, clientId: string) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', userId);
-    updateDocumentNonBlocking(userDocRef, { assignedClientId: clientId });
-  };
 
   return (
     <Card>
@@ -69,7 +124,7 @@ export function AdminPanel() {
           Admin Panel
         </CardTitle>
         <CardDescription>
-          Manage users, roles, and permissions.
+          Manage users, roles, and permissions. Remember to save your changes.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -97,7 +152,7 @@ export function AdminPanel() {
                   <TableCell>
                     <Select
                       value={user.role || 'user'}
-                      onValueChange={newRole => handleRoleChange(user.id, newRole)}
+                      onValueChange={newRole => handleUserUpdate(user.id, 'role', newRole)}
                     >
                       <SelectTrigger className="w-[120px]">
                         <SelectValue placeholder="Select role" />
@@ -112,8 +167,8 @@ export function AdminPanel() {
                   <TableCell>
                     {user.role === 'manager' ? (
                       <Input
-                        defaultValue={user.assignedClientId || ''}
-                        onBlur={(e) => handleClientAssignment(user.id, e.target.value)}
+                        value={user.assignedClientId || ''}
+                        onChange={(e) => handleUserUpdate(user.id, 'assignedClientId', e.target.value)}
                         placeholder="6-digit client ID"
                         className="w-[150px]"
                         maxLength={6}
@@ -128,6 +183,12 @@ export function AdminPanel() {
           </Table>
         )}
       </CardContent>
+       <CardFooter className="flex justify-end">
+        <Button onClick={handleSaveChanges} disabled={!isDirty || isSaving}>
+          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isSaving ? 'Saving...' : 'Save All Changes'}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
