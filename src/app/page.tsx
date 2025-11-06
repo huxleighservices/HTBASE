@@ -19,12 +19,14 @@ import {
   useAuth,
   useUser,
   useFirestore,
+  setDocumentNonBlocking,
 } from '@/firebase';
-import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { collectionGroup, query, where, limit, getDocs } from 'firebase/firestore';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { collectionGroup, query, where, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import type { Client } from '@/types/client';
 import { FirebaseError } from 'firebase/app';
 import Image from 'next/image';
+import type { UserProfile } from '@/types/user';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -93,28 +95,63 @@ export default function LoginPage() {
     fetchClients();
   }, [firestore, debouncedSearchQuery]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    initiateEmailSignIn(auth, email, password, (error) => {
+
+    if (!auth || !firestore) {
+      setError('Firebase is not initialized.');
       setIsLoading(false);
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-          case 'auth/invalid-email':
-            setError('Invalid email or password. Please try again.');
-            break;
-          default:
-            setError('An unexpected error occurred. Please try again later.');
-            break;
-        }
-      } else {
-        setError('An unexpected error occurred.');
+      return;
+    }
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
+
+      // After successful login, check if a profile exists.
+      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (!userDocSnap.exists()) {
+        // Profile doesn't exist, so create it.
+        const userEmail = loggedInUser.email || 'no-email@example.com';
+        const newProfile: UserProfile = {
+          id: loggedInUser.uid,
+          email: userEmail,
+          role: userEmail === 'service@huxleigh.com' ? 'admin' : 'user',
+          firstName: loggedInUser.displayName?.split(' ')[0] || userEmail.split('@')[0] || 'New',
+          lastName: loggedInUser.displayName?.split(' ')[1] || 'User',
+          assignedClientId: '',
+        };
+        // Use setDoc with merge:true which acts like an "upsert".
+        // It will create the doc if it doesn't exist, and won't overwrite if it does.
+        setDocumentNonBlocking(userDocRef, newProfile, { merge: true });
       }
-    });
+      
+      // The useUser hook will detect the auth state change and trigger the redirect.
+      // No need to call router.push('/dashboard') here.
+
+    } catch (error: any) {
+        setIsLoading(false);
+        if (error instanceof FirebaseError) {
+          switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+            case 'auth/invalid-email':
+              setError('Invalid email or password. Please try again.');
+              break;
+            default:
+              setError('An unexpected error occurred. Please try again later.');
+              break;
+          }
+        } else {
+          setError('An unexpected error occurred.');
+        }
+    }
+    // setIsLoading(false) is handled by the useEffect that watches `user`.
   };
 
   const handleClientSelect = (displayId: string) => {
