@@ -28,6 +28,7 @@ import {
   useUser,
   useFirestore,
   useCollection,
+  useDoc,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
@@ -41,11 +42,27 @@ import { useRouter } from 'next/navigation';
 import { EditPasswordDialog } from '@/components/clients/edit-password-dialog';
 import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
 import { BrandCustomizationDialog } from '@/components/clients/brand-customization-dialog';
+import type { UserProfile } from '@/types/user';
 
 export default function ClientsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+
+  useEffect(() => {
+    // If the profile is loaded and the user is NOT an admin, redirect them.
+    if (!isProfileLoading && userProfile && userProfile.role !== 'admin') {
+      router.push('/dashboard');
+    }
+  }, [userProfile, isProfileLoading, router]);
+
 
   const isServiceAccount = user?.email === 'service@huxleigh.com';
 
@@ -54,7 +71,7 @@ export default function ClientsPage() {
     return collection(firestore, 'users', user.uid, 'clients');
   }, [firestore, user]);
 
-  const { data: clients, isLoading } = useCollection<Client>(
+  const { data: clients, isLoading: areClientsLoading } = useCollection<Client>(
     clientsCollectionRef
   );
 
@@ -347,12 +364,22 @@ export default function ClientsPage() {
     </li>
   );
 
-  if (isLoading) {
+  const isLoading = isProfileLoading || areClientsLoading;
+
+  // Show a loader while we verify the user's role.
+  if (isLoading || (!userProfile && !isProfileLoading)) {
     return (
       <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // If the user is confirmed not to be an admin, this component will have already redirected.
+  // We only render the content if they are an admin.
+  if (userProfile?.role !== 'admin') {
+    // This return is a fallback, as the redirection in useEffect should handle this.
+    return null;
   }
 
   const pendingClients = clients?.filter(c => c.status === 'pending') || [];
