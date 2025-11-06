@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collectionGroup, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -38,6 +38,7 @@ export default function MyTrainerPage() {
     const fetchClientData = async () => {
       if (!firestore || !userProfile || userProfile.role !== 'manager' || !userProfile.assignedClientId) {
         setIsClientLoading(false);
+        setClient(null); // Explicitly set client to null
         return;
       }
 
@@ -65,8 +66,11 @@ export default function MyTrainerPage() {
 
     if (userProfile) {
       fetchClientData();
+    } else if (!isProfileLoading) {
+        // If profile isn't loading and is null, we can stop client loading
+        setIsClientLoading(false);
     }
-  }, [firestore, userProfile]);
+  }, [firestore, userProfile, isProfileLoading]);
 
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
 
