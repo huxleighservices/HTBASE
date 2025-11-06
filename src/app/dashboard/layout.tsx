@@ -31,6 +31,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     // This effect runs when the user is authenticated but their profile is not yet loaded or doesn't exist.
     // We explicitly check for `isProfileLoading === false` and `!userProfile` to be sure.
+    // This ensures we only run this once after the initial data fetch attempt.
     if (user && !isProfileLoading && !userProfile) {
       const email = user.email || 'no-email@example.com';
       
