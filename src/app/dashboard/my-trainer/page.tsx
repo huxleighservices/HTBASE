@@ -15,11 +15,10 @@ import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/types/user';
 
 export default function MyTrainerPage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-
+  
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -28,25 +27,15 @@ export default function MyTrainerPage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
-    const checkRoleAndRedirect = async () => {
-      if (!isProfileLoading && userProfile) {
-        if (userProfile.role === 'manager' && userProfile.assignedClientId) {
-          // If a manager has an assigned client, redirect them to the launch page.
-          router.push(`/launch/${userProfile.assignedClientId}`);
-        } else {
-          // For non-managers or managers without assignments, stop loading.
-          setIsLoading(false);
-        }
-      } else if (!isProfileLoading && !userProfile) {
-        // If profile loading is done but there's no profile, stop loading.
-        setIsLoading(false);
-      }
-    };
-    checkRoleAndRedirect();
+    // Redirect non-managers away if they land here
+    if (!isProfileLoading && userProfile && userProfile.role !== 'manager') {
+      router.push('/dashboard');
+    }
   }, [userProfile, isProfileLoading, router]);
 
+  const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || isProfileLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <div className="text-center">
@@ -57,7 +46,33 @@ export default function MyTrainerPage() {
     );
   }
 
-  // Fallback content for managers without an assignment or non-managers who somehow land here.
+  // If user is not a manager, show access denied message.
+  if (!userProfile || userProfile.role !== 'manager') {
+     return (
+       <div className="flex flex-col gap-8">
+        <div>
+          <h1 className="text-3xl font-bold font-headline tracking-tight">
+            My Trainer
+          </h1>
+          <p className="text-muted-foreground">
+            Access your assigned client training portal.
+          </p>
+        </div>
+         <Card>
+          <CardHeader>
+            <CardTitle>No Trainer Assigned</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              You are not a manager or have not been assigned a trainer. Please contact an administrator for access.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Blank slate for managers
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -65,20 +80,9 @@ export default function MyTrainerPage() {
           My Trainer
         </h1>
         <p className="text-muted-foreground">
-          Access your assigned client training portal.
+          This is your dedicated training portal. Content to be added.
         </p>
       </div>
-
-       <Card>
-        <CardHeader>
-          <CardTitle>No Trainer Assigned</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            You have not been assigned to a client trainer. Please contact an administrator for access.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }
