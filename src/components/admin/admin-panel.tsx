@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -22,7 +23,8 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import type { UserProfile } from '@/types/user';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import type { Client } from '@/types/client';
+import { collection, doc, writeBatch, collectionGroup } from 'firebase/firestore';
 import { Loader2, Shield } from 'lucide-react';
 import {
   Select,
@@ -31,10 +33,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { Input } from '../ui/input';
+import { Checkbox } from '../ui/checkbox';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '../ui/badge';
 
 export function AdminPanel() {
   const firestore = useFirestore();
@@ -44,14 +47,19 @@ export function AdminPanel() {
     if (!firestore) return null;
     return collection(firestore, 'users');
   }, [firestore]);
+  
+  const clientsQueryRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collectionGroup(firestore, 'clients');
+  }, [firestore]);
 
-  const { data: initialUsers, isLoading } = useCollection<UserProfile>(usersCollectionRef);
+  const { data: initialUsers, isLoading: isUsersLoading } = useCollection<UserProfile>(usersCollectionRef);
+  const { data: allClients, isLoading: isClientsLoading } = useCollection<Client>(clientsQueryRef);
 
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Memoize the initial users map for efficient lookup
   const initialUsersMap = useMemo(() => {
     if (!initialUsers) return new Map();
     return new Map(initialUsers.map(user => [user.id, user]));
@@ -59,22 +67,32 @@ export function AdminPanel() {
 
   useEffect(() => {
     if (initialUsers) {
-      // Sort users to ensure a consistent order
       const sortedUsers = [...initialUsers].sort((a, b) => a.email.localeCompare(b.email));
       setUsers(sortedUsers);
-      setIsDirty(false); // Reset dirty state when initial data loads
+      setIsDirty(false);
     }
   }, [initialUsers]);
 
-  const handleUserUpdate = (userId: string, field: keyof UserProfile, value: string) => {
+  const handleUserUpdate = (userId: string, field: keyof UserProfile, value: string | boolean) => {
     setUsers(currentUsers =>
       currentUsers.map(user => {
         if (user.id === userId) {
-          const updatedUser = { ...user, [field]: value };
-          // If role is changed to not 'manager', clear assignedClientId
-          if (field === 'role' && value !== 'manager') {
-            updatedUser.assignedClientId = '';
+          const updatedUser: UserProfile = { ...user };
+  
+          if (field === 'role' && typeof value === 'boolean') {
+            // This handles the 'isAdmin' checkbox
+            updatedUser.role = value ? 'admin' : (updatedUser.assignedClientId ? 'manager' : 'user');
+          } else if (field === 'assignedClientId' && typeof value === 'string') {
+            updatedUser.assignedClientId = value || ''; // Set to empty string if 'none' is selected
+            // If user is not an admin, their role becomes manager or user based on assignment
+            if (updatedUser.role !== 'admin') {
+              updatedUser.role = value ? 'manager' : 'user';
+            }
+          } else if (typeof value === 'string') {
+            // Fallback for other potential string fields, though not used in the current UI
+            (updatedUser as any)[field] = value;
           }
+          
           return updatedUser;
         }
         return user;
@@ -92,33 +110,27 @@ export function AdminPanel() {
 
     users.forEach(user => {
       const initialUser = initialUsersMap.get(user.id);
-      
-      // If user did not exist initially, something is wrong, skip.
       if (!initialUser) return;
 
       const roleChanged = user.role !== initialUser.role;
       const assignedClientChanged = (user.assignedClientId || '') !== (initialUser.assignedClientId || '');
+      
+      const somethingChanged = roleChanged || assignedClientChanged;
 
-      if (roleChanged || assignedClientChanged) {
+      if (somethingChanged) {
         changesFound = true;
         const userDocRef = doc(firestore, 'users', user.id);
-        const dataToSave: Partial<Pick<UserProfile, 'role' | 'assignedClientId'>> = {};
         
-        if (roleChanged) {
-          dataToSave.role = user.role;
-        }
-        if (assignedClientChanged) {
-          // Ensure assignedClientId is cleared if the role is not 'manager'
-          dataToSave.assignedClientId = user.role === 'manager' ? (user.assignedClientId || '') : '';
-        } else if (roleChanged && user.role !== 'manager') {
-           // Handle case where only role changes away from manager
-           dataToSave.assignedClientId = '';
-        }
+        // Ensure assignedClientId is cleared if the role is not 'manager' or 'admin'
+        // An admin can be assigned a client, but a 'user' cannot.
+        const finalAssignedClientId = (user.role === 'manager' || user.role === 'admin') ? (user.assignedClientId || '') : '';
 
-        // Only add to batch if there's something to update
-        if (Object.keys(dataToSave).length > 0) {
-           batch.update(userDocRef, dataToSave);
-        }
+        const dataToUpdate: Partial<UserProfile> = {
+          role: user.role,
+          assignedClientId: finalAssignedClientId,
+        };
+
+        batch.update(userDocRef, dataToUpdate);
       }
     });
     
@@ -150,7 +162,8 @@ export function AdminPanel() {
         setIsSaving(false);
     }
   };
-
+  
+  const isLoading = isUsersLoading || isClientsLoading;
 
   return (
     <Card>
@@ -160,7 +173,7 @@ export function AdminPanel() {
           Admin Panel
         </CardTitle>
         <CardDescription>
-          Manage users, roles, and permissions. Remember to save your changes.
+          Manage user roles and client assignments. Remember to save your changes.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -174,47 +187,51 @@ export function AdminPanel() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
+                <TableHead className="text-center">Is Admin</TableHead>
                 <TableHead>Assigned Client</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users?.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    {user.firstName} {user.lastName}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={user.role || 'user'}
-                      onValueChange={newRole => handleUserUpdate(user.id, 'role', newRole)}
-                    >
-                      <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>
-                    {user.role === 'manager' ? (
-                      <Input
-                        value={user.assignedClientId || ''}
-                        onChange={(e) => handleUserUpdate(user.id, 'assignedClientId', e.target.value.toUpperCase())}
-                        placeholder="6-digit client ID"
-                        className="w-[150px]"
-                        maxLength={6}
+              {users?.map(user => {
+                const isServiceAccount = user.email === 'service@huxleigh.com';
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      {user.firstName} {user.lastName}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="text-center">
+                      <Checkbox
+                        checked={user.role === 'admin'}
+                        onCheckedChange={(checked) => handleUserUpdate(user.id, 'role', checked as boolean)}
+                        disabled={isServiceAccount}
+                        aria-label={`Is ${user.firstName} an admin`}
                       />
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.assignedClientId || ''}
+                        onValueChange={newClientId => handleUserUpdate(user.id, 'assignedClientId', newClientId)}
+                      >
+                        <SelectTrigger className="w-[250px]">
+                           <SelectValue placeholder="Select client..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {allClients?.map(client => (
+                            <SelectItem key={client.id} value={client.displayId}>
+                              <div className='flex items-center gap-2'>
+                               <span>{client.firmName}</span> 
+                               <Badge variant="secondary" className='font-mono'>{client.displayId}</Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         )}
@@ -228,3 +245,5 @@ export function AdminPanel() {
     </Card>
   );
 }
+
+    
