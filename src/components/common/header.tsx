@@ -50,12 +50,12 @@ export function Header() {
     const links = [
       { href: "/dashboard", label: "Home" },
     ];
-    if (isAdmin) {
+    if (isAdmin && !isManager) {
       links.push({ href: "/dashboard/clients", label: "Clients" });
     }
-    if (isManager) {
-      links.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
-    }
+    
+    links.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
+    
     links.push({ href: "/dashboard/settings", label: "Settings" });
     return links;
   }, [isManager, isAdmin]);
