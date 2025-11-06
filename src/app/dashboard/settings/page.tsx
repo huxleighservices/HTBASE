@@ -25,7 +25,7 @@ import {
   useUser,
   useFirestore,
   useDoc,
-  setDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
 import { useEffect, useState } from 'react';
@@ -81,17 +81,17 @@ export default function SettingsPage() {
   }, [userProfile, user, form]);
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    if (!userDocRef || !user) return;
+    if (!userDocRef) return;
     setIsSaving(true);
-    // ONLY update the fields that can be changed on this form.
-    // Do not include id, email, or role here.
+    
+    // Create a payload with only the fields that should be updated.
     const profileData = {
       firstName: data.firstName,
       lastName: data.lastName,
     };
 
-    // Use set with merge to safely update the document without overwriting other fields.
-    setDocumentNonBlocking(userDocRef, profileData, { merge: true });
+    // Use updateDocumentNonBlocking to safely update only the specified fields.
+    updateDocumentNonBlocking(userDocRef, profileData);
     
     setTimeout(() => {
       setIsSaving(false);

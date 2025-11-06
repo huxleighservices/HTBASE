@@ -1,3 +1,4 @@
+
 'use client';
     
 import {
@@ -14,22 +15,23 @@ import {FirestorePermissionError} from '@/firebase/errors';
 
 /**
  * Initiates a setDoc operation for a document reference.
+ * This is primarily for CREATING new documents or OVERWRITING existing ones completely.
+ * For partial updates, use updateDocumentNonBlocking.
  * Does NOT await the write operation internally.
  */
-export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
-  setDoc(docRef, data, options).catch(error => {
+export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options?: SetOptions) {
+  const promise = options ? setDoc(docRef, data, options) : setDoc(docRef, data);
+  promise.catch(error => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
+        operation: options && 'merge' in options ? 'update' : 'create',
         requestResourceData: data,
       })
     )
-  })
-  // Execution continues immediately
+  });
 }
-
 
 /**
  * Initiates an addDoc operation for a collection reference.
@@ -54,6 +56,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
 
 /**
  * Initiates an updateDoc operation for a document reference.
+ * This is the correct method for updating SOME fields on an existing document.
  * Does NOT await the write operation internally.
  */
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
