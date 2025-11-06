@@ -16,6 +16,7 @@ import {
   useCollection,
   useMemoFirebase,
   useAuth,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import {
   doc,
@@ -72,7 +73,7 @@ import type { AccessKey } from '@/types/session';
 
 const addKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
-  emailPrefix: z.string().min(3, 'Prefix must be at least 3 characters'),
+  nickname: z.string().min(3, 'Nickname must be at least 3 characters').regex(/^[a-zA-Z0-9_.-]+$/, 'Nickname can only contain letters, numbers, and symbols: _ . -'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 type AddKeyFormValues = z.infer<typeof addKeyFormSchema>;
@@ -100,11 +101,13 @@ export default function MyTrainerPage() {
 
   useEffect(() => {
     const fetchClientData = async () => {
-      if (!firestore || !userProfile) {
-        if (!isProfileLoading) {
-          setClient(null);
-          setIsClientLoading(false);
-        }
+      if (isProfileLoading || !firestore) {
+        return;
+      }
+      
+      if (!userProfile) {
+        setClient(null);
+        setIsClientLoading(false);
         return;
       }
       
@@ -149,14 +152,14 @@ export default function MyTrainerPage() {
 
   const addKeyForm = useForm<AddKeyFormValues>({
     resolver: zodResolver(addKeyFormSchema),
-    defaultValues: { displayName: '', emailPrefix: '', password: '' },
+    defaultValues: { displayName: '', nickname: '', password: '' },
   });
 
   const handleAddKey: SubmitHandler<AddKeyFormValues> = async (data) => {
-    if (!auth || !firestore || !client?.path) return;
+    if (!auth || !firestore || !client?.path || !client?.displayId) return;
     setIsCreatingKey(true);
 
-    const email = `${data.emailPrefix}.${client.displayId}@access.key`;
+    const email = `${data.nickname}.${client.displayId}@access.key`;
 
     try {
       // Step 1: Create the user in Firebase Auth
@@ -165,13 +168,16 @@ export default function MyTrainerPage() {
 
       // Step 2: Create the access key document in Firestore
       const keyDocRef = doc(firestore, client.path, 'accessKeys', newKeyUser.uid);
-      const newKeyData: AccessKey = {
-        id: newKeyUser.uid,
+      const newKeyData: Omit<AccessKey, 'id' | 'createdAt'> = {
         email: email,
         displayName: data.displayName,
-        createdAt: serverTimestamp(),
       };
-      await addDoc(collection(firestore, client.path, 'accessKeys'), newKeyData);
+      
+      setDocumentNonBlocking(keyDocRef, {
+        id: newKeyUser.uid,
+        ...newKeyData,
+        createdAt: serverTimestamp(),
+      });
 
       toast({ title: 'Access Key Created', description: `Key "${data.displayName}" has been created successfully.` });
       setIsAddKeyOpen(false);
@@ -180,9 +186,11 @@ export default function MyTrainerPage() {
       console.error("Error creating access key:", error);
       let message = 'An unexpected error occurred.';
       if (error.code === 'auth/email-already-in-use') {
-        message = 'This email prefix is already in use. Please choose another one.';
+        message = 'This nickname is already in use for this client. Please choose another one.';
       } else if (error.code === 'auth/weak-password') {
         message = 'The password is too weak. Please use at least 6 characters.';
+      } else if (error.code === 'auth/invalid-email') {
+          message = 'The nickname generated an invalid email. Please use only letters, numbers, underscores, periods, or hyphens.';
       }
       toast({ title: 'Creation Failed', description: message, variant: 'destructive' });
     } finally {
@@ -328,10 +336,10 @@ export default function MyTrainerPage() {
               />
               <FormField
                 control={addKeyForm.control}
-                name="emailPrefix"
+                name="nickname"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Prefix</FormLabel>
+                    <FormLabel>Nickname</FormLabel>
                      <div className="flex items-center">
                         <FormControl><Input {...field} placeholder="john.doe" disabled={isCreatingKey} className="rounded-r-none"/></FormControl>
                         <span className="inline-flex items-center px-3 text-sm text-muted-foreground border border-l-0 h-10 rounded-r-md">.{client.displayId}@access.key</span>
