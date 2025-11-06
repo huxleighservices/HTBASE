@@ -10,7 +10,7 @@ import {
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/types/user';
 
@@ -35,7 +35,7 @@ export default function MyTrainerPage() {
 
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading) {
+  if (isLoading || (!userProfile && !isProfileLoading)) {
     return (
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <div className="text-center">

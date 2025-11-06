@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Menu, X, Briefcase, Users } from "lucide-react";
+import { LogOut, User, Settings, Menu, Briefcase } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
