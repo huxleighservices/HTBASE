@@ -67,7 +67,7 @@ export function AdminPanel() {
 
   useEffect(() => {
     if (initialUsers) {
-      const sortedUsers = [...initialUsers].sort((a, b) => a.email.localeCompare(b.email));
+      const sortedUsers = [...initialUsers].sort((a, b) => (a.email || '').localeCompare(b.email || ''));
       setUsers(sortedUsers);
       setIsDirty(false);
     }
@@ -83,10 +83,10 @@ export function AdminPanel() {
             // This handles the 'isAdmin' checkbox
             updatedUser.role = value ? 'admin' : (updatedUser.assignedClientId ? 'manager' : 'user');
           } else if (field === 'assignedClientId' && typeof value === 'string') {
-            updatedUser.assignedClientId = value || ''; // Set to empty string if 'none' is selected
+            updatedUser.assignedClientId = value === 'none' ? '' : value; // Handle "none" value
             // If user is not an admin, their role becomes manager or user based on assignment
             if (updatedUser.role !== 'admin') {
-              updatedUser.role = value ? 'manager' : 'user';
+              updatedUser.role = value !== 'none' && value ? 'manager' : 'user';
             }
           } else if (typeof value === 'string') {
             // Fallback for other potential string fields, though not used in the current UI
@@ -210,19 +210,19 @@ export function AdminPanel() {
                     </TableCell>
                     <TableCell>
                       <Select
-                        value={user.assignedClientId || ''}
+                        value={user.assignedClientId || 'none'}
                         onValueChange={newClientId => handleUserUpdate(user.id, 'assignedClientId', newClientId)}
                       >
                         <SelectTrigger className="w-[250px]">
                            <SelectValue placeholder="Select client..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {allClients?.map(client => (
                             <SelectItem key={client.id} value={client.displayId}>
                               <div className='flex items-center gap-2'>
                                <span>{client.firmName}</span> 
-                               <Badge variant="secondary" className='font-mono'>{client.displayId}</Badge>
+                               {client.displayId && <Badge variant="secondary" className='font-mono'>{client.displayId}</Badge>}
                               </div>
                             </SelectItem>
                           ))}
@@ -245,5 +245,3 @@ export function AdminPanel() {
     </Card>
   );
 }
-
-    
