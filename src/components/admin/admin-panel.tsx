@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -33,7 +32,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import { Input } from '../ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -51,6 +50,12 @@ export function AdminPanel() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Memoize the initial users map for efficient lookup
+  const initialUsersMap = useMemo(() => {
+    if (!initialUsers) return new Map();
+    return new Map(initialUsers.map(user => [user.id, user]));
+  }, [initialUsers]);
 
   useEffect(() => {
     if (initialUsers) {
@@ -83,19 +88,49 @@ export function AdminPanel() {
     setIsSaving(true);
     
     const batch = writeBatch(firestore);
+    let changesFound = false;
 
     users.forEach(user => {
-        const initialUser = initialUsers?.find(u => u.id === user.id);
-        if (JSON.stringify(user) !== JSON.stringify(initialUser)) {
-            const userDocRef = doc(firestore, 'users', user.id);
-            // Only update the fields that can be changed in the admin panel
-            const dataToSave: Partial<Pick<UserProfile, 'role' | 'assignedClientId'>> = {
-                role: user.role,
-                assignedClientId: user.assignedClientId || '', // Ensure it's not undefined
-            };
-            batch.update(userDocRef, dataToSave);
+      const initialUser = initialUsersMap.get(user.id);
+      
+      // If user did not exist initially, something is wrong, skip.
+      if (!initialUser) return;
+
+      const roleChanged = user.role !== initialUser.role;
+      const assignedClientChanged = (user.assignedClientId || '') !== (initialUser.assignedClientId || '');
+
+      if (roleChanged || assignedClientChanged) {
+        changesFound = true;
+        const userDocRef = doc(firestore, 'users', user.id);
+        const dataToSave: Partial<Pick<UserProfile, 'role' | 'assignedClientId'>> = {};
+        
+        if (roleChanged) {
+          dataToSave.role = user.role;
         }
+        if (assignedClientChanged) {
+          // Ensure assignedClientId is cleared if the role is not 'manager'
+          dataToSave.assignedClientId = user.role === 'manager' ? (user.assignedClientId || '') : '';
+        } else if (roleChanged && user.role !== 'manager') {
+           // Handle case where only role changes away from manager
+           dataToSave.assignedClientId = '';
+        }
+
+        // Only add to batch if there's something to update
+        if (Object.keys(dataToSave).length > 0) {
+           batch.update(userDocRef, dataToSave);
+        }
+      }
     });
+    
+    if (!changesFound) {
+      toast({
+        title: "No Changes",
+        description: "There were no changes to save.",
+      });
+      setIsSaving(false);
+      setIsDirty(false);
+      return;
+    }
 
     try {
         await batch.commit();

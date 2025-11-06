@@ -29,17 +29,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
+    // This effect runs when the user is authenticated but their profile is not yet loaded or doesn't exist.
+    // We explicitly check for `isProfileLoading === false` and `!userProfile` to be sure.
     if (user && !isProfileLoading && !userProfile) {
       const email = user.email || 'no-email@example.com';
+      
+      // Create a default user profile.
+      // This is crucial for users who sign up but don't have a DB entry yet.
       const newProfile: UserProfile = {
         id: user.uid,
         email: email,
-        role: email === 'service@huxleigh.com' ? 'admin' : 'user',
+        // Default new users to 'user' role. Admins can elevate them later.
+        role: email === 'service@huxleigh.com' ? 'admin' : 'user', 
         firstName: user.displayName?.split(' ')[0] || email.split('@')[0] || 'New',
         lastName: user.displayName?.split(' ')[1] || 'User',
+        assignedClientId: '', // Ensure this field exists and is empty
       };
+      
+      // Save the new profile to Firestore. `merge: false` ensures we create a new doc
+      // and don't accidentally merge with stale data.
       if (userDocRef) {
-        setDocumentNonBlocking(userDocRef, newProfile, { merge: true });
+        setDocumentNonBlocking(userDocRef, newProfile, { merge: false });
       }
     }
   }, [user, isProfileLoading, userProfile, userDocRef]);
