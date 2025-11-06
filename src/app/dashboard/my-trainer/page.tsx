@@ -71,12 +71,10 @@ export default function MyTrainerPage() {
       }
     };
     
-    // The key change: This logic block now correctly handles the loading sequence.
-    // It waits until the user profile is no longer loading.
+    // This effect should only run when the profile is no longer loading.
+    // This prevents a race condition where we check for a client before the
+    // userProfile (and thus assignedClientId) is available.
     if (!isProfileLoading) {
-      // Once the profile has loaded, we then call fetchClientData.
-      // fetchClientData itself will handle the cases where userProfile is null
-      // or doesn't have the required properties.
       fetchClientData();
     }
   }, [firestore, userProfile, isProfileLoading]);
