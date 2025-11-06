@@ -73,7 +73,7 @@ export function AdminPanel() {
     }
   }, [initialUsers]);
 
-  const handleUserUpdate = (userId: string, field: keyof UserProfile, value: string | boolean) => {
+  const handleUserUpdate = (userId: string, field: 'role' | 'assignedClientId', value: string | boolean) => {
     setUsers(currentUsers =>
       currentUsers.map(user => {
         if (user.id === userId) {
@@ -88,9 +88,6 @@ export function AdminPanel() {
             if (updatedUser.role !== 'admin') {
               updatedUser.role = value !== 'none' && value ? 'manager' : 'user';
             }
-          } else if (typeof value === 'string') {
-            // Fallback for other potential string fields, though not used in the current UI
-            (updatedUser as any)[field] = value;
           }
           
           return updatedUser;
@@ -121,14 +118,19 @@ export function AdminPanel() {
         changesFound = true;
         const userDocRef = doc(firestore, 'users', user.id);
         
-        // Ensure assignedClientId is cleared if the role is not 'manager' or 'admin'
-        // An admin can be assigned a client, but a 'user' cannot.
-        const finalAssignedClientId = (user.role === 'manager' || user.role === 'admin') ? (user.assignedClientId || '') : '';
-
-        const dataToUpdate: Partial<UserProfile> = {
-          role: user.role,
-          assignedClientId: finalAssignedClientId,
-        };
+        // Only include the fields that have changed.
+        const dataToUpdate: Partial<UserProfile> = {};
+        if (roleChanged) {
+          dataToUpdate.role = user.role;
+        }
+        if (assignedClientChanged) {
+          // An admin can be assigned a client, but a 'user' cannot.
+          dataToUpdate.assignedClientId = (user.role === 'manager' || user.role === 'admin') ? (user.assignedClientId || '') : '';
+          // If the client assignment changes, the role might need to be adjusted
+          if(user.role !== 'admin') {
+            dataToUpdate.role = dataToUpdate.assignedClientId ? 'manager' : 'user';
+          }
+        }
 
         batch.update(userDocRef, dataToUpdate);
       }
@@ -204,7 +206,7 @@ export function AdminPanel() {
                       <Checkbox
                         checked={user.role === 'admin'}
                         onCheckedChange={(checked) => handleUserUpdate(user.id, 'role', checked as boolean)}
-                        disabled={isServiceAccount}
+                        disabled={isServiceAccount || isSaving}
                         aria-label={`Is ${user.firstName} an admin`}
                       />
                     </TableCell>
@@ -212,6 +214,7 @@ export function AdminPanel() {
                       <Select
                         value={user.assignedClientId || 'none'}
                         onValueChange={newClientId => handleUserUpdate(user.id, 'assignedClientId', newClientId)}
+                        disabled={isSaving}
                       >
                         <SelectTrigger className="w-[250px]">
                            <SelectValue placeholder="Select client..." />

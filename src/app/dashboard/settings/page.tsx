@@ -25,7 +25,7 @@ import {
   useUser,
   useFirestore,
   useDoc,
-  setDocumentNonBlocking,
+  updateDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
 import { useEffect, useState } from 'react';
@@ -83,12 +83,12 @@ export default function SettingsPage() {
   const onSubmit: SubmitHandler<FormValues> = data => {
     if (!userDocRef || !user) return;
     setIsSaving(true);
+    // Only update the fields that can be changed on this form.
     const profileData = {
-      id: user.uid,
-      ...data,
-      email: user.email, // Ensure email from auth is saved
+      firstName: data.firstName,
+      lastName: data.lastName,
     };
-    setDocumentNonBlocking(userDocRef, profileData, { merge: true });
+    updateDocumentNonBlocking(userDocRef, profileData);
     
     setTimeout(() => {
       setIsSaving(false);
@@ -99,8 +99,7 @@ export default function SettingsPage() {
     }, 500); 
   };
   
-  const isServiceAccount = user?.email === 'service@huxleigh.com';
-  const isAdmin = userProfile?.role === 'admin' || isServiceAccount;
+  const isAdmin = userProfile?.role === 'admin';
 
   return (
     <div className="flex flex-col gap-8">
