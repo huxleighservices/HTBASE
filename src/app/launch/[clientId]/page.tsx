@@ -12,7 +12,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   collection,
   query,
@@ -23,7 +22,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization } from '@/types/client';
-import { Loader2, MessageSquare, Phone, KeyRound, LogIn } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -42,14 +41,12 @@ import { SessionManager } from '@/components/trainer/session-manager';
 import { useFirestore, useAuth, useUser } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { FirebaseError } from 'firebase/app';
+import type { AccessKey } from '@/types/session';
 
 type Stage = 'login' | 'trainer';
 
 const loginFormSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
 });
 type LoginFormValues = z.infer<typeof loginFormSchema>;
@@ -58,8 +55,6 @@ export default function ClientLaunchPage() {
   const params = useParams();
   const router = useRouter();
   const clientId = params.clientId as string;
-  const { toast } = useToast();
-  const auth = useAuth();
   const { user, isUserLoading } = useUser();
 
   const [stage, setStage] = useState<Stage>('login');
@@ -67,6 +62,7 @@ export default function ClientLaunchPage() {
   const [customization, setCustomization] = useState<BrandCustomization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isValidated, setIsValidated] = useState(false);
 
   const firestore = useFirestore();
 
@@ -163,24 +159,34 @@ export default function ClientLaunchPage() {
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { username: '', password: '' },
   });
 
   const handleLogin: SubmitHandler<LoginFormValues> = async (data) => {
-    if (!auth) return;
+    if (!firestore || !client?.path) return;
     setIsLoggingIn(true);
     loginForm.clearErrors();
+
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
-      // We don't need to fetch the access key doc, just logging in is enough.
-      // The auth state change will be detected if needed, but for this flow we just need to proceed.
-      setStage('trainer');
+      const accessKeysRef = collection(firestore, client.path, 'accessKeys');
+      const q = query(
+        accessKeysRef,
+        where('username', '==', data.username),
+        where('password', '==', data.password)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        loginForm.setError('root', { message: 'Invalid credentials. Please try again.' });
+      } else {
+        // Successful validation
+        setStage('trainer');
+        setIsValidated(true);
+      }
     } catch (error: any) {
-        if (error instanceof FirebaseError) {
-             loginForm.setError('root', { message: 'Invalid credentials. Please check the email and password.' });
-        } else {
-             loginForm.setError('root', { message: 'An unexpected error occurred.' });
-        }
+        loginForm.setError('root', { message: 'An unexpected error occurred during validation.' });
+        console.error("Error validating access key:", error);
     } finally {
         setIsLoggingIn(false);
     }
@@ -208,11 +214,11 @@ export default function ClientLaunchPage() {
               <CardContent className="space-y-4">
                  <FormField
                   control={loginForm.control}
-                  name="email"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Email</FormLabel>
-                      <FormControl><Input type="email" {...field} disabled={isLoggingIn} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} /></FormControl>
+                      <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Username</FormLabel>
+                      <FormControl><Input {...field} disabled={isLoggingIn} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -280,8 +286,8 @@ export default function ClientLaunchPage() {
                   </Card>
                 </div>
                 <div className="pt-6">
-                  {/* The session concept is removed, so we pass null for activeSessionId */}
-                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} />
+                  {/* We pass a temporary session ID "access-key-session" since results still need an association */}
+                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId="access-key-session" />
                 </div>
               </CardContent>
             </Card>

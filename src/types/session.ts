@@ -1,7 +1,8 @@
 
 export type AccessKey = {
-  id: string; // Firebase Auth UID
-  email: string;
+  id: string; // Document ID
+  username: string;
+  password?: string; // Optional for security when reading lists
   displayName: string;
   createdAt: any;
 };

@@ -7,7 +7,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import {
   useUser,
@@ -15,8 +14,8 @@ import {
   useDoc,
   useCollection,
   useMemoFirebase,
-  useAuth,
-  setDocumentNonBlocking,
+  addDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import {
   doc,
@@ -25,10 +24,7 @@ import {
   where,
   getDocs,
   collection,
-  addDoc,
   serverTimestamp,
-  deleteDoc,
-  writeBatch
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -55,7 +51,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -68,12 +63,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { AccessKey } from '@/types/session';
 
 const addKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
-  nickname: z.string().min(3, 'Nickname must be at least 3 characters').regex(/^[a-zA-Z0-9_.-]+$/, 'Nickname can only contain letters, numbers, and symbols: _ . -'),
+  username: z.string().min(3, 'Username must be at least 3 characters').regex(/^[a-zA-Z0-9_.-]+$/, 'Username can only contain letters, numbers, and symbols: _ . -'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 type AddKeyFormValues = z.infer<typeof addKeyFormSchema>;
@@ -82,7 +76,6 @@ type AddKeyFormValues = z.infer<typeof addKeyFormSchema>;
 export default function MyTrainerPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -152,32 +145,29 @@ export default function MyTrainerPage() {
 
   const addKeyForm = useForm<AddKeyFormValues>({
     resolver: zodResolver(addKeyFormSchema),
-    defaultValues: { displayName: '', nickname: '', password: '' },
+    defaultValues: { displayName: '', username: '', password: '' },
   });
 
   const handleAddKey: SubmitHandler<AddKeyFormValues> = async (data) => {
-    if (!auth || !firestore || !client?.path || !client?.displayId) return;
+    if (!accessKeysCollectionRef) return;
     setIsCreatingKey(true);
 
-    const email = `${data.nickname}.${client.displayId}@access.key`;
-
     try {
-      // Step 1: Create the user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, data.password);
-      const newKeyUser = userCredential.user;
+      // Check if username already exists for this client
+      const usernameExistsQuery = query(accessKeysCollectionRef, where('username', '==', data.username));
+      const existingKeys = await getDocs(usernameExistsQuery);
+      if (!existingKeys.empty) {
+        addKeyForm.setError('username', { type: 'manual', message: 'This username is already taken for this client.' });
+        setIsCreatingKey(false);
+        return;
+      }
 
-      // Step 2: Create the access key document in Firestore
-      const keyDocRef = doc(firestore, client.path, 'accessKeys', newKeyUser.uid);
-      const newKeyData: Omit<AccessKey, 'id' | 'createdAt'> = {
-        email: email,
-        displayName: data.displayName,
+      const newKeyData = {
+        ...data,
+        createdAt: serverTimestamp(),
       };
       
-      setDocumentNonBlocking(keyDocRef, {
-        id: newKeyUser.uid,
-        ...newKeyData,
-        createdAt: serverTimestamp(),
-      });
+      addDocumentNonBlocking(accessKeysCollectionRef, newKeyData);
 
       toast({ title: 'Access Key Created', description: `Key "${data.displayName}" has been created successfully.` });
       setIsAddKeyOpen(false);
@@ -185,13 +175,6 @@ export default function MyTrainerPage() {
     } catch (error: any) {
       console.error("Error creating access key:", error);
       let message = 'An unexpected error occurred.';
-      if (error.code === 'auth/email-already-in-use') {
-        message = 'This nickname is already in use for this client. Please choose another one.';
-      } else if (error.code === 'auth/weak-password') {
-        message = 'The password is too weak. Please use at least 6 characters.';
-      } else if (error.code === 'auth/invalid-email') {
-          message = 'The nickname generated an invalid email. Please use only letters, numbers, underscores, periods, or hyphens.';
-      }
       toast({ title: 'Creation Failed', description: message, variant: 'destructive' });
     } finally {
       setIsCreatingKey(false);
@@ -199,26 +182,14 @@ export default function MyTrainerPage() {
   };
   
   const handleDeleteKey = async (key: AccessKey) => {
-      toast({
-          title: "Deletion Not Implemented",
-          description: "This functionality is not yet available in the prototype.",
-          variant: "destructive"
-      })
-      // Deleting a Firebase user is a sensitive operation and should be done via a backend function
-      // for security reasons. The code below is a placeholder for how it *might* look on the client,
-      // but it's not recommended for production.
-      /*
       if (!firestore || !client?.path) return;
       try {
           const keyDocRef = doc(firestore, client.path, 'accessKeys', key.id);
-          await deleteDoc(keyDocRef);
-          // You would also need a Cloud Function to delete the auth user by UID.
-          // e.g., await functions.httpsCallable('deleteAuthUser')({ uid: key.id });
+          deleteDocumentNonBlocking(keyDocRef);
           toast({ title: "Access Key Deleted" });
       } catch (error: any) {
           toast({ title: "Deletion Failed", description: error.message, variant: "destructive" });
       }
-      */
   };
 
 
@@ -290,7 +261,7 @@ export default function MyTrainerPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Display Name</TableHead>
-                    <TableHead>Email / User ID</TableHead>
+                    <TableHead>Username</TableHead>
                     <TableHead>Password</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -299,7 +270,7 @@ export default function MyTrainerPage() {
                   {accessKeys.map(key => (
                     <TableRow key={key.id}>
                       <TableCell className="font-medium">{key.displayName}</TableCell>
-                      <TableCell>{key.email}</TableCell>
+                      <TableCell>{key.username}</TableCell>
                       <TableCell className="font-mono text-muted-foreground">••••••••</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteKey(key)}>
@@ -336,14 +307,11 @@ export default function MyTrainerPage() {
               />
               <FormField
                 control={addKeyForm.control}
-                name="nickname"
+                name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nickname</FormLabel>
-                     <div className="flex items-center">
-                        <FormControl><Input {...field} placeholder="john.doe" disabled={isCreatingKey} className="rounded-r-none"/></FormControl>
-                        <span className="inline-flex items-center px-3 text-sm text-muted-foreground border border-l-0 h-10 rounded-r-md">.{client.displayId}@access.key</span>
-                     </div>
+                    <FormLabel>Username</FormLabel>
+                     <FormControl><Input {...field} placeholder="trainee1" disabled={isCreatingKey} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

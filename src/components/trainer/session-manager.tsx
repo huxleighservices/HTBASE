@@ -18,7 +18,6 @@ import {
 import { BookUser, Loader2, ThumbsUp, Lightbulb, Bot, User, Trash2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { TrainingResult } from '@/types/sessions';
-import type { Session } from '@/types/session';
 import { collection, query, orderBy, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
@@ -30,17 +29,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from '@/hooks/use-toast';
 import type { BrandCustomization } from '@/types/client';
 
-export function SessionManager({ clientPath, customization }: { clientPath: string | null; customization: BrandCustomization | null; }) {
+export function SessionManager({ clientPath, customization, activeSessionId }: { clientPath: string | null; customization: BrandCustomization | null; activeSessionId: string | null }) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { user } = useUser();
-
-  // For access keys, we store results on a single document. For managers/admins, we could use sessions.
-  // For simplicity in this new flow, we'll store all results under one "master" session doc for the client.
+  
   const resultsDocRef = useMemoFirebase(() => {
-    if (!firestore || !clientPath) return null;
-    return doc(firestore, clientPath, 'sessions', 'access-key-session');
-  }, [firestore, clientPath]);
+    if (!firestore || !clientPath || !activeSessionId) return null;
+    return doc(firestore, clientPath, 'sessions', activeSessionId);
+  }, [firestore, clientPath, activeSessionId]);
 
   const { data: resultsDoc, isLoading } = useDoc<{results?: TrainingResult[]}>(resultsDocRef);
 

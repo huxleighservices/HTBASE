@@ -106,12 +106,15 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "The Firebase Auth UID of the temporary user."
+          "description": "The unique ID for the access key document."
         },
-        "email": {
+        "username": {
           "type": "string",
-          "format": "email",
-          "description": "The email/username for the access key."
+          "description": "The username for the access key."
+        },
+        "password": {
+          "type": "string",
+          "description": "The password for the access key."
         },
         "displayName": {
           "type": "string",
@@ -122,7 +125,7 @@
             "format": "date-time"
         }
       },
-      "required": ["id", "email", "displayName", "createdAt"]
+      "required": ["id", "username", "password", "displayName", "createdAt"]
     },
     "BrandCustomization": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -221,7 +224,7 @@
           "params": [
             { "name": "userId", "description": "The user owner of the client." },
             { "name": "clientId", "description": "The client the key belongs to." },
-            { "name": "accessKeyId", "description": "The UID of the temporary auth user." }
+            { "name": "accessKeyId", "description": "The unique document ID of the key." }
           ]
         }
       },
