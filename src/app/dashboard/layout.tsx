@@ -3,11 +3,12 @@
 
 import type { ReactNode } from "react";
 import { Header } from "@/components/common/header";
-import { useUser, useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { doc } from "firebase/firestore";
+import type { UserProfile } from "@/types/user";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -19,7 +20,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
 
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -27,26 +28,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [user, isUserLoading, router]);
 
-  const isLoading = isUserLoading || isProfileLoading;
-
   useEffect(() => {
-    // When profile is done loading and we have a user but no profile document
-    if (!isProfileLoading && user && !userProfile) {
-      if (userDocRef) {
-        // Create a user profile document if it doesn't exist.
-        // This ensures every authenticated user is represented in the admin panel.
-        const email = user.email || 'no-email@example.com';
-        setDocumentNonBlocking(userDocRef, {
-          id: user.uid,
-          email: email,
-          role: email === 'service@huxleigh.com' ? 'admin' : 'user',
-          firstName: email.split('@')[0] || 'New',
-          lastName: 'User',
-        }, { merge: true });
-      }
+    // This effect runs when the user is loaded but the profile might not be.
+    // It ensures a user document is created in Firestore if it's missing.
+    if (user && userDocRef && !isProfileLoading && !userProfile) {
+      const email = user.email || 'no-email@example.com';
+      const newProfile: UserProfile = {
+        id: user.uid,
+        email: email,
+        role: email === 'service@huxleigh.com' ? 'admin' : 'user',
+        firstName: user.displayName?.split(' ')[0] || email.split('@')[0] || 'New',
+        lastName: user.displayName?.split(' ')[1] || 'User',
+      };
+      // Use setDoc with merge:true to create the doc without overwriting if it was created just now.
+      setDocumentNonBlocking(userDocRef, newProfile, { merge: true });
     }
-  }, [isProfileLoading, user, userProfile, userDocRef]);
+  }, [user, userDocRef, isProfileLoading, userProfile]);
 
+  const isLoading = isUserLoading || (user && isProfileLoading);
 
   if (isLoading) {
     return (
