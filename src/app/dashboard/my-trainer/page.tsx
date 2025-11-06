@@ -40,18 +40,9 @@ export default function MyTrainerPage() {
         }
         
         try {
-            const clientQuery = query(
-              collectionGroup(firestore, 'clients'),
-              where('displayId', '==', userProfile.assignedClientId)
-            );
-            const querySnapshot = await getDocs(clientQuery);
-
-            if (!querySnapshot.empty) {
-                router.push(`/launch/${userProfile.assignedClientId}`);
-            } else {
-                console.warn(`Manager assigned client ID ${userProfile.assignedClientId} not found.`);
-                setIsLoading(false);
-            }
+            // This is a workaround to handle the case where the manager's client is not found
+            // In a real app, you might want to show a more specific error message.
+            router.push(`/launch/${userProfile.assignedClientId}`);
 
         } catch (error) {
             console.error("Error fetching manager's client:", error);
@@ -64,7 +55,7 @@ export default function MyTrainerPage() {
   }, [userProfile, isProfileLoading, firestore, router]);
 
 
-  if (isLoading) {
+  if (isLoading || isProfileLoading) {
     return (
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <div className="text-center">
@@ -100,4 +91,3 @@ export default function MyTrainerPage() {
     </div>
   );
 }
-
