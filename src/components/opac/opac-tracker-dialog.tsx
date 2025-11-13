@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/table';
 import { PlusCircle, Trash2, Loader2, Database } from 'lucide-react';
 import {
-  useUser,
   useFirestore,
   useCollection,
   useMemoFirebase,
@@ -43,7 +42,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle as OpacDialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle as OpacDialogTitle, DialogDescription } from '../ui/dialog';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -52,15 +51,14 @@ type OpacTrackerDialogProps = {
 };
 
 export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDialogProps) {
-  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
 
   const customersCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !user || !client.path) return null;
+    if (!firestore || !client.path) return null;
     return collection(firestore, client.path, 'opacCustomers');
-  }, [firestore, user, client.path]);
+  }, [firestore, client.path]);
 
   const { data: customers, isLoading } = useCollection<OpaCustomer>(customersCollectionRef);
 
@@ -92,16 +90,10 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
         <div className="flex flex-col gap-8 pt-4 h-full overflow-hidden">
             <div className="flex justify-between items-center">
                 <div />
-                <AddOpaCustomerDialog
-                    open={isAddCustomerOpen}
-                    onOpenChange={setIsAddCustomerOpen}
-                    onAddCustomer={handleAddCustomer}
-                >
-                  <Button onClick={() => setIsAddCustomerOpen(true)}>
-                    <PlusCircle />
+                 <Button onClick={() => setIsAddCustomerOpen(true)}>
+                    <PlusCircle className="mr-2"/>
                     Add Customer
                   </Button>
-                </AddOpaCustomerDialog>
             </div>
 
             <Card className='flex-grow flex flex-col'>
@@ -176,6 +168,11 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                 </CardContent>
             </Card>
         </div>
+         <AddOpaCustomerDialog
+            open={isAddCustomerOpen}
+            onOpenChange={setIsAddCustomerOpen}
+            onAddCustomer={handleAddCustomer}
+        />
       </DialogContent>
     </Dialog>
   );

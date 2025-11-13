@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { type ReactNode, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { OpaCustomer } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 
@@ -39,14 +39,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 type AddOpaCustomerDialogProps = {
-  children: ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddCustomer: (customer: Omit<OpaCustomer, 'id' | 'notes'>) => void;
 };
 
 export function AddOpaCustomerDialog({
-  children,
   open,
   onOpenChange,
   onAddCustomer,
@@ -78,7 +76,6 @@ export function AddOpaCustomerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {children}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add New Customer</DialogTitle>
