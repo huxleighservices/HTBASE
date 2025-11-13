@@ -36,7 +36,7 @@ export async function addResultToSession(clientPath: string, sessionId: string, 
     
     const resultWithTimestamp = {
         ...result,
-        createdAt: serverTimestamp()
+        createdAt: new Date() // Use client-side timestamp
     };
 
     // We use set with merge:true to create the doc if it doesn't exist,
