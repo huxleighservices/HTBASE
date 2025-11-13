@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Menu, Briefcase, Database } from "lucide-react";
+import { LogOut, User, Settings, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -52,7 +52,6 @@ export function Header() {
     ];
     if (isAdmin) {
       links.push({ href: "/dashboard/clients", label: "Clients" });
-      links.push({ href: "/dashboard/opac-tracker", label: "OPAC Tracker" });
     }
     
     if (isManager) {
@@ -184,5 +183,3 @@ export function Header() {
     </header>
   );
 }
-
-    

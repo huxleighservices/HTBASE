@@ -310,21 +310,25 @@
         }
       },
       {
-        "path": "/users/{userId}/opacCustomers/{customerId}",
+        "path": "/users/{userId}/clients/{clientId}/opacCustomers/{customerId}",
         "definition": {
           "entityName": "OpaCustomer",
           "schema": {
             "$ref": "#/entities/OpaCustomer"
           },
-          "description": "Subcollection to store OPAC tracker customers for a specific user.",
+          "description": "Subcollection to store OPAC tracker customers for a specific client.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user who owns the customer data."
+              "description": "The unique identifier of the user who owns the client."
+            },
+            {
+              "name": "clientId",
+              "description": "The unique identifier of the client."
             },
             {
               "name": "customerId",
-              "description": "The unique identifier of the customer."
+              "description": "The unique identifier of the OPAC customer."
             }
           ]
         }
@@ -333,6 +337,3 @@
     "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }
-
-
-    

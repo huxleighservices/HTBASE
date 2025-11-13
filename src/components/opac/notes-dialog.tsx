@@ -37,22 +37,23 @@ type FormValues = z.infer<typeof formSchema>;
 type NotesDialogProps = {
   children: ReactNode;
   customer: OpaCustomer;
+  clientPath: string | null;
 };
 
 export function NotesDialog({
   children,
   customer,
+  clientPath
 }: NotesDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
   const customerDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'users', user.uid, 'opacCustomers', customer.id);
-  }, [firestore, user, customer.id]);
+    if (!firestore || !clientPath) return null;
+    return doc(firestore, clientPath, 'opacCustomers', customer.id);
+  }, [firestore, clientPath, customer.id]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -142,5 +143,3 @@ export function NotesDialog({
     </Dialog>
   );
 }
-
-    

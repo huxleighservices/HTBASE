@@ -22,7 +22,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -51,6 +51,7 @@ import {
   DialogTitle as PasswordDialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 
 type Stage = 'login' | 'trainer';
 
@@ -77,6 +78,7 @@ export default function ClientLaunchPage() {
 
   const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
   const [isColdCallOpen, setIsColdCallOpen] = useState(false);
+  const [isOpacTrackerOpen, setIsOpacTrackerOpen] = useState(false);
 
   // Temporary password state for SUNMMU
   const [passwordAttempt, setPasswordAttempt] = useState('');
@@ -338,20 +340,32 @@ export default function ClientLaunchPage() {
                     <div className="space-y-4 pt-6">
                          <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
                         <div className="grid gap-6 md:grid-cols-2">
-                        {assets.map(asset => (
+                        {assets.map(asset => {
+                           const isOpac = asset.title.includes('OPAC');
+                           const Icon = isOpac ? Database : Code;
+                           const handleAssetClick = () => {
+                             if (isOpac) {
+                               setIsOpacTrackerOpen(true);
+                             }
+                           };
+
+                           return (
                             <Card key={asset.id}>
                                 <CardHeader>
                                 <div className="flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Code className="size-6" /></div>
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-6" /></div>
                                     <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
                                 </div>
                                 <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
                                 </CardHeader>
                                 <CardFooter>
-                                    <Button disabled>Coming Soon</Button>
+                                    <Button onClick={handleAssetClick} disabled={!isOpac}>
+                                        {isOpac ? 'Open Tracker' : 'Coming Soon'}
+                                    </Button>
                                 </CardFooter>
                             </Card>
-                        ))}
+                           );
+                        })}
                         </div>
                     </div>
                 )}
@@ -366,6 +380,7 @@ export default function ClientLaunchPage() {
           {/* We pass a temporary session ID "access-key-session" since results still need an association */}
           <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId="access-key-session" clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
           <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId="access-key-session" clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
+          {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} />}
         </>
       );
     }

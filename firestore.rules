@@ -79,12 +79,9 @@ service cloud.firestore {
       allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
 
-    match /users/{userId}/opacCustomers/{customerId} {
-      // Only the user themselves can manage their own customers.
+    match /users/{userId}/clients/{clientId}/opacCustomers/{customerId} {
+      // Only the client owner (admin) can manage their OPAC customers through this asset.
       allow read, list, create, update, delete: if isOwner(userId);
     }
   }
 }
-
-
-    
