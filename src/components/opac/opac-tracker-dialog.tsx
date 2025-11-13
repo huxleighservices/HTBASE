@@ -43,7 +43,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent } from '../ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle as OpacDialogTitle } from '../ui/dialog';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -79,16 +79,17 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
-        <div className="flex flex-col gap-8 p-6 h-full">
+        <DialogHeader>
+            <OpacDialogTitle className="text-3xl font-bold font-headline tracking-tight flex items-center gap-3">
+                <Database /> OPAC Tracker
+            </OpacDialogTitle>
+            <DialogDescription>
+                A tool to keep track of certain customers for {client.firmName}.
+            </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-8 pt-4 h-full overflow-hidden">
             <div className="flex justify-between items-center">
-                <div>
-                <h1 className="text-3xl font-bold font-headline tracking-tight flex items-center gap-3">
-                    <Database /> OPAC Tracker
-                </h1>
-                <p className="text-muted-foreground">
-                    A tool to keep track of certain customers for {client.firmName}.
-                </p>
-                </div>
+                <div />
                 <AddOpaCustomerDialog onAddCustomer={handleAddCustomer}>
                 <Button>
                     <PlusCircle />
@@ -97,14 +98,14 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                 </AddOpaCustomerDialog>
             </div>
 
-            <Card className='flex-grow'>
+            <Card className='flex-grow flex flex-col'>
                 <CardHeader>
                 <CardTitle>Customer List</CardTitle>
                 <CardDescription>
                     All tracked customers are listed below. Click on a row to view or edit notes.
                 </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-grow overflow-auto">
                 {isLoading ? (
                     <div className="flex justify-center items-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin" />
