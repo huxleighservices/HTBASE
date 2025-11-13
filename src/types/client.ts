@@ -1,4 +1,5 @@
 
+
 export type Client = {
   id: string;
   displayId: string;
@@ -49,4 +50,10 @@ export type BrandCustomization = {
   coldCallDescription?: string;
   coldCallButton?: string;
 
+};
+
+export type Asset = {
+  id: string;
+  title: string;
+  description: string;
 };

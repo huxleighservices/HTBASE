@@ -73,5 +73,10 @@ service cloud.firestore {
       // Admins and the direct owner can manage customization.
       allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
+
+     match /users/{userId}/clients/{clientId}/assets/{assetId} {
+      // Admins and the direct owner can manage assets.
+      allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
+    }
   }
 }

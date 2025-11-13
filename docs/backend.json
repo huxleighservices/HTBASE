@@ -169,6 +169,24 @@
         }
       },
       "required": ["id"]
+    },
+    "Asset": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Asset",
+      "type": "object",
+      "description": "A custom feature or module exclusive to a client.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "title", "description"]
     }
   },
   "auth": {
@@ -238,6 +256,19 @@
             { "name": "userId", "description": "The user owner." },
             { "name": "clientId", "description": "The client being customized." },
             { "name": "customizationId", "description": "Singleton ID, e.g., 'config'." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/clients/{clientId}/assets/{assetId}",
+        "definition": {
+          "entityName": "Asset",
+          "schema": { "$ref": "#/entities/Asset" },
+          "description": "Stores custom assets for a specific client portal.",
+          "params": [
+            { "name": "userId", "description": "The user owner." },
+            { "name": "clientId", "description": "The client being customized." },
+            { "name": "assetId", "description": "Unique ID for the asset." }
           ]
         }
       }

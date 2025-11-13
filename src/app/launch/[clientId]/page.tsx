@@ -21,8 +21,8 @@ import {
   doc,
   getDoc,
 } from 'firebase/firestore';
-import type { Client, BrandCustomization } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn } from 'lucide-react';
+import type { Client, BrandCustomization, Asset } from '@/types/client';
+import { Loader2, MessageSquare, Phone, LogIn, Code } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,10 +38,9 @@ import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulato
 import Image from 'next/image';
 import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
 import { SessionManager } from '@/components/trainer/session-manager';
-import { useFirestore, useAuth, useUser } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import type { AccessKey } from '@/types/session';
 
 type Stage = 'login' | 'trainer';
 
@@ -115,6 +114,14 @@ export default function ClientLaunchPage() {
     fetchClientAndCustomization();
   }, [firestore, clientId]);
   
+  const assetsCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !client?.path) return null;
+    return collection(firestore, client.path, 'assets');
+  }, [firestore, client?.path]);
+
+  const { data: assets } = useCollection<Asset>(assetsCollectionRef);
+
+
   useEffect(() => {
     if (customization) {
       const root = document.documentElement;
@@ -285,6 +292,29 @@ export default function ClientLaunchPage() {
                     </CardFooter>
                   </Card>
                 </div>
+
+                {assets && assets.length > 0 && (
+                    <div className="space-y-4 pt-6">
+                         <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
+                        <div className="grid gap-6 md:grid-cols-2">
+                        {assets.map(asset => (
+                            <Card key={asset.id}>
+                                <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Code className="size-6" /></div>
+                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
+                                </div>
+                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button disabled>Coming Soon</Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="pt-6">
                   {/* We pass a temporary session ID "access-key-session" since results still need an association */}
                   <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId="access-key-session" />
