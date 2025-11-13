@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,7 @@ import { BrandCustomizationDialog } from '@/components/clients/brand-customizati
 import type { UserProfile } from '@/types/user';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const PortalLink = ({ displayId }: { displayId: string }) => {
@@ -442,3 +444,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    
