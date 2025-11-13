@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -43,6 +42,7 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle as OpacDialogTitle, DialogDescription } from '../ui/dialog';
+import { cn } from '@/lib/utils';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -75,6 +75,11 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
     deleteDocumentNonBlocking(customerDocRef);
     toast({ title: 'Customer Deleted', variant: 'destructive' });
   };
+  
+  const handleTextClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toast({ title: "Under Development", description: "This feature is not yet available." });
+  }
 
   return (
     <>
@@ -135,11 +140,20 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                       <span>{customer.phoneNumber}</span>
-                                      {customer.phoneNumber && <Button variant="outline" size="sm" disabled>Text</Button>}
+                                      {customer.phoneNumber && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleTextClick}
+                                            className="bg-green-500 hover:bg-green-600 text-white"
+                                        >
+                                            Text
+                                        </Button>
+                                      )}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <AlertDialog onOpenChange={(e) => e.stopPropagation()}>
+                                    <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                                                 <Trash2 className="h-4 w-4 text-destructive" />
