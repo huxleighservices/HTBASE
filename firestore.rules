@@ -78,5 +78,13 @@ service cloud.firestore {
       // Admins and the direct owner can manage assets.
       allow get, list, create, update, delete: if isOwner(userId) || isAdmin(request.auth.uid);
     }
+
+    match /users/{userId}/opacCustomers/{customerId} {
+      // Only the user themselves can manage their own customers.
+      allow read, list, create, update, delete: if isOwner(userId);
+    }
   }
 }
+
+
+    

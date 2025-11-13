@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Settings, Menu, Briefcase } from "lucide-react";
+import { LogOut, User, Settings, Menu, Briefcase, Database } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
@@ -50,17 +50,21 @@ export function Header() {
     const links = [
       { href: "/dashboard", label: "Home" },
     ];
-    if (isAdmin && !isManager) {
+    if (isAdmin) {
       links.push({ href: "/dashboard/clients", label: "Clients" });
+      links.push({ href: "/dashboard/opac-tracker", label: "OPAC Tracker" });
     }
     
-    links.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
+    if (isManager) {
+      links.push({ href: "/dashboard/my-trainer", label: "My Trainer" });
+    }
     
     links.push({ href: "/dashboard/settings", label: "Settings" });
     return links;
   }, [isManager, isAdmin]);
   
   const handleLogout = () => {
+    if (!auth) return;
     signOut(auth).then(() => {
       router.push("/");
     });
@@ -180,3 +184,5 @@ export function Header() {
     </header>
   );
 }
+
+    

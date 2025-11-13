@@ -1,5 +1,4 @@
 
-
 export type Client = {
   id: string;
   displayId: string;
@@ -57,3 +56,17 @@ export type Asset = {
   title: string;
   description: string;
 };
+
+export type OpaCustomer = {
+    id: string;
+    firstName: string;
+    lastName: string;
+    formerCompany: string;
+    planDetails: string;
+    dateLeft: string;
+    phoneNumber: string;
+    extraInfo: string;
+    notes?: string;
+};
+
+    

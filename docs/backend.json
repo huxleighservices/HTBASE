@@ -187,6 +187,43 @@
         }
       },
       "required": ["id", "title", "description"]
+    },
+    "OpaCustomer": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OpaCustomer",
+      "type": "object",
+      "description": "Represents a customer in the OPAC Tracker.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "formerCompany": {
+          "type": "string"
+        },
+        "planDetails": {
+          "type": "string"
+        },
+        "dateLeft": {
+          "type": "string",
+          "format": "date"
+        },
+        "phoneNumber": {
+          "type": "string"
+        },
+        "extraInfo": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "firstName", "lastName"]
     }
   },
   "auth": {
@@ -271,8 +308,31 @@
             { "name": "assetId", "description": "Unique ID for the asset." }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/opacCustomers/{customerId}",
+        "definition": {
+          "entityName": "OpaCustomer",
+          "schema": {
+            "$ref": "#/entities/OpaCustomer"
+          },
+          "description": "Subcollection to store OPAC tracker customers for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user who owns the customer data."
+            },
+            {
+              "name": "customerId",
+              "description": "The unique identifier of the customer."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }
+
+
+    
