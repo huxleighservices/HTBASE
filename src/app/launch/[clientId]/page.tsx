@@ -72,7 +72,7 @@ export default function ClientLaunchPage() {
   const [customization, setCustomization] = useState<BrandCustomization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isValidated, setIsValidated] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   const firestore = useFirestore();
 
@@ -208,7 +208,7 @@ export default function ClientLaunchPage() {
       } else {
         // Successful validation
         setStage('trainer');
-        setIsValidated(true);
+        setActiveSessionId(data.username); // Use username as the session ID
       }
     } catch (error: any) {
         loginForm.setError('root', { message: 'An unexpected error occurred during validation.' });
@@ -371,15 +371,13 @@ export default function ClientLaunchPage() {
                 )}
 
                 <div className="pt-6">
-                  {/* We pass a temporary session ID "access-key-session" since results still need an association */}
-                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId="access-key-session" />
+                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeSessionId} />
                 </div>
               </CardContent>
             </Card>
           </div>
-          {/* We pass a temporary session ID "access-key-session" since results still need an association */}
-          <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId="access-key-session" clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
-          <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId="access-key-session" clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
+          <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
+          <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} />}
         </>
       );
@@ -445,3 +443,5 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
+
+    
