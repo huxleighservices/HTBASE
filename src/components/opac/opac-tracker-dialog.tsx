@@ -91,10 +91,10 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
             <div className="flex justify-between items-center">
                 <div />
                 <AddOpaCustomerDialog onAddCustomer={handleAddCustomer}>
-                <Button>
+                  <Button>
                     <PlusCircle />
                     Add Customer
-                </Button>
+                  </Button>
                 </AddOpaCustomerDialog>
             </div>
 
