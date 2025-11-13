@@ -20,6 +20,7 @@ import {
   Palette,
   Clipboard,
   ClipboardCheck,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -46,6 +47,14 @@ import type { UserProfile } from '@/types/user';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+  } from "@/components/ui/dropdown-menu";
 
 
 const PortalLink = ({ displayId }: { displayId: string }) => {
@@ -256,100 +265,104 @@ export default function ClientsPage() {
         </div>
       </div>
        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
-      {client.status === 'pending' && (
-        <div className="flex items-center justify-end gap-2">
-          <AddClientDialog
-            clientToEdit={client}
-            onEditClient={handleUpdateClient}
-          >
-            <Button variant="ghost" size="icon">
-              <Edit />
-            </Button>
-          </AddClientDialog>
-          <ReviewClientDialog
-            client={client}
-            onActivate={() => handleUpdateClientStatus(client.id, 'active')}
-            onReject={() => handleUpdateClientStatus(client.id, 'archived')}
-            triggerButton={
-              <Button variant="outline" size="sm">
-                Review & Activate
-              </Button>
-            }
-            action="activate"
-          />
-        </div>
-      )}
-      {client.status === 'active' && (
-        <>
-            <PortalLink displayId={client.displayId} />
-            <div className="flex items-center justify-end gap-2 border-t md:border-t-0 pt-2 md:pt-0 mt-2 md:mt-0">
-                <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
-                <Button variant="outline" size="sm">
-                    <Wrench className="mr-2" />
-                    Setup
-                    </Button>
-                </SetupTrainerDialog>
-                <BrandCustomizationDialog client={client}>
-                <Button variant="outline" size="sm">
-                    <Palette className="mr-2" />
-                    Customize
-                    </Button>
-                </BrandCustomizationDialog>
-                <AddClientDialog
-                    clientToEdit={client}
-                    onEditClient={handleUpdateClient}
-                >
-                    <Button variant="ghost" size="icon">
-                    <Edit />
-                    </Button>
-                </AddClientDialog>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleUpdateClientStatus(client.id, 'archived')}
-                >
-                    <Archive className="mr-2" />
-                    Archive
-                </Button>
+        {client.status === 'active' && (
+             <div className="flex items-center gap-2 w-full">
+                <PortalLink displayId={client.displayId} />
             </div>
-        </>
-      )}
-      {client.status === 'archived' && (
-        <div className="flex items-center justify-end gap-2">
-          <ReviewClientDialog
-            client={client}
-            onActivate={() => {}}
-            onReject={() => {}}
-            action="view"
-            triggerButton={
-              <Button variant="ghost" size="icon">
-                <Eye />
-              </Button>
-            }
-          />
-          <ReviewClientDialog
-            client={client}
-            onActivate={() => handleUpdateClientStatus(client.id, 'active')}
-            onReject={() => {}}
-            action="reactivate"
-            triggerButton={
-              <Button variant="outline" size="sm">
-                <Undo className="mr-2" />
-                Re-activate
-              </Button>
-            }
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={() => handleDeleteClient(client.id)}
-          >
-            <Trash2 className="mr-2" />
-            Delete
-          </Button>
-        </div>
-      )}
+        )}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Client Functions</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Functions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {client.status === 'pending' && (
+                    <>
+                        <DropdownMenuItem asChild>
+                            <AddClientDialog clientToEdit={client} onEditClient={handleUpdateClient}>
+                                <button className="w-full text-left">
+                                <Edit className="mr-2" />
+                                Edit Client
+                                </button>
+                            </AddClientDialog>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <ReviewClientDialog
+                                client={client}
+                                onActivate={() => handleUpdateClientStatus(client.id, 'active')}
+                                onReject={() => handleUpdateClientStatus(client.id, 'archived')}
+                                action="activate"
+                                triggerButton={<button className="w-full text-left"><Undo className="mr-2" />Review & Activate</button>}
+                            />
+                        </DropdownMenuItem>
+                    </>
+                )}
+                 {client.status === 'active' && (
+                    <>
+                        <DropdownMenuItem asChild>
+                             <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+                                <button className="w-full text-left">
+                                    <Wrench className="mr-2" />
+                                    Setup Trainer
+                                </button>
+                            </SetupTrainerDialog>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem asChild>
+                            <BrandCustomizationDialog client={client}>
+                                 <button className="w-full text-left">
+                                    <Palette className="mr-2" />
+                                    Customize Portal
+                                 </button>
+                            </BrandCustomizationDialog>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                            <AddClientDialog clientToEdit={client} onEditClient={handleUpdateClient}>
+                                <button className="w-full text-left">
+                                    <Edit className="mr-2" />
+                                    Edit Client
+                                </button>
+                            </AddClientDialog>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem onSelect={() => handleUpdateClientStatus(client.id, 'archived')}>
+                            <Archive className="mr-2" />
+                            Archive Client
+                        </DropdownMenuItem>
+                    </>
+                )}
+                 {client.status === 'archived' && (
+                    <>
+                       <DropdownMenuItem asChild>
+                            <ReviewClientDialog
+                                client={client}
+                                onActivate={() => {}}
+                                onReject={() => {}}
+                                action="view"
+                                triggerButton={<button className="w-full text-left"><Eye className="mr-2" />View Details</button>}
+                            />
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                             <ReviewClientDialog
+                                client={client}
+                                onActivate={() => handleUpdateClientStatus(client.id, 'active')}
+                                onReject={() => {}}
+                                action="reactivate"
+                                triggerButton={<button className="w-full text-left"><Undo className="mr-2" />Re-activate</button>}
+                            />
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                         <DropdownMenuItem onSelect={() => handleDeleteClient(client.id)} className="text-destructive focus:text-destructive">
+                            <Trash2 className="mr-2" />
+                            Delete Permanently
+                        </DropdownMenuItem>
+                    </>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </li>
   );
