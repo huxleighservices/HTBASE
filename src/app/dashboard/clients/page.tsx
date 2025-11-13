@@ -65,13 +65,7 @@ const PortalLink = ({ displayId }: { displayId: string }) => {
     const { toast } = useToast();
     const [isCopied, setIsCopied] = useState(false);
     
-    // This will only run on the client, so window.location.origin is safe.
-    const [origin, setOrigin] = useState('');
-    useEffect(() => {
-        setOrigin(window.location.origin);
-    }, []);
-
-    const portalUrl = `${origin}/launch/${displayId}`;
+    const portalUrl = `https://htbase.online/launch/${displayId}`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(portalUrl).then(() => {
@@ -80,10 +74,6 @@ const PortalLink = ({ displayId }: { displayId: string }) => {
             setTimeout(() => setIsCopied(false), 2000);
         });
     };
-
-    if (!origin) {
-        return <Skeleton className="h-9 w-full" />;
-    }
 
     return (
         <div className="flex items-center gap-2">
@@ -492,3 +482,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
+    
