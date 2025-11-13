@@ -132,7 +132,12 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                                 <TableCell>{customer.formerCompany}</TableCell>
                                 <TableCell>{customer.planDetails}</TableCell>
                                 <TableCell>{customer.dateLeft}</TableCell>
-                                <TableCell>{customer.phoneNumber}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                      <span>{customer.phoneNumber}</span>
+                                      {customer.phoneNumber && <Button variant="outline" size="sm" disabled>Text</Button>}
+                                  </div>
+                                </TableCell>
                                 <TableCell className="text-right">
                                     <AlertDialog onOpenChange={(e) => e.stopPropagation()}>
                                         <AlertDialogTrigger asChild>
