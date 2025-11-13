@@ -38,10 +38,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchClientLogo = async () => {
-      if (isUserLoading || isProfileLoading) return;
+      if (isUserLoading || isProfileLoading || !firestore) {
+        // If still loading or firestore is not available, do nothing.
+        return;
+      }
       
       setIsDataLoading(true);
 
+      // This is the critical check. Only proceed if the user is a manager with an assigned client.
       if (userProfile?.role === 'manager' && userProfile.assignedClientId) {
         try {
           const clientsQuery = query(
@@ -68,6 +72,9 @@ export default function DashboardPage() {
           console.error("Error fetching client's logo:", error);
           // Keep the default logo on error
         }
+      } else {
+        // For admins or users without an assigned client, use the default logo.
+        setLogoUrl('/logo.png');
       }
       
       setIsDataLoading(false);
