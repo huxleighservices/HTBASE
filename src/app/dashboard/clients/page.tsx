@@ -15,10 +15,10 @@ import {
   Eye,
   Undo,
   Edit,
-  Rocket,
-  KeyRound,
   Wrench,
   Palette,
+  Clipboard,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -37,12 +37,54 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { EditPasswordDialog } from '@/components/clients/edit-password-dialog';
 import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
 import { BrandCustomizationDialog } from '@/components/clients/brand-customization-dialog';
 import type { UserProfile } from '@/types/user';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
+
+
+const PortalLink = ({ displayId }: { displayId: string }) => {
+    const { toast } = useToast();
+    const [isCopied, setIsCopied] = useState(false);
+    
+    // This will only run on the client, so window.location.origin is safe.
+    const [origin, setOrigin] = useState('');
+    useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
+
+    const portalUrl = `${origin}/launch/${displayId}`;
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(portalUrl).then(() => {
+            setIsCopied(true);
+            toast({ title: 'Link Copied!', description: 'The portal link has been copied to your clipboard.' });
+            setTimeout(() => setIsCopied(false), 2000);
+        });
+    };
+
+    if (!origin) {
+        return <Skeleton className="h-9 w-full" />;
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <Input
+                readOnly
+                value={portalUrl}
+                className="h-9 text-xs font-mono bg-muted flex-grow"
+            />
+            <Button variant="outline" size="sm" onClick={handleCopy}>
+                {isCopied ? <ClipboardCheck className="mr-2" /> : <Clipboard className="mr-2" />}
+                {isCopied ? 'Copied' : 'Copy Link'}
+            </Button>
+        </div>
+    );
+};
+
 
 export default function ClientsPage() {
   const { user } = useUser();
@@ -93,14 +135,10 @@ export default function ClientsPage() {
   useEffect(() => {
     if (clients && firestore && user) {
       clients.forEach(client => {
-        if (!client.displayId || !client.launchPassword) {
-          const updates: Partial<Client> = {};
-          if (!client.displayId) {
-            updates.displayId = generateDisplayId(clients);
-          }
-          if (!client.launchPassword) {
-            updates.launchPassword = 'JAXON';
-          }
+        if (!client.displayId) {
+          const updates: Partial<Client> = {
+            displayId: generateDisplayId(clients)
+          };
           const clientDocRef = doc(
             firestore,
             'users',
@@ -115,7 +153,7 @@ export default function ClientsPage() {
   }, [clients, firestore, user]);
 
   const handleAddClient = (
-    client: Omit<Client, 'id' | 'status' | 'displayId' | 'launchPassword' | 'trainingData'>
+    client: Omit<Client, 'id' | 'status' | 'displayId' | 'trainingData'>
   ) => {
     if (!clientsCollectionRef) return;
     const displayId = generateDisplayId(clients);
@@ -123,7 +161,6 @@ export default function ClientsPage() {
       ...client,
       displayId,
       status: 'pending',
-      launchPassword: 'JAXON',
     });
   };
 
@@ -140,18 +177,6 @@ export default function ClientsPage() {
       clientId
     );
     updateDocumentNonBlocking(clientDocRef, client);
-  };
-
-  const handleUpdateClientPassword = (clientId: string, password: string) => {
-    if (!firestore || !user) return;
-    const clientDocRef = doc(
-      firestore,
-      'users',
-      user.uid,
-      'clients',
-      clientId
-    );
-    updateDocumentNonBlocking(clientDocRef, { launchPassword: password });
   };
   
   const handleUpdateTrainingData = (clientId: string, trainingData: string) => {
@@ -193,10 +218,6 @@ export default function ClientsPage() {
     deleteDocumentNonBlocking(clientDocRef);
   };
 
-  const handleLaunchClient = (clientId: string) => {
-    router.push(`/launch/${clientId}`);
-  };
-
   const renderClientList = (clientList: Client[], listName: string) => {
     if (clientList.length === 0) {
       return (
@@ -215,8 +236,8 @@ export default function ClientsPage() {
   };
 
   const ClientListItem = ({ client }: { client: Client }) => (
-    <li className="flex items-center justify-between p-4 rounded-lg border bg-card">
-      <div className="flex items-center gap-4">
+    <li className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg border bg-card gap-4">
+      <div className="flex items-center gap-4 flex-grow">
         {client.displayId && (
           <Badge
             variant="secondary"
@@ -230,26 +251,11 @@ export default function ClientsPage() {
           <p className="text-sm text-muted-foreground">
             {client.contactEmail}
           </p>
-          {isServiceAccount && client.launchPassword && (
-            <div className="flex items-center gap-2 mt-1">
-              <KeyRound className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-mono">
-                {client.launchPassword}
-              </span>
-              <EditPasswordDialog
-                client={client}
-                onUpdatePassword={handleUpdateClientPassword}
-              >
-                <Button variant="link" size="sm" className="h-auto p-0 text-xs">
-                  Change
-                </Button>
-              </EditPasswordDialog>
-            </div>
-          )}
         </div>
       </div>
+       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
       {client.status === 'pending' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <AddClientDialog
             clientToEdit={client}
             onEditClient={handleUpdateClient}
@@ -272,61 +278,42 @@ export default function ClientsPage() {
         </div>
       )}
       {client.status === 'active' && (
-        <div className="flex items-center gap-2">
-          {isServiceAccount && (
-            <>
-             <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
-              <Button variant="outline" size="sm">
-                  <Wrench className="mr-2" />
-                  Setup
+        <>
+            <PortalLink displayId={client.displayId} />
+            <div className="flex items-center justify-end gap-2 border-t md:border-t-0 pt-2 md:pt-0 mt-2 md:mt-0">
+                <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+                <Button variant="outline" size="sm">
+                    <Wrench className="mr-2" />
+                    Setup
+                    </Button>
+                </SetupTrainerDialog>
+                <BrandCustomizationDialog client={client}>
+                <Button variant="outline" size="sm">
+                    <Palette className="mr-2" />
+                    Customize
+                    </Button>
+                </BrandCustomizationDialog>
+                <AddClientDialog
+                    clientToEdit={client}
+                    onEditClient={handleUpdateClient}
+                >
+                    <Button variant="ghost" size="icon">
+                    <Edit />
+                    </Button>
+                </AddClientDialog>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateClientStatus(client.id, 'archived')}
+                >
+                    <Archive className="mr-2" />
+                    Archive
                 </Button>
-            </SetupTrainerDialog>
-            <BrandCustomizationDialog client={client}>
-               <Button variant="outline" size="sm">
-                  <Palette className="mr-2" />
-                  Customize
-                </Button>
-            </BrandCustomizationDialog>
-            </>
-          )}
-          <AddClientDialog
-            clientToEdit={client}
-            onEditClient={handleUpdateClient}
-          >
-            <Button variant="ghost" size="icon">
-              <Edit />
-            </Button>
-          </AddClientDialog>
-          <ReviewClientDialog
-            client={client}
-            onActivate={() => {}}
-            onReject={() => {}}
-            action="view"
-            triggerButton={
-              <Button variant="ghost" size="icon">
-                <Eye />
-              </Button>
-            }
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleUpdateClientStatus(client.id, 'archived')}
-          >
-            <Archive className="mr-2" />
-            Archive
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleLaunchClient(client.displayId)}
-          >
-            <Rocket className="mr-2" />
-            Launch
-          </Button>
-        </div>
+            </div>
+        </>
       )}
       {client.status === 'archived' && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <ReviewClientDialog
             client={client}
             onActivate={() => {}}
@@ -361,6 +348,7 @@ export default function ClientsPage() {
           </Button>
         </div>
       )}
+      </div>
     </li>
   );
 
