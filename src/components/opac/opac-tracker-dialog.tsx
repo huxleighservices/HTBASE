@@ -55,6 +55,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
 
   const customersCollectionRef = useMemoFirebase(() => {
     if (!firestore || !user || !client.path) return null;
@@ -67,6 +68,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
     if (!customersCollectionRef) return;
     addDocumentNonBlocking(customersCollectionRef, customer);
     toast({ title: 'Customer Added', description: `${customer.firstName} ${customer.lastName} has been added.` });
+    setIsAddCustomerOpen(false);
   };
 
   const handleDeleteCustomer = (customerId: string) => {
@@ -90,8 +92,12 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
         <div className="flex flex-col gap-8 pt-4 h-full overflow-hidden">
             <div className="flex justify-between items-center">
                 <div />
-                <AddOpaCustomerDialog onAddCustomer={handleAddCustomer}>
-                  <Button>
+                <AddOpaCustomerDialog
+                    open={isAddCustomerOpen}
+                    onOpenChange={setIsAddCustomerOpen}
+                    onAddCustomer={handleAddCustomer}
+                >
+                  <Button onClick={() => setIsAddCustomerOpen(true)}>
                     <PlusCircle />
                     Add Customer
                   </Button>

@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import type { OpaCustomer } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 
@@ -40,14 +40,17 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type AddOpaCustomerDialogProps = {
   children: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onAddCustomer: (customer: Omit<OpaCustomer, 'id' | 'notes'>) => void;
 };
 
 export function AddOpaCustomerDialog({
   children,
+  open,
+  onOpenChange,
   onAddCustomer,
 }: AddOpaCustomerDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,15 +65,20 @@ export function AddOpaCustomerDialog({
     },
   });
 
+  useEffect(() => {
+    if (!open) {
+      form.reset();
+    }
+  }, [open, form]);
+
   const onSubmit: SubmitHandler<FormValues> = data => {
     onAddCustomer(data as Omit<OpaCustomer, 'id' | 'notes'>);
-    setIsOpen(false);
-    form.reset();
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <div onClick={() => setIsOpen(true)}>{children}</div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add New Customer</DialogTitle>
