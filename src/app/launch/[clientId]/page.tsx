@@ -41,6 +41,16 @@ import { SessionManager } from '@/components/trainer/session-manager';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent as PasswordDialogContent,
+  DialogDescription as PasswordDialogDescription,
+  DialogFooter as PasswordDialogFooter,
+  DialogHeader as PasswordDialogHeader,
+  DialogTitle as PasswordDialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 type Stage = 'login' | 'trainer';
 
@@ -67,6 +77,13 @@ export default function ClientLaunchPage() {
 
   const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
   const [isColdCallOpen, setIsColdCallOpen] = useState(false);
+
+  // Temporary password state for SUNMMU
+  const [passwordAttempt, setPasswordAttempt] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [scenarioToOpen, setScenarioToOpen] = useState<'messenger' | 'coldcall' | null>(null);
+
   
   // If a regular user is already logged in, redirect them away.
   useEffect(() => {
@@ -199,6 +216,30 @@ export default function ClientLaunchPage() {
     }
   };
 
+  const handleScenarioClick = (scenario: 'messenger' | 'coldcall') => {
+    if (clientId.toUpperCase() === 'SUNMMU') {
+      setScenarioToOpen(scenario);
+      setShowPasswordDialog(true);
+    } else {
+      if (scenario === 'messenger') setIsMessengerScenarioOpen(true);
+      if (scenario === 'coldcall') setIsColdCallOpen(true);
+    }
+  };
+
+  const handlePasswordSubmit = () => {
+    if (passwordAttempt === 'CROME') {
+      if (scenarioToOpen === 'messenger') setIsMessengerScenarioOpen(true);
+      if (scenarioToOpen === 'coldcall') setIsColdCallOpen(true);
+      setShowPasswordDialog(false);
+      setPasswordAttempt('');
+      setPasswordError('');
+      setScenarioToOpen(null);
+    } else {
+      setPasswordError('Incorrect password. Please try again.');
+    }
+  };
+
+
   const renderContent = () => {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
@@ -276,7 +317,7 @@ export default function ClientLaunchPage() {
                       <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
                     </CardHeader>
                     <CardFooter>
-                      <Button onClick={() => setIsMessengerScenarioOpen(true)}>Start Scenario</Button>
+                      <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
                     </CardFooter>
                   </Card>
                   <Card>
@@ -288,7 +329,7 @@ export default function ClientLaunchPage() {
                       <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
                     </CardHeader>
                     <CardFooter>
-                      <Button onClick={() => setIsColdCallOpen(true)}>Start Simulation</Button>
+                      <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
                     </CardFooter>
                   </Card>
                 </div>
@@ -354,6 +395,38 @@ export default function ClientLaunchPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
       {renderContent()}
+
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <PasswordDialogContent>
+          <PasswordDialogHeader>
+            <PasswordDialogTitle>Password Required</PasswordDialogTitle>
+            <PasswordDialogDescription>
+              This module is password protected. Please enter the password to continue.
+            </PasswordDialogDescription>
+          </PasswordDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="password-attempt" className="text-right">
+                Password
+              </Label>
+              <Input
+                id="password-attempt"
+                type="password"
+                value={passwordAttempt}
+                onChange={(e) => setPasswordAttempt(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            {passwordError && <p className="text-sm text-destructive text-center col-span-4">{passwordError}</p>}
+          </div>
+          <PasswordDialogFooter>
+            <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handlePasswordSubmit}>Unlock</Button>
+          </PasswordDialogFooter>
+        </PasswordDialogContent>
+      </Dialog>
     </main>
   );
 }
