@@ -35,17 +35,18 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 type NotesDialogProps = {
-  children: ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   customer: OpaCustomer;
   clientPath: string | null;
 };
 
 export function NotesDialog({
-  children,
+  open,
+  onOpenChange,
   customer,
   clientPath
 }: NotesDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
@@ -63,10 +64,10 @@ export function NotesDialog({
   });
 
   useEffect(() => {
-    if (isOpen) {
+    if (open) {
       form.reset({ notes: customer.notes || '' });
     }
-  }, [isOpen, customer, form]);
+  }, [open, customer, form]);
 
   const onSubmit: SubmitHandler<FormValues> = data => {
     if (!customerDocRef) return;
@@ -77,7 +78,7 @@ export function NotesDialog({
     setTimeout(() => {
         toast({ title: 'Notes Saved' });
         setIsSaving(false);
-        setIsOpen(false);
+        onOpenChange(false);
     }, 500);
   };
   
@@ -89,8 +90,7 @@ export function NotesDialog({
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <div onClick={() => setIsOpen(true)}>{children}</div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Details for {customer.firstName} {customer.lastName}</DialogTitle>

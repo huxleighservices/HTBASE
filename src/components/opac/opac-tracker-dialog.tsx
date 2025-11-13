@@ -54,6 +54,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<OpaCustomer | null>(null);
 
   const customersCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -66,7 +67,6 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
     if (!customersCollectionRef) return;
     addDocumentNonBlocking(customersCollectionRef, customer);
     toast({ title: 'Customer Added', description: `${customer.firstName} ${customer.lastName} has been added.` });
-    setIsAddCustomerOpen(false);
   };
 
   const handleDeleteCustomer = (customerId: string) => {
@@ -77,6 +77,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
@@ -126,41 +127,39 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                     </TableHeader>
                     <TableBody>
                         {customers.map(customer => (
-                        <NotesDialog key={customer.id} customer={customer} clientPath={client.path || null}>
-                            <TableRow className="cursor-pointer">
-                            <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
-                            <TableCell>{customer.formerCompany}</TableCell>
-                            <TableCell>{customer.planDetails}</TableCell>
-                            <TableCell>{customer.dateLeft}</TableCell>
-                            <TableCell>{customer.phoneNumber}</TableCell>
-                            <TableCell className="text-right">
-                                <AlertDialog onOpenChange={(e) => e.stopPropagation()}>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will permanently delete the record for {customer.firstName} {customer.lastName}.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={() => handleDeleteCustomer(customer.id)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                            Delete
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </TableCell>
+                            <TableRow key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer">
+                                <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
+                                <TableCell>{customer.formerCompany}</TableCell>
+                                <TableCell>{customer.planDetails}</TableCell>
+                                <TableCell>{customer.dateLeft}</TableCell>
+                                <TableCell>{customer.phoneNumber}</TableCell>
+                                <TableCell className="text-right">
+                                    <AlertDialog onOpenChange={(e) => e.stopPropagation()}>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will permanently delete the record for {customer.firstName} {customer.lastName}.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={() => handleDeleteCustomer(customer.id)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                                Delete
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </TableCell>
                             </TableRow>
-                        </NotesDialog>
                         ))}
                     </TableBody>
                     </Table>
@@ -168,12 +167,24 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                 </CardContent>
             </Card>
         </div>
-         <AddOpaCustomerDialog
-            open={isAddCustomerOpen}
-            onOpenChange={setIsAddCustomerOpen}
-            onAddCustomer={handleAddCustomer}
-        />
       </DialogContent>
     </Dialog>
+    
+     <AddOpaCustomerDialog
+        open={isAddCustomerOpen}
+        onOpenChange={setIsAddCustomerOpen}
+        onAddCustomer={handleAddCustomer}
+    />
+
+    {selectedCustomer && (
+        <NotesDialog
+            key={selectedCustomer.id}
+            open={!!selectedCustomer}
+            onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}
+            customer={selectedCustomer}
+            clientPath={client.path || null}
+        />
+    )}
+    </>
   );
 }
