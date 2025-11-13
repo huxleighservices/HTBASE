@@ -64,6 +64,7 @@ import {
 } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import type { AccessKey } from '@/types/session';
+import { SessionObservation } from '@/components/clients/session-observation';
 
 const addKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
@@ -194,6 +195,7 @@ export default function MyTrainerPage() {
 
 
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
+  const isSunmmuClient = client?.displayId === 'SUNMMU';
 
   if (isLoading) {
     return (
@@ -284,6 +286,8 @@ export default function MyTrainerPage() {
             )}
           </CardContent>
         </Card>
+
+        {isSunmmuClient && client.path && <SessionObservation clientPath={client.path} />}
       </div>
 
        <Dialog open={isAddKeyOpen} onOpenChange={setIsAddKeyOpen}>
