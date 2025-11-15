@@ -1,3 +1,4 @@
+
 const {setGlobalOptions} = require("firebase-functions/v2");
 const {onCall} = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
@@ -13,24 +14,25 @@ exports.sendSMS = onCall(async (request) => {
   const {customerPath, message} = request.data;
 
   if (!customerPath || !message) {
-    throw new Error("customerPath and message are required");
+    // Use an HttpsError for client-facing errors
+    throw new functions.https.HttpsError("invalid-argument", "customerPath and message are required.");
   }
 
   try {
     // Get customer phone number from the provided Firestore path
     const customerDoc = await db.doc(customerPath).get();
-    if (!customerDoc.exists) {
-      throw new Error("Customer not found at the specified path");
+    if (!customerDoc.exists()) {
+      throw new functions.https.HttpsError("not-found", "Customer not found at the specified path.");
     }
 
     const phoneNumber = customerDoc.data().phoneNumber;
     if (!phoneNumber) {
-      throw new Error("Customer has no phone number");
+        throw new functions.https.HttpsError("failed-precondition", "Customer has no phone number.");
     }
 
     // Write to messages collection for Twilio extension to pick up
     // The Twilio extension expects the 'to' number in E.164 format.
-    // We assume the frontend has already normalized it.
+    // The frontend normalizes it, so we can use it directly.
     await db.collection("messages").add({
       to: phoneNumber,
       body: message,
@@ -39,8 +41,11 @@ exports.sendSMS = onCall(async (request) => {
     return {success: true, message: "SMS queued for sending"};
   } catch (error) {
     console.error("Error sending SMS via function:", error);
-    // Throwing an HttpsError is best practice for onCall functions
-    const errorMsg = `Failed to queue SMS: ${error.message}`;
-    throw new functions.https.HttpsError("internal", errorMsg);
+    // If it's already an HttpsError, rethrow it. Otherwise, wrap it.
+    if (error instanceof functions.https.HttpsError) {
+        throw error;
+    }
+    const errorMsg = `Failed to queue SMS.`;
+    throw new functions.https.HttpsError("internal", errorMsg, error);
   }
 });
