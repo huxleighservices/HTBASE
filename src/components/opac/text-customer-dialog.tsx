@@ -32,8 +32,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
-import { useFirebaseApp } from '@/firebase';
-import { getFunctions, httpsCallable, type HttpsCallable } from 'firebase/functions';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -58,7 +56,6 @@ export function TextCustomerDialog({
   client,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
-  const app = useFirebaseApp();
   const [isSending, setIsSending] = useState(false);
 
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
@@ -92,23 +89,29 @@ export function TextCustomerDialog({
       return;
     }
     
-    if (!app) {
-        toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive"});
-        return;
-    }
-
     setIsSending(true);
 
     try {
-        const functions = getFunctions(app);
-        const sendSMS = httpsCallable(functions, 'sendSMS');
         const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
         
-        await sendSMS({
-            customerPath: fullCustomerPath,
-            message: message,
-        });
+        const response = await fetch(
+            "https://us-central1-studio-9495804365-10cc6.cloudfunctions.net/sendSMS",
+            {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    customerPath: fullCustomerPath,
+                    message: message,
+                }),
+            }
+        );
 
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Failed to send SMS");
+        }
+        
         toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
         onOpenChange(false);
     } catch (error: any) {
