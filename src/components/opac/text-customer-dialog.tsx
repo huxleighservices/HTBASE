@@ -102,7 +102,7 @@ export function TextCustomerDialog({
     setIsSending(true);
     
     try {
-        await addDocumentNonBlocking(messagesCollectionRef, {
+        addDocumentNonBlocking(messagesCollectionRef, {
             to: customer.phoneNumber,
             body: message,
         });
@@ -250,5 +250,3 @@ export function TextCustomerDialog({
     </Dialog>
   );
 }
-
-    
