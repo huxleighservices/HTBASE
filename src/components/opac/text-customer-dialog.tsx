@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Send, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { cn } from '@/lib/utils';
+import { cn, normalizePhoneNumber } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { useFirestore, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
@@ -98,18 +98,26 @@ export function TextCustomerDialog({
         toast({ title: "Error", description: "Could not connect to messaging service.", variant: "destructive"});
         return;
     }
+    if (!customer.phoneNumber) {
+        toast({ title: "Error", description: "Customer does not have a phone number.", variant: "destructive"});
+        return;
+    }
 
     setIsSending(true);
 
+    const normalizedPhoneNumber = normalizePhoneNumber(customer.phoneNumber);
+
     addDocumentNonBlocking(messagesCollectionRef, {
-        to: customer.phoneNumber,
+        to: normalizedPhoneNumber,
         body: message,
     });
 
     // Optimistic UI update
-    toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
-    onOpenChange(false);
-    setIsSending(false);
+    setTimeout(() => {
+        toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
+        setIsSending(false);
+        onOpenChange(false);
+    }, 500);
   };
 
   const handleSchedule: SubmitHandler<FormValues> = (data) => {
