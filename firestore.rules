@@ -21,12 +21,16 @@ service cloud.firestore {
     function isManagerOfClient() {
         // Path: /users/{userId}/clients/{clientId}/...
         let ownerId = request.path[2];
-        let clientRef = get(/databases/$(database)/documents/users/$(ownerId));
+        
+        let userProfilePath = /databases/$(database)/documents/users/$(request.auth.uid);
+
         // A manager is someone who has an `assignedClientId` that matches the {clientId} in the path.
-        // This rule is tricky because we don't know the manager's UID directly from the path.
-        // A better approach is to check if the current user has the 'manager' role and their assignedClientId matches.
-        // This requires a read to the current user's profile.
-        let currentUserProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+        // We must first check if the user's profile document exists before trying to read it.
+        if (!exists(userProfilePath)) {
+          return false;
+        }
+
+        let currentUserProfile = get(userProfilePath).data;
         let requestedClientId = request.path[4]; // assuming /users/{ownerId}/clients/{clientId}
 
         // We need to get the displayId from the actual client document to compare.
@@ -91,6 +95,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
-    
