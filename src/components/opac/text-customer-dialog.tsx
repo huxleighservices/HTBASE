@@ -88,7 +88,7 @@ export function TextCustomerDialog({
     }
   }, [open, customer, form, defaultMessage]);
   
-  const handleSendNow = async () => {
+  const handleSendNow = () => {
     const message = form.getValues("message");
     if (!message) {
       form.setError("message", { type: "manual", message: "Message cannot be empty." });
@@ -100,19 +100,16 @@ export function TextCustomerDialog({
     }
 
     setIsSending(true);
-    
-    try {
-        addDocumentNonBlocking(messagesCollectionRef, {
-            to: customer.phoneNumber,
-            body: message,
-        });
-        toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
-        onOpenChange(false);
-    } catch (error) {
-        toast({ title: "Failed to Send", description: "An error occurred while sending the message.", variant: "destructive"});
-    } finally {
-        setIsSending(false);
-    }
+
+    addDocumentNonBlocking(messagesCollectionRef, {
+        to: customer.phoneNumber,
+        body: message,
+    });
+
+    // Optimistic UI update
+    toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
+    onOpenChange(false);
+    setIsSending(false);
   };
 
   const handleSchedule: SubmitHandler<FormValues> = (data) => {
