@@ -95,40 +95,36 @@ export function TextCustomerDialog({
     setIsSending(true);
 
     try {
-        const user = auth.currentUser;
-        if (!user) {
-            throw new Error("User not authenticated. Please sign in again.");
+      const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
+      
+      const response = await fetch(
+        "https://us-central1-studio-9495804365-10cc6.cloudfunctions.net/sendSMS",
+        {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            customerPath: fullCustomerPath,
+            message: message
+          })
         }
-        const token = await getIdToken(user);
+      );
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send SMS");
+      }
+      
+      console.log("SMS sent successfully:", data);
+      toast({ title: "Success", description: "Text message sent!" });
+      onOpenChange(false);
 
-        const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
-        
-        const response = await fetch(
-            "https://us-central1-studio-9495804365-10cc6.cloudfunctions.net/sendSMS",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    customerPath: fullCustomerPath,
-                    message: message,
-                }),
-            }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Failed to send SMS");
-        }
-        
-        toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
-        onOpenChange(false);
     } catch (error: any) {
         console.error("Error sending SMS:", error);
-        toast({ title: "Sending Failed", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+        toast({ 
+          title: "Sending Failed", 
+          description: error.message || "An unexpected error occurred.", 
+          variant: "destructive" 
+        });
     } finally {
         setIsSending(false);
     }

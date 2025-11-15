@@ -1,4 +1,3 @@
-
 const {setGlobalOptions} = require("firebase-functions/v2");
 const {onRequest} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
@@ -10,12 +9,10 @@ const db = getFirestore();
 setGlobalOptions({maxInstances: 10});
 
 exports.sendSMS = onRequest({cors: true}, async (req, res) => {
-  // Set CORS headers explicitly
-  res.set("Access-Control-Allow-Origin", "*");
-  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
   if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     return res.status(204).send("");
   }
 
@@ -32,7 +29,6 @@ exports.sendSMS = onRequest({cors: true}, async (req, res) => {
       });
     }
 
-    // Get customer phone number from the provided Firestore path
     const customerDoc = await db.doc(customerPath).get();
     if (!customerDoc.exists()) {
       return res.status(404).json({
@@ -45,7 +41,6 @@ exports.sendSMS = onRequest({cors: true}, async (req, res) => {
       return res.status(400).json({error: "Customer has no phone number"});
     }
 
-    // Write to messages collection for Twilio extension to pick up
     await db.collection("messages").add({
       to: phoneNumber,
       body: message,
