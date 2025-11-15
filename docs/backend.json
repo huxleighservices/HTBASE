@@ -224,6 +224,44 @@
         }
       },
       "required": ["id", "firstName", "lastName"]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a message to be sent by the Twilio extension.",
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "The recipient's phone number in E.164 format."
+        },
+        "body": {
+          "type": "string",
+          "description": "The content of the message to be sent."
+        },
+        "delivery": {
+          "type": "object",
+          "description": "A field managed by the extension to track message status.",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": ["PENDING", "PROCESSING", "SUCCESS", "ERROR"]
+            },
+            "startTime": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "endTime": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "error": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": ["to", "body"]
     }
   },
   "auth": {
@@ -332,8 +370,26 @@
             }
           ]
         }
+      },
+      {
+        "path": "/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/entities/Message"
+          },
+          "description": "Collection that the Twilio 'Send Message' extension listens to. New documents trigger a message.",
+          "params": [
+            {
+              "name": "messageId",
+              "description": "The unique identifier for the message document."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }
+
+    

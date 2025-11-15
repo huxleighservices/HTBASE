@@ -83,5 +83,15 @@ service cloud.firestore {
       // Only the client owner (admin) can manage their OPAC customers through this asset.
       allow read, list, create, update, delete: if isOwner(userId);
     }
+    
+    match /messages/{messageId} {
+      // Allow any authenticated user to create (send) messages.
+      // The extension will update the status, so writes need to be allowed.
+      allow create, update: if isSignedIn();
+      // Reading messages could be restricted further if needed.
+      allow read, delete: if isSignedIn();
+    }
   }
 }
+
+    

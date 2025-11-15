@@ -32,6 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
+import { useFirestore, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -54,7 +56,13 @@ export function TextCustomerDialog({
   customer,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isSending, setIsSending] = useState(false);
+
+  const messagesCollectionRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'messages');
+  }, [firestore]);
 
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
 
@@ -80,24 +88,38 @@ export function TextCustomerDialog({
     }
   }, [open, customer, form, defaultMessage]);
   
-  const handleSendNow = () => {
+  const handleSendNow = async () => {
     const message = form.getValues("message");
     if (!message) {
       form.setError("message", { type: "manual", message: "Message cannot be empty." });
       return;
     }
+    if (!messagesCollectionRef) {
+        toast({ title: "Error", description: "Could not connect to messaging service.", variant: "destructive"});
+        return;
+    }
+
     setIsSending(true);
-    // Placeholder for Twilio logic
-    setTimeout(() => {
-      toast({ title: "Message Sent!", description: "Your message has been sent to the customer." });
-      setIsSending(false);
-      onOpenChange(false);
-    }, 1000);
+    
+    try {
+        await addDocumentNonBlocking(messagesCollectionRef, {
+            to: customer.phoneNumber,
+            body: message,
+        });
+        toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
+        onOpenChange(false);
+    } catch (error) {
+        toast({ title: "Failed to Send", description: "An error occurred while sending the message.", variant: "destructive"});
+    } finally {
+        setIsSending(false);
+    }
   };
 
   const handleSchedule: SubmitHandler<FormValues> = (data) => {
     setIsSending(true);
-    // Placeholder for Twilio logic
+    // This is a placeholder. A real implementation would use a backend service
+    // like Cloud Functions with a scheduler to create these documents at the specified times.
+    console.log("Scheduling messages:", data);
     setTimeout(() => {
         toast({
             title: "Messages Scheduled!",
@@ -228,3 +250,5 @@ export function TextCustomerDialog({
     </Dialog>
   );
 }
+
+    
