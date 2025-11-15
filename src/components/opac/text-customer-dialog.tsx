@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Send, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { cn, normalizePhoneNumber } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { useFirebaseApp } from '@/firebase';
@@ -61,14 +61,6 @@ export function TextCustomerDialog({
   const app = useFirebaseApp();
   const [isSending, setIsSending] = useState(false);
 
-  // Memoize the callable function to prevent re-creation on every render
-  const sendSMS = useState<HttpsCallable | null>(() => {
-    if (!app) return null;
-    const functions = getFunctions(app);
-    return httpsCallable(functions, 'sendSMS');
-  })[0];
-
-
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
 
   const form = useForm<FormValues>({
@@ -99,30 +91,28 @@ export function TextCustomerDialog({
       form.setError("message", { type: "manual", message: "Message cannot be empty." });
       return;
     }
-    if (!sendSMS) {
-        toast({ title: "Error", description: "Cloud Functions not initialized.", variant: "destructive"});
-        return;
-    }
-    if (!customer.phoneNumber) {
-        toast({ title: "Error", description: "Customer does not have a phone number.", variant: "destructive"});
+    
+    if (!app) {
+        toast({ title: "Error", description: "Firebase not initialized.", variant: "destructive"});
         return;
     }
 
     setIsSending(true);
 
     try {
+        const functions = getFunctions(app);
+        const sendSMS = httpsCallable(functions, 'sendSMS');
         const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
         
-        const result = await sendSMS({
+        await sendSMS({
             customerPath: fullCustomerPath,
             message: message,
         });
 
-        console.log("SMS sent successfully:", result.data);
         toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
         onOpenChange(false);
     } catch (error: any) {
-        console.error("Error sending SMS:", error.message);
+        console.error("Error sending SMS:", error);
         toast({ title: "Sending Failed", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
         setIsSending(false);
