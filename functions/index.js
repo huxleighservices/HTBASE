@@ -1,17 +1,16 @@
 const {setGlobalOptions} = require("firebase-functions/v2");
 const {onCall} = require("firebase-functions/v2/https");
+const functions = require("firebase-functions");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore} = require("firebase-admin/firestore");
-const { getFunctions } = require('firebase-admin/functions');
-
 
 initializeApp();
 const db = getFirestore();
 
-setGlobalOptions({ maxInstances: 10 });
+setGlobalOptions({maxInstances: 10});
 
 exports.sendSMS = onCall(async (request) => {
-  const { customerPath, message } = request.data;
+  const {customerPath, message} = request.data;
 
   if (!customerPath || !message) {
     throw new Error("customerPath and message are required");
@@ -37,10 +36,11 @@ exports.sendSMS = onCall(async (request) => {
       body: message,
     });
 
-    return { success: true, message: "SMS queued for sending" };
+    return {success: true, message: "SMS queued for sending"};
   } catch (error) {
     console.error("Error sending SMS via function:", error);
     // Throwing an HttpsError is best practice for onCall functions
-    throw new functions.https.HttpsError('internal', `Failed to queue SMS: ${error.message}`);
+    const errorMsg = `Failed to queue SMS: ${error.message}`;
+    throw new functions.https.HttpsError("internal", errorMsg);
   }
 });

@@ -113,15 +113,16 @@ export function TextCustomerDialog({
     try {
         const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
         
-        await sendSMS({
+        const result = await sendSMS({
             customerPath: fullCustomerPath,
             message: message,
         });
 
+        console.log("SMS sent successfully:", result.data);
         toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
         onOpenChange(false);
     } catch (error: any) {
-        console.error("Error calling sendSMS function:", error);
+        console.error("Error sending SMS:", error.message);
         toast({ title: "Sending Failed", description: error.message || "An unexpected error occurred.", variant: "destructive" });
     } finally {
         setIsSending(false);

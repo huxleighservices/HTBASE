@@ -18,5 +18,8 @@
   ],
   "extensions": {
     "send-message": "twilio/send-message@0.3.4"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
