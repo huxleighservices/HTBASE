@@ -43,6 +43,7 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle as OpacDialogTitle, DialogDescription } from '../ui/dialog';
 import { cn } from '@/lib/utils';
+import { TextCustomerDialog } from './text-customer-dialog';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -54,7 +55,8 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<OpaCustomer | null>(null);
+  const [customerForNotes, setCustomerForNotes] = useState<OpaCustomer | null>(null);
+  const [customerForText, setCustomerForText] = useState<OpaCustomer | null>(null);
 
   const customersCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -76,9 +78,9 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
     toast({ title: 'Customer Deleted', variant: 'destructive' });
   };
   
-  const handleTextClick = (e: React.MouseEvent) => {
+  const handleTextClick = (e: React.MouseEvent, customer: OpaCustomer) => {
     e.stopPropagation();
-    toast({ title: "Under Development", description: "This feature is not yet available." });
+    setCustomerForText(customer);
   }
 
   return (
@@ -132,7 +134,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                     </TableHeader>
                     <TableBody>
                         {customers.map(customer => (
-                            <TableRow key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer">
+                            <TableRow key={customer.id} onClick={() => setCustomerForNotes(customer)} className="cursor-pointer">
                                 <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
                                 <TableCell>{customer.formerCompany}</TableCell>
                                 <TableCell>{customer.planDetails}</TableCell>
@@ -144,7 +146,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                                         <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={handleTextClick}
+                                            onClick={(e) => handleTextClick(e, customer)}
                                             className="bg-green-500 hover:bg-green-600 text-white"
                                         >
                                             Text
@@ -195,13 +197,20 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
         onAddCustomer={handleAddCustomer}
     />
 
-    {selectedCustomer && (
+    {customerForNotes && (
         <NotesDialog
-            key={selectedCustomer.id}
-            open={!!selectedCustomer}
-            onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}
-            customer={selectedCustomer}
+            key={customerForNotes.id}
+            open={!!customerForNotes}
+            onOpenChange={(isOpen) => !isOpen && setCustomerForNotes(null)}
+            customer={customerForNotes}
             clientPath={client.path || null}
+        />
+    )}
+     {customerForText && (
+        <TextCustomerDialog
+            open={!!customerForText}
+            onOpenChange={(isOpen) => !isOpen && setCustomerForText(null)}
+            customer={customerForText}
         />
     )}
     </>
