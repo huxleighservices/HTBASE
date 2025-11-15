@@ -1,32 +1,46 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+const {setGlobalOptions} = require("firebase-functions/v2");
+const {onCall} = require("firebase-functions/v2/https");
+const {initializeApp} = require("firebase-admin/app");
+const {getFirestore} = require("firebase-admin/firestore");
+const { getFunctions } = require('firebase-admin/functions');
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
+initializeApp();
+const db = getFirestore();
+
 setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+exports.sendSMS = onCall(async (request) => {
+  const { customerPath, message } = request.data;
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  if (!customerPath || !message) {
+    throw new Error("customerPath and message are required");
+  }
+
+  try {
+    // Get customer phone number from the provided Firestore path
+    const customerDoc = await db.doc(customerPath).get();
+    if (!customerDoc.exists) {
+      throw new Error("Customer not found at the specified path");
+    }
+
+    const phoneNumber = customerDoc.data().phoneNumber;
+    if (!phoneNumber) {
+      throw new Error("Customer has no phone number");
+    }
+
+    // Write to messages collection for Twilio extension to pick up
+    // The Twilio extension expects the 'to' number in E.164 format.
+    // We assume the frontend has already normalized it.
+    await db.collection("messages").add({
+      to: phoneNumber,
+      body: message,
+    });
+
+    return { success: true, message: "SMS queued for sending" };
+  } catch (error) {
+    console.error("Error sending SMS via function:", error);
+    // Throwing an HttpsError is best practice for onCall functions
+    throw new functions.https.HttpsError('internal', `Failed to queue SMS: ${error.message}`);
+  }
+});

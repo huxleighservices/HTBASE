@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { OpaCustomer } from '@/types/client';
+import type { OpaCustomer, Client } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Send, Trash2, Calendar as CalendarIcon } from 'lucide-react';
@@ -32,8 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn, normalizePhoneNumber } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
-import { useFirestore, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirebaseApp } from '@/firebase';
+import { getFunctions, httpsCallable, type HttpsCallable } from 'firebase/functions';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -48,21 +48,26 @@ type TextCustomerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customer: OpaCustomer;
+  client: Client;
 };
 
 export function TextCustomerDialog({
   open,
   onOpenChange,
   customer,
+  client,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const app = useFirebaseApp();
   const [isSending, setIsSending] = useState(false);
 
-  const messagesCollectionRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'messages');
-  }, [firestore]);
+  // Memoize the callable function to prevent re-creation on every render
+  const sendSMS = useState<HttpsCallable | null>(() => {
+    if (!app) return null;
+    const functions = getFunctions(app);
+    return httpsCallable(functions, 'sendSMS');
+  })[0];
+
 
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
 
@@ -88,14 +93,14 @@ export function TextCustomerDialog({
     }
   }, [open, customer, form, defaultMessage]);
   
-  const handleSendNow = () => {
+  const handleSendNow = async () => {
     const message = form.getValues("message");
     if (!message) {
       form.setError("message", { type: "manual", message: "Message cannot be empty." });
       return;
     }
-    if (!messagesCollectionRef) {
-        toast({ title: "Error", description: "Could not connect to messaging service.", variant: "destructive"});
+    if (!sendSMS) {
+        toast({ title: "Error", description: "Cloud Functions not initialized.", variant: "destructive"});
         return;
     }
     if (!customer.phoneNumber) {
@@ -105,19 +110,22 @@ export function TextCustomerDialog({
 
     setIsSending(true);
 
-    const normalizedPhoneNumber = normalizePhoneNumber(customer.phoneNumber);
+    try {
+        const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
+        
+        await sendSMS({
+            customerPath: fullCustomerPath,
+            message: message,
+        });
 
-    addDocumentNonBlocking(messagesCollectionRef, {
-        to: normalizedPhoneNumber,
-        body: message,
-    });
-
-    // Optimistic UI update
-    setTimeout(() => {
         toast({ title: "Message Sent!", description: "Your message has been queued for sending." });
-        setIsSending(false);
         onOpenChange(false);
-    }, 500);
+    } catch (error: any) {
+        console.error("Error calling sendSMS function:", error);
+        toast({ title: "Sending Failed", description: error.message || "An unexpected error occurred.", variant: "destructive" });
+    } finally {
+        setIsSending(false);
+    }
   };
 
   const handleSchedule: SubmitHandler<FormValues> = (data) => {
