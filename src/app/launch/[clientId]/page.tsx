@@ -38,7 +38,7 @@ import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulato
 import Image from 'next/image';
 import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
 import { SessionManager } from '@/components/trainer/session-manager';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useAuth } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
+import { signInAnonymously } from 'firebase/auth';
 
 type Stage = 'login' | 'trainer';
 
@@ -66,6 +67,7 @@ export default function ClientLaunchPage() {
   const router = useRouter();
   const clientId = params.clientId as string;
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
 
   const [stage, setStage] = useState<Stage>('login');
   const [client, setClient] = useState<Client | null>(null);
@@ -89,7 +91,8 @@ export default function ClientLaunchPage() {
   
   // If a regular user is already logged in, redirect them away.
   useEffect(() => {
-    if (user && !isUserLoading) {
+    // Also check for anonymous users who might have backed into this page
+    if (user && !isUserLoading && !user.isAnonymous) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
@@ -189,7 +192,7 @@ export default function ClientLaunchPage() {
   });
 
   const handleLogin: SubmitHandler<LoginFormValues> = async (data) => {
-    if (!firestore || !client?.path) return;
+    if (!firestore || !client?.path || !auth) return;
     setIsLoggingIn(true);
     loginForm.clearErrors();
 
@@ -206,7 +209,11 @@ export default function ClientLaunchPage() {
       if (querySnapshot.empty) {
         loginForm.setError('root', { message: 'Invalid credentials. Please try again.' });
       } else {
-        // Successful validation
+        // Successful credential validation, now sign in anonymously.
+        await signInAnonymously(auth);
+        
+        // The onAuthStateChanged listener in the provider will handle the user state update.
+        // We can now proceed to the trainer stage.
         setStage('trainer');
         setActiveSessionId(data.username); // Use username as the session ID
       }
@@ -444,4 +451,5 @@ export default function ClientLaunchPage() {
   );
 }
 
+    
     

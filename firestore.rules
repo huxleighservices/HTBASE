@@ -87,11 +87,10 @@ service cloud.firestore {
     match /messages/{messageId} {
       // Allow any authenticated user to create (send) messages.
       // The extension will update the status, so writes need to be allowed.
-      allow create, update: if isSignedIn();
-      // Reading messages could be restricted further if needed.
-      allow read, delete: if isSignedIn();
+      allow create, update, read, delete: if isSignedIn();
     }
   }
 }
 
+    
     
