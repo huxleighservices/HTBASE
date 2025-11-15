@@ -1,3 +1,4 @@
+
 const {setGlobalOptions} = require("firebase-functions/v2");
 const {onRequest} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
@@ -9,6 +10,15 @@ const db = getFirestore();
 setGlobalOptions({maxInstances: 10});
 
 exports.sendSMS = onRequest({cors: true}, async (req, res) => {
+  // Set CORS headers explicitly
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).send("");
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({error: "Method Not Allowed"});
   }
