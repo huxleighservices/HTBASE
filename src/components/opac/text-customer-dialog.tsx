@@ -32,6 +32,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
+import { useAuth } from '@/firebase';
+import { getIdToken } from 'firebase/auth';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -57,6 +59,7 @@ export function TextCustomerDialog({
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
+  const auth = useAuth();
 
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
 
@@ -92,13 +95,22 @@ export function TextCustomerDialog({
     setIsSending(true);
 
     try {
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error("User not authenticated. Please sign in again.");
+        }
+        const token = await getIdToken(user);
+
         const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
         
         const response = await fetch(
             "https://us-central1-studio-9495804365-10cc6.cloudfunctions.net/sendSMS",
             {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
                 body: JSON.stringify({
                     customerPath: fullCustomerPath,
                     message: message,
