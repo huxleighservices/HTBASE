@@ -69,11 +69,16 @@ import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
 
 const addKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
-  username: z.string().min(3, 'Username must be at least 3 characters').regex(/^[a-zA-Z0-9_.-]+$/, 'Username can only contain letters, numbers, and symbols: _ . -'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .regex(
+      /^[a-zA-Z0-9_.-]+$/,
+      'Username can only contain letters, numbers, and symbols: _ . -'
+    ),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 type AddKeyFormValues = z.infer<typeof addKeyFormSchema>;
-
 
 export default function MyTrainerPage() {
   const { user, isUserLoading } = useUser();
@@ -99,14 +104,15 @@ export default function MyTrainerPage() {
       if (isProfileLoading || !firestore) {
         return;
       }
-      
+
       if (!userProfile) {
         setClient(null);
         setIsClientLoading(false);
         return;
       }
-      
-      const isAuthorized = userProfile.role === 'manager' || userProfile.role === 'admin';
+
+      const isAuthorized =
+        userProfile.role === 'manager' || userProfile.role === 'admin';
       if (!isAuthorized || !userProfile.assignedClientId) {
         setClient(null);
         setIsClientLoading(false);
@@ -123,7 +129,11 @@ export default function MyTrainerPage() {
         const querySnapshot = await getDocs(clientsQuery);
         if (!querySnapshot.empty) {
           const clientDoc = querySnapshot.docs[0];
-          setClient({ ...clientDoc.data(), id: clientDoc.id, path: clientDoc.ref.path } as Client);
+          setClient({
+            ...(clientDoc.data() as Client),
+            id: clientDoc.id,
+            path: clientDoc.ref.path,
+          });
         } else {
           setClient(null);
         }
@@ -134,12 +144,14 @@ export default function MyTrainerPage() {
         setIsClientLoading(false);
       }
     };
-    
-    fetchClientData();
 
+    fetchClientData();
   }, [firestore, userProfile, isProfileLoading]);
-  
-  const handleUpdateTrainingData = (clientId: string, trainingData: string) => {
+
+  const handleUpdateTrainingData = (
+    clientId: string,
+    trainingData: string
+  ) => {
     if (!firestore || !user || !client?.path) return;
     const clientDocRef = doc(firestore, client.path);
     updateDocumentNonBlocking(clientDocRef, { trainingData });
@@ -150,23 +162,30 @@ export default function MyTrainerPage() {
     return collection(firestore, client.path, 'accessKeys');
   }, [firestore, client]);
 
-  const { data: accessKeys, isLoading: areKeysLoading } = useCollection<AccessKey>(accessKeysCollectionRef);
+  const { data: accessKeys, isLoading: areKeysLoading } =
+    useCollection<AccessKey>(accessKeysCollectionRef);
 
   const addKeyForm = useForm<AddKeyFormValues>({
     resolver: zodResolver(addKeyFormSchema),
     defaultValues: { displayName: '', username: '', password: '' },
   });
 
-  const handleAddKey: SubmitHandler<AddKeyFormValues> = async (data) => {
+  const handleAddKey: SubmitHandler<AddKeyFormValues> = async data => {
     if (!accessKeysCollectionRef) return;
     setIsCreatingKey(true);
 
     try {
       // Check if username already exists for this client
-      const usernameExistsQuery = query(accessKeysCollectionRef, where('username', '==', data.username));
+      const usernameExistsQuery = query(
+        accessKeysCollectionRef,
+        where('username', '==', data.username)
+      );
       const existingKeys = await getDocs(usernameExistsQuery);
       if (!existingKeys.empty) {
-        addKeyForm.setError('username', { type: 'manual', message: 'This username is already taken for this client.' });
+        addKeyForm.setError('username', {
+          type: 'manual',
+          message: 'This username is already taken for this client.',
+        });
         setIsCreatingKey(false);
         return;
       }
@@ -175,59 +194,72 @@ export default function MyTrainerPage() {
         ...data,
         createdAt: serverTimestamp(),
       };
-      
+
       addDocumentNonBlocking(accessKeysCollectionRef, newKeyData);
 
-      toast({ title: 'Access Key Created', description: `Key "${data.displayName}" has been created successfully.` });
+      toast({
+        title: 'Access Key Created',
+        description: `Key "${data.displayName}" has been created successfully.`,
+      });
       setIsAddKeyOpen(false);
       addKeyForm.reset();
     } catch (error: any) {
-      console.error("Error creating access key:", error);
+      console.error('Error creating access key:', error);
       let message = 'An unexpected error occurred.';
-      toast({ title: 'Creation Failed', description: message, variant: 'destructive' });
+      toast({
+        title: 'Creation Failed',
+        description: message,
+        variant: 'destructive',
+      });
     } finally {
       setIsCreatingKey(false);
     }
   };
-  
-  const handleDeleteKey = async (key: AccessKey) => {
-      if (!firestore || !client?.path) return;
-      try {
-          const keyDocRef = doc(firestore, client.path, 'accessKeys', key.id);
-          deleteDocumentNonBlocking(keyDocRef);
-          toast({ title: "Access Key Deleted" });
-      } catch (error: any) {
-          toast({ title: "Deletion Failed", description: error.message, variant: "destructive" });
-      }
-  };
 
+  const handleDeleteKey = async (key: AccessKey) => {
+    if (!firestore || !client?.path) return;
+    try {
+      const keyDocRef = doc(firestore, client.path, 'accessKeys', key.id);
+      deleteDocumentNonBlocking(keyDocRef);
+      toast({ title: 'Access Key Deleted' });
+    } catch (error: any) {
+      toast({
+        title: 'Deletion Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
   const isSunmmuClient = client?.displayId === 'SUNMMU';
-  const isAdminWithEduClient = userProfile?.role === 'admin' && client?.isEdu === true;
+  const isAdminWithEduClient =
+    userProfile?.role === 'admin' && client?.isEdu === true;
 
   if (isLoading) {
     return (
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
           <p className="mt-4 text-muted-foreground">Loading your trainer...</p>
         </div>
       </div>
     );
   }
-  
-  const isAuthorized = (userProfile?.role === 'manager' || userProfile?.role === 'admin');
+
+  const isAuthorized =
+    userProfile?.role === 'manager' || userProfile?.role === 'admin';
   if (!isAuthorized || !client) {
     return (
-       <div className="flex flex-col gap-8 items-center text-center mt-16">
-        <div className="max-w-md p-8 border rounded-lg bg-card">
-            <h1 className="text-2xl font-bold font-headline tracking-tight">
+      <div className="mt-16 flex flex-col items-center gap-8 text-center">
+        <div className="max-w-md rounded-lg border bg-card p-8">
+          <h1 className="font-headline text-2xl font-bold tracking-tight">
             No Trainer Assigned
-            </h1>
-            <p className="text-muted-foreground mt-2">
-            You are not assigned to a client trainer. Please contact an administrator for assistance.
-            </p>
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            You are not assigned to a client trainer. Please contact an
+            administrator for assistance.
+          </p>
         </div>
       </div>
     );
@@ -237,55 +269,65 @@ export default function MyTrainerPage() {
     <>
       <div className="flex flex-col gap-8">
         <div>
-          <h1 className="text-3xl font-bold font-headline tracking-tight">
+          <h1 className="font-headline text-3xl font-bold tracking-tight">
             My Trainer: {client.firmName}
           </h1>
-          <div className="flex items-center gap-2 mt-1">
-              <p className="text-muted-foreground">Managing Client:</p>
-              <Badge variant="secondary" className="font-mono">{client.displayId}</Badge>
+          <div className="mt-1 flex items-center gap-2">
+            <p className="text-muted-foreground">Managing Client:</p>
+            <Badge variant="secondary" className="font-mono">
+              {client.displayId}
+            </Badge>
           </div>
         </div>
 
         {isAdminWithEduClient && (
           <Card>
-            <CardHeader className="flex flex-row justify-between items-center">
+            <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>AI Trainer Setup</CardTitle>
                 <CardDescription>
                   Configure the training data for this EDU client.
                 </CardDescription>
               </div>
-               <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
-                  <Button>
-                      <Wrench className="mr-2" />
-                      Setup Trainer
-                  </Button>
-                </SetupTrainerDialog>
+              <SetupTrainerDialog
+                client={client}
+                onUpdateTrainingData={handleUpdateTrainingData}
+              >
+                <Button>
+                  <Wrench className="mr-2" />
+                  Setup Trainer
+                </Button>
+              </SetupTrainerDialog>
             </CardHeader>
           </Card>
         )}
 
         <Card>
-          <CardHeader className="flex flex-row justify-between items-center">
-              <div>
-                  <CardTitle>Access Keys</CardTitle>
-                  <CardDescription>
-                      Create and manage temporary access keys for this client.
-                  </CardDescription>
-              </div>
-              <Button onClick={() => setIsAddKeyOpen(true)}>
-                  <PlusCircle className="mr-2" />
-                  Add New Key
-              </Button>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Access Keys</CardTitle>
+              <CardDescription>
+                Create and manage temporary access keys for this client.
+              </CardDescription>
+            </div>
+            <Button onClick={() => setIsAddKeyOpen(true)}>
+              <PlusCircle className="mr-2" />
+              Add New Key
+            </Button>
           </CardHeader>
           <CardContent>
             {areKeysLoading ? (
-              <div className="flex justify-center items-center h-24"><Loader2 className="h-8 w-8 animate-spin"/></div>
+              <div className="flex h-24 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
             ) : !accessKeys || accessKeys.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center p-12 border-2 border-dashed rounded-lg bg-muted/50">
-                  <KeyRound className="h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 font-semibold">No Access Keys Found</p>
-                  <p className="text-muted-foreground text-sm">Click "Add New Key" to create the first access key for this client.</p>
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-muted/50 p-12 text-center">
+                <KeyRound className="h-12 w-12 text-muted-foreground" />
+                <p className="mt-4 font-semibold">No Access Keys Found</p>
+                <p className="text-sm text-muted-foreground">
+                  Click "Add New Key" to create the first access key for this
+                  client.
+                </p>
               </div>
             ) : (
               <Table>
@@ -300,11 +342,19 @@ export default function MyTrainerPage() {
                 <TableBody>
                   {accessKeys.map(key => (
                     <TableRow key={key.id}>
-                      <TableCell className="font-medium">{key.displayName}</TableCell>
+                      <TableCell className="font-medium">
+                        {key.displayName}
+                      </TableCell>
                       <TableCell>{key.username}</TableCell>
-                      <TableCell className="font-mono text-muted-foreground">••••••••</TableCell>
+                      <TableCell className="font-mono text-muted-foreground">
+                        ••••••••
+                      </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteKey(key)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteKey(key)}
+                        >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -316,24 +366,37 @@ export default function MyTrainerPage() {
           </CardContent>
         </Card>
 
-        {isSunmmuClient && client.path && <SessionObservation clientPath={client.path} />}
+        {isSunmmuClient && client.path && (
+          <SessionObservation clientPath={client.path} />
+        )}
       </div>
 
-       <Dialog open={isAddKeyOpen} onOpenChange={setIsAddKeyOpen}>
+      <Dialog open={isAddKeyOpen} onOpenChange={setIsAddKeyOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Access Key</DialogTitle>
-            <DialogDescription>Create a temporary set of credentials for a trainee.</DialogDescription>
+            <DialogDescription>
+              Create a temporary set of credentials for a trainee.
+            </DialogDescription>
           </DialogHeader>
           <Form {...addKeyForm}>
-            <form onSubmit={addKeyForm.handleSubmit(handleAddKey)} className="space-y-4">
+            <form
+              onSubmit={addKeyForm.handleSubmit(handleAddKey)}
+              className="space-y-4"
+            >
               <FormField
                 control={addKeyForm.control}
                 name="displayName"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Display Name</FormLabel>
-                    <FormControl><Input {...field} placeholder="e.g., Trainee 1" disabled={isCreatingKey} /></FormControl>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g., Trainee 1"
+                        disabled={isCreatingKey}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -344,7 +407,13 @@ export default function MyTrainerPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Username</FormLabel>
-                     <FormControl><Input {...field} placeholder="trainee1" disabled={isCreatingKey} /></FormControl>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="trainee1"
+                        disabled={isCreatingKey}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -355,16 +424,32 @@ export default function MyTrainerPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl><Input type="password" {...field} disabled={isCreatingKey} /></FormControl>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        {...field}
+                        disabled={isCreatingKey}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <DialogFooter>
-                <DialogClose asChild><Button type="button" variant="ghost" disabled={isCreatingKey}>Cancel</Button></DialogClose>
+                <DialogClose asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={isCreatingKey}
+                  >
+                    Cancel
+                  </Button>
+                </DialogClose>
                 <Button type="submit" disabled={isCreatingKey}>
-                  {isCreatingKey && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                  {isCreatingKey ? "Creating..." : "Create Key"}
+                  {isCreatingKey && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isCreatingKey ? 'Creating...' : 'Create Key'}
                 </Button>
               </DialogFooter>
             </form>
