@@ -60,6 +60,8 @@ import {
   } from "@/components/ui/dropdown-menu";
 import { AddAssetDialog } from '@/components/clients/add-asset-dialog';
 import { ManageAssetsDialog } from '@/components/clients/manage-assets-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 
 const PortalLink = ({ displayId }: { displayId: string }) => {
@@ -276,7 +278,15 @@ export default function ClientsPage() {
                 {client.contactEmail}
             </p>
         </div>
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto">
+            {client.isEdu && client.status === 'active' && (
+                <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+                    <div className="flex items-center space-x-2 border rounded-md px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer">
+                        <Checkbox id={`trainer-cb-${client.id}`} checked={!!client.trainingData} />
+                        <Label htmlFor={`trainer-cb-${client.id}`} className="cursor-pointer text-sm font-medium">Enable Trainer</Label>
+                    </div>
+                </SetupTrainerDialog>
+            )}
             {client.status === 'active' && (
                 <div className="flex items-center gap-2 w-full">
                     <PortalLink displayId={client.displayId} />
@@ -331,14 +341,16 @@ export default function ClientsPage() {
                                     </button>
                                 </AddAssetDialog>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
-                                    <button className="w-full text-left">
-                                        <Wrench className="mr-2" />
-                                        Setup Trainer
-                                    </button>
-                                </SetupTrainerDialog>
-                            </DropdownMenuItem>
+                            {!client.isEdu && (
+                                <DropdownMenuItem asChild>
+                                    <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+                                        <button className="w-full text-left">
+                                            <Wrench className="mr-2" />
+                                            Setup Trainer
+                                        </button>
+                                    </SetupTrainerDialog>
+                                </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem asChild>
                                 <BrandCustomizationDialog client={client}>
                                     <button className="w-full text-left">
