@@ -147,7 +147,15 @@ export default function ClientLaunchPage() {
   useEffect(() => {
     if (customization) {
       const root = document.documentElement;
-      if (customization.primaryColor) root.style.setProperty('--primary', customization.primaryColor);
+      if (customization.primaryColor) {
+        root.style.setProperty('--primary', customization.primaryColor);
+        const lightness = parseFloat(customization.primaryColor.split(' ')[2]);
+        if (lightness < 40) {
+          root.style.setProperty('--primary-foreground', 'var(--primary-foreground-light)');
+        } else {
+          root.style.setProperty('--primary-foreground', '210 10% 23%');
+        }
+      }
       if (customization.backgroundColor) {
         root.style.setProperty('--background', customization.backgroundColor);
         root.style.setProperty('--card', customization.backgroundColor);
@@ -170,6 +178,7 @@ export default function ClientLaunchPage() {
     return () => {
       const root = document.documentElement;
       root.style.removeProperty('--primary');
+      root.style.removeProperty('--primary-foreground');
       root.style.removeProperty('--background');
       root.style.removeProperty('--card');
       root.style.removeProperty('--accent');
@@ -450,6 +459,3 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
-
-    
-    

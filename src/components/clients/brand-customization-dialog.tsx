@@ -215,6 +215,15 @@ export function BrandCustomizationDialog({
   const onSubmit: SubmitHandler<FormValues> = data => {
     if (!customizationDocRef) return;
     setIsSaving(true);
+
+    const root = document.documentElement;
+    const lightness = data.primaryColor ? parseFloat(data.primaryColor.split(' ')[2]) : 50;
+    if (lightness < 40) { // If background is dark, use light text
+        root.style.setProperty('--primary-foreground', 'var(--primary-foreground-light)');
+    } else { // Otherwise use default dark text
+        root.style.setProperty('--primary-foreground', '210 10% 23%');
+    }
+    
     setDocumentNonBlocking(customizationDocRef, { id: 'config', ...data }, { merge: true });
 
     setTimeout(() => {
