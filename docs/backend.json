@@ -88,6 +88,10 @@
         "trainingData": {
           "type": "string",
           "description": "Custom product information or training material for the AI."
+        },
+        "isEdu": {
+            "type": "boolean",
+            "description": "Indicates if the client is an education-based organization."
         }
       },
       "required": [
@@ -106,7 +110,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "The unique ID for the access key document."
+          "description": "The unique document ID of the access key."
         },
         "username": {
           "type": "string",
@@ -391,6 +395,3 @@
     "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }
-
-    
-    

@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/form';
 import { useState, type ReactNode, useEffect } from 'react';
 import type { Client } from '@/types/client';
+import { Switch } from '../ui/switch';
 
 const formSchema = z.object({
   firmName: z.string().min(1, 'Firm or representative name is required'),
@@ -36,6 +37,7 @@ const formSchema = z.object({
   contactEmail: z.string().email('Invalid email address'),
   contactPhoneNumber: z.string().min(1, 'Contact phone number is required'),
   location: z.string().min(1, 'Location is required'),
+  isEdu: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -72,6 +74,7 @@ export function AddClientDialog({
       contactEmail: '',
       contactPhoneNumber: '',
       location: '',
+      isEdu: false,
     },
   });
 
@@ -258,6 +261,26 @@ export function AddClientDialog({
                         <Input {...field} />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="isEdu"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>Education Client</FormLabel>
+                        <DialogDescription>
+                          Enable for education-based organizations.
+                        </DialogDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

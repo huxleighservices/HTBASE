@@ -23,6 +23,7 @@ import {
   MoreHorizontal,
   PackagePlus,
   Box,
+  GraduationCap,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AddClientDialog } from '@/components/clients/add-client-dialog';
@@ -122,7 +123,7 @@ export default function ClientsPage() {
     clientsCollectionRef
   );
 
-  const generateDisplayId = (currentClients: Client[] | null | undefined) => {
+  const generateDisplayId = (currentClients: Client[] | null | undefined, isEdu = false) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let id;
     let isUnique = false;
@@ -131,6 +132,9 @@ export default function ClientsPage() {
       id = '';
       for (let i = 0; i < 6; i++) {
         id += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      if (isEdu) {
+        id = `${id}-EDU`;
       }
       isUnique = !existingIds.has(id);
     }
@@ -142,7 +146,7 @@ export default function ClientsPage() {
       clients.forEach(client => {
         if (!client.displayId) {
           const updates: Partial<Client> = {
-            displayId: generateDisplayId(clients)
+            displayId: generateDisplayId(clients, client.isEdu)
           };
           const clientDocRef = doc(
             firestore,
@@ -161,7 +165,7 @@ export default function ClientsPage() {
     client: Omit<Client, 'id' | 'status' | 'displayId' | 'trainingData'>
   ) => {
     if (!clientsCollectionRef) return;
-    const displayId = generateDisplayId(clients);
+    const displayId = generateDisplayId(clients, client.isEdu);
     addDocumentNonBlocking(clientsCollectionRef, {
       ...client,
       displayId,
@@ -264,12 +268,13 @@ export default function ClientsPage() {
                 {client.displayId}
             </Badge>
             )}
-            <div>
-            <p className="font-semibold">{client.firmName}</p>
-            <p className="text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+                {client.isEdu && <GraduationCap className="h-5 w-5 text-muted-foreground" />}
+                <p className="font-semibold">{client.firmName}</p>
+            </div>
+            <p className="text-sm text-muted-foreground hidden lg:block">
                 {client.contactEmail}
             </p>
-            </div>
         </div>
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
             {client.status === 'active' && (
@@ -482,5 +487,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-
-    

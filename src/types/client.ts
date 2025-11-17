@@ -14,6 +14,7 @@ export type Client = {
   status: 'pending' | 'active' | 'archived';
   path?: string; // Full path to the document in Firestore
   trainingData?: string;
+  isEdu?: boolean;
 };
 
 export type BrandCustomization = {
@@ -68,5 +69,3 @@ export type OpaCustomer = {
     extraInfo: string;
     notes?: string;
 };
-
-    
