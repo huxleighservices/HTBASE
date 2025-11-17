@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to generate a random, fictitious sales training prompt.
@@ -56,7 +57,7 @@ Example Structure:
 [Description of how this sales call is happening and what the salesperson's immediate goal is.]
 ---
 
-Generate a new, unique scenario now based on these more grounded instructions.`,
+Generate a new, unique scenario now. Do not repeat ideas from previous generations. Make it completely different from any prior output.`,
 });
 
 const generateRandomPromptFlow = ai.defineFlow(
