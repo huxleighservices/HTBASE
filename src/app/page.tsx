@@ -45,7 +45,9 @@ export default function LoginPage() {
   const [searchResults, setSearchResults] = useState<Client[]>([]);
 
   useEffect(() => {
-    if (user && !isUserLoading) {
+    // Only redirect if a non-anonymous user is logged in.
+    // Access key users are anonymous and should not be redirected.
+    if (user && !isUserLoading && user.email) {
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
@@ -158,7 +160,7 @@ export default function LoginPage() {
     router.push(`/launch/${displayId}`);
   };
 
-  if (isUserLoading || user) {
+  if (isUserLoading || (user && user.email)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
