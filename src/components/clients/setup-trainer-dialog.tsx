@@ -10,6 +10,16 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -26,7 +36,9 @@ import {
 import { useState, type ReactNode, useEffect } from 'react';
 import type { Client } from '@/types/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
+import { generateRandomPrompt } from '@/ai/flows/generate-random-prompt-flow';
+import { ScrollArea } from '../ui/scroll-area';
 
 const formSchema = z.object({
   trainingData: z.string().min(1, 'Training data cannot be empty.'),
@@ -47,6 +59,10 @@ export function SetupTrainerDialog({
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
+  const [showPromptPreview, setShowPromptPreview] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -63,10 +79,37 @@ export function SetupTrainerDialog({
     }
   }, [isOpen, client, form]);
 
+  const handleGeneratePrompt = async () => {
+    setIsGenerating(true);
+    setGeneratedPrompt(null);
+    try {
+        const result = await generateRandomPrompt();
+        setGeneratedPrompt(result.prompt);
+        setShowPromptPreview(true);
+    } catch (error: any) {
+        toast({
+            title: 'Generation Failed',
+            description: error.message || 'Could not generate a new prompt.',
+            variant: 'destructive',
+        });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
+  const handlePastePrompt = () => {
+    if (generatedPrompt) {
+        const currentData = form.getValues('trainingData');
+        const newData = currentData ? `${currentData}\n\n---\n\n${generatedPrompt}` : generatedPrompt;
+        form.setValue('trainingData', newData);
+    }
+    setShowPromptPreview(false);
+    setGeneratedPrompt(null);
+  };
+
   const onSubmit: SubmitHandler<FormValues> = data => {
     setIsSaving(true);
     onUpdateTrainingData(client.id, data.trainingData);
-    // Optimistic toast
     setTimeout(() => {
       toast({
         title: 'Trainer Updated',
@@ -78,6 +121,7 @@ export function SetupTrainerDialog({
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <div onClick={() => setIsOpen(true)}>{children}</div>
       <DialogContent className="sm:max-w-2xl">
@@ -102,31 +146,68 @@ export function SetupTrainerDialog({
                       {...field}
                       rows={15}
                       placeholder="Paste your training material here..."
-                      disabled={isSaving}
+                      disabled={isSaving || isGenerating}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="secondary" disabled={isSaving}>
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isSaving ? 'Saving...' : 'Save Training Data'}
-              </Button>
+            <DialogFooter className="sm:justify-between">
+                <div>
+                    {client.isEdu && (
+                        <Button type="button" variant="outline" onClick={handleGeneratePrompt} disabled={isGenerating || isSaving}>
+                           {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
+                           {isGenerating ? 'Generating...' : 'Random Prompt'}
+                        </Button>
+                    )}
+                </div>
+                <div className="flex gap-2">
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary" disabled={isSaving || isGenerating}>
+                        Cancel
+                        </Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={isSaving || isGenerating}>
+                        {isSaving && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {isSaving ? 'Saving...' : 'Save Training Data'}
+                    </Button>
+              </div>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showPromptPreview} onOpenChange={setShowPromptPreview}>
+        <AlertDialogContent className="max-w-3xl">
+            <AlertDialogHeader>
+                <AlertDialogTitle>Generated AI Sales Scenario</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Review the generated prompt below. You can regenerate it or paste it into the editor.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="rounded-lg border bg-muted/50 max-h-[50vh]">
+                <ScrollArea className="h-full">
+                    <pre className="p-4 text-sm whitespace-pre-wrap font-sans">
+                        {generatedPrompt || "Generating prompt..."}
+                    </pre>
+                </ScrollArea>
+            </div>
+            <AlertDialogFooter className="sm:justify-between">
+                <Button variant="outline" onClick={handleGeneratePrompt} disabled={isGenerating}>
+                    {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Regenerate
+                </Button>
+                <div className="flex gap-2">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handlePastePrompt}>Paste It In</AlertDialogAction>
+                </div>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
-
-    

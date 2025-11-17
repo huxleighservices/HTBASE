@@ -11,3 +11,4 @@ import '@/ai/flows/prospecting-simulation-flow.ts';
 import '@/ai/flows/qualification-simulation-flow.ts';
 import '@/ai/flows/transcribe-audio-flow.ts';
 import '@/ai/flows/text-to-speech-flow.ts';
+import '@/ai/flows/generate-random-prompt-flow.ts';
