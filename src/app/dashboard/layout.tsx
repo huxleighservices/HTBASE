@@ -23,7 +23,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    // If the user is not loading and is either not logged in OR is an anonymous user,
+    // they should not be on the dashboard. Redirect them to the root login page.
+    if (!isUserLoading && (!user || user.isAnonymous)) {
       router.push("/");
     }
   }, [user, isUserLoading, router]);
@@ -38,7 +40,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) {
+  // If the user is not a full user, or is an anonymous user, don't render the layout.
+  // The redirect in the useEffect will handle navigation.
+  if (!user || user.isAnonymous) {
     return null;
   }
   

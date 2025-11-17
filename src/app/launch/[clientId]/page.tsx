@@ -91,7 +91,7 @@ export default function ClientLaunchPage() {
   
   // If a regular user is already logged in, redirect them away.
   useEffect(() => {
-    // Also check for anonymous users who might have backed into this page
+    // If a non-anonymous user is logged in, they should not be on a launch page.
     if (user && !isUserLoading && !user.isAnonymous) {
       router.push('/dashboard');
     }
