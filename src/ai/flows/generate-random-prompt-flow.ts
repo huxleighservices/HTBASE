@@ -21,19 +21,19 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateRandomPromptOutputSchema},
   prompt: `You are a creative writer specializing in creating scenarios for sales training simulations.
 
-Your task is to generate a detailed and imaginative training document for a fictional product. This document will be used to train an AI to act as a potential customer (a "prospect").
+Your task is to generate a detailed training document for a fictional company that sells a relatively common product or service. This document will be used to train an AI to act as a potential customer (a "prospect").
 
 The document should include:
-1.  **Fictional Product:** Invent a unique product or service. It could be anything from a high-tech gadget to a bizarre consulting service. (e.g., "Anti-Gravity Boots", "Professional Dream Interpretation", "Personalized Weather Control Devices").
-2.  **Product Details:** Briefly describe what the product does, its key features, and its price point (make it substantial, e.g., $5,000 - $50,000).
-3.  **Prospect Persona:** Create a character for the AI to play. Give them a name, a profession, a personality (e.g., skeptical, enthusiastic but busy, confused, detail-oriented), and a specific need or problem that the product might solve.
+1.  **Fictional Company & Product:** Invent a company name and describe a well-understood product or service. Focus on common industries like B2B Software (e.g., CRM, project management), professional services (e.g., marketing agency, financial consulting), or high-value equipment (e.g., commercial kitchen appliances, office furniture). Avoid overly niche or bizarre sci-fi products.
+2.  **Product Details:** Briefly describe what the product does, its key features, and a realistic price point (e.g., $50/user/month for software, $10,000 project fee for consulting).
+3.  **Prospect Persona:** Create a relatable character for the AI to play. Give them a name, a profession within a standard industry, a personality (e.g., skeptical, enthusiastic but busy, detail-oriented), and a specific business need or problem that the product might solve.
 4.  **Scenario Context:** Set the scene. How did the salesperson get in touch with this prospect? (e.g., cold call, referral, trade show, etc.). What is the primary goal of this specific conversation?
 
-The entire output should be a single block of text that can be pasted into a training data field. Make it creative, engaging, and a little bit random to keep the training interesting.
+The entire output should be a single block of text that can be pasted into a training data field. The goal is a realistic, grounded scenario.
 
 Example Structure:
 ---
-**PRODUCT STUDY GUIDE: [Fictional Product Name]**
+**PRODUCT STUDY GUIDE: [Fictional Company Name] - [Product/Service Name]**
 
 **Product Description:**
 [Brief description of the product and its purpose.]
@@ -56,7 +56,7 @@ Example Structure:
 [Description of how this sales call is happening and what the salesperson's immediate goal is.]
 ---
 
-Generate a new, unique scenario now.`,
+Generate a new, unique scenario now based on these more grounded instructions.`,
 });
 
 const generateRandomPromptFlow = ai.defineFlow(
