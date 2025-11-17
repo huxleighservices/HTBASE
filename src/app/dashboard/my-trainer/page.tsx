@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -233,8 +234,6 @@ export default function MyTrainerPage() {
 
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
   const isSunmmuClient = client?.displayId === 'SUNMMU';
-  const isAdminWithEduClient =
-    userProfile?.role === 'admin' && client?.isEdu === true;
 
   if (isLoading) {
     return (
@@ -280,13 +279,12 @@ export default function MyTrainerPage() {
           </div>
         </div>
 
-        {isAdminWithEduClient && (
-          <Card>
+        <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>AI Trainer Setup</CardTitle>
                 <CardDescription>
-                  Configure the training data for this EDU client.
+                  Configure the training data and materials for this client.
                 </CardDescription>
               </div>
               <SetupTrainerDialog
@@ -299,8 +297,7 @@ export default function MyTrainerPage() {
                 </Button>
               </SetupTrainerDialog>
             </CardHeader>
-          </Card>
-        )}
+        </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
