@@ -16,6 +16,7 @@ import {
   useMemoFirebase,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import {
   doc,
@@ -28,7 +29,7 @@ import {
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, KeyRound, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, KeyRound, PlusCircle, Trash2, Wrench } from 'lucide-react';
 import type { UserProfile } from '@/types/user';
 import type { Client } from '@/types/client';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import type { AccessKey } from '@/types/session';
 import { SessionObservation } from '@/components/clients/session-observation';
+import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
 
 const addKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
@@ -105,7 +107,8 @@ export default function MyTrainerPage() {
         return;
       }
       
-      if (userProfile.role !== 'manager' || !userProfile.assignedClientId) {
+      const isAuthorized = userProfile.role === 'manager' || userProfile.role === 'admin';
+      if (!isAuthorized || !userProfile.assignedClientId) {
         setClient(null);
         setIsClientLoading(false);
         return;
@@ -136,6 +139,12 @@ export default function MyTrainerPage() {
     fetchClientData();
 
   }, [firestore, userProfile, isProfileLoading]);
+  
+  const handleUpdateTrainingData = (clientId: string, trainingData: string) => {
+    if (!firestore || !user || !client?.path) return;
+    const clientDocRef = doc(firestore, client.path);
+    updateDocumentNonBlocking(clientDocRef, { trainingData });
+  };
 
   const accessKeysCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client?.path) return null;
@@ -196,6 +205,7 @@ export default function MyTrainerPage() {
 
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
   const isSunmmuClient = client?.displayId === 'SUNMMU';
+  const isAdminWithEduClient = userProfile?.role === 'admin' && client?.isEdu === true;
 
   if (isLoading) {
     return (
@@ -207,8 +217,9 @@ export default function MyTrainerPage() {
       </div>
     );
   }
-
-  if (userProfile?.role !== 'manager' || !client) {
+  
+  const isAuthorized = (userProfile?.role === 'manager' || userProfile?.role === 'admin');
+  if (!isAuthorized || !client) {
     return (
        <div className="flex flex-col gap-8 items-center text-center mt-16">
         <div className="max-w-md p-8 border rounded-lg bg-card">
@@ -235,6 +246,25 @@ export default function MyTrainerPage() {
               <Badge variant="secondary" className="font-mono">{client.displayId}</Badge>
           </div>
         </div>
+
+        {isAdminWithEduClient && (
+          <Card>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle>AI Trainer Setup</CardTitle>
+                <CardDescription>
+                  Configure the training data for this EDU client.
+                </CardDescription>
+              </div>
+               <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+                  <Button>
+                      <Wrench className="mr-2" />
+                      Setup Trainer
+                  </Button>
+                </SetupTrainerDialog>
+            </CardHeader>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row justify-between items-center">
@@ -345,3 +375,5 @@ export default function MyTrainerPage() {
     </>
   );
 }
+
+    
