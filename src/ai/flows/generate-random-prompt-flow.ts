@@ -20,44 +20,46 @@ export async function generateRandomPrompt(): Promise<GenerateRandomPromptOutput
 const prompt = ai.definePrompt({
   name: 'generateRandomPrompt',
   output: {schema: GenerateRandomPromptOutputSchema},
-  prompt: `You are a creative writer specializing in creating scenarios for sales training simulations.
+  prompt: `You are a creative writer who creates simple and clear scenarios for sales training.
 
-Your task is to generate a detailed training document for a fictional company that sells a relatively common product or service. This document will be used to train an AI to act as a potential customer (a "prospect").
+Your task is to generate a training document for a fictional company. The product or service should be from a common, everyday industry that an 8th grader would easily understand.
+
+**RULES:**
+- **Broad Industries:** Choose from a wide variety of sectors like consumer packaged goods (e.g., snacks, drinks), manufacturing (e.g., furniture, parts), SaaS (simple software), retail (e.g., clothing, electronics), or services (e.g., landscaping, cleaning).
+- **Simplicity is Key:** The company, product, and prospect's problem must be straightforward and easy to grasp. Avoid complex jargon or niche B2B tools.
+- **Unique Ideas:** Ensure each generated scenario is completely new and different from any previous one.
 
 The document should include:
-1.  **Fictional Company & Product:** Invent a company name and describe a well-understood product or service. Focus on common industries like B2B Software (e.g., CRM, project management), professional services (e.g., marketing agency, financial consulting), or high-value equipment (e.g., commercial kitchen appliances, office furniture). Avoid overly niche or bizarre sci-fi products.
-2.  **Product Details:** Briefly describe what the product does, its key features, and a realistic price point (e.g., $50/user/month for software, $10,000 project fee for consulting).
-3.  **Prospect Persona:** Create a relatable character for the AI to play. Give them a name, a profession within a standard industry, a personality (e.g., skeptical, enthusiastic but busy, detail-oriented), and a specific business need or problem that the product might solve.
-4.  **Scenario Context:** Set the scene. How did the salesperson get in touch with this prospect? (e.g., cold call, referral, trade show, etc.). What is the primary goal of this specific conversation?
+1.  **Fictional Company & Product:** Invent a simple company name and describe a very common product or service.
+2.  **Product Details:** Briefly describe what it does, 1-2 key features, and a realistic price.
+3.  **Prospect Persona:** Create a relatable character. Give them a name, a simple job or role, a clear personality (e.g., skeptical, busy, friendly), and a simple problem the product can solve.
+4.  **Scenario Context:** Briefly explain how the salesperson is contacting the prospect (e.g., cold call, store visit, referral).
 
-The entire output should be a single block of text that can be pasted into a training data field. The goal is a realistic, grounded scenario.
-
-Example Structure:
+**Example Structure:**
 ---
 **PRODUCT STUDY GUIDE: [Fictional Company Name] - [Product/Service Name]**
 
 **Product Description:**
-[Brief description of the product and its purpose.]
+[Simple description of the product and its purpose.]
 
 **Key Features:**
 - [Feature 1]
 - [Feature 2]
-- [Feature 3]
 
 **Pricing:**
-[Price or price range.]
+[Simple price, e.g., "$15 per box" or "$200 for a one-time service".]
 
 **PROSPECT PERSONA FOR SIMULATION:**
 - **Name:** [Prospect's Name]
-- **Profession:** [Prospect's Job]
-- **Personality:** [Description of their attitude and communication style.]
-- **Needs/Pain Points:** [What problem are they trying to solve?]
+- **Role:** [Prospect's simple role, e.g., "Office Manager" or "Small Business Owner".]
+- **Personality:** [Description of their attitude.]
+- **Needs/Pain Points:** [What simple problem are they trying to solve?]
 
 **SCENARIO CONTEXT:**
-[Description of how this sales call is happening and what the salesperson's immediate goal is.]
+[Description of how this sales call is happening.]
 ---
 
-Generate a new, unique scenario now. Do not repeat ideas from previous generations. Make it completely different from any prior output.`,
+Generate a new, unique, and simple scenario now. Do not repeat ideas. Make it completely different from any prior output.`,
 });
 
 const generateRandomPromptFlow = ai.defineFlow(
