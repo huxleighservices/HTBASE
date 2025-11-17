@@ -22,7 +22,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,7 +52,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, signOut } from 'firebase/auth';
 
 type Stage = 'login' | 'trainer';
 
@@ -75,6 +75,7 @@ export default function ClientLaunchPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeUserDisplayName, setActiveUserDisplayName] = useState<string | null>(null);
 
   const firestore = useFirestore();
 
@@ -218,19 +219,30 @@ export default function ClientLaunchPage() {
       if (querySnapshot.empty) {
         loginForm.setError('root', { message: 'Invalid credentials. Please try again.' });
       } else {
-        // Successful credential validation, now sign in anonymously.
+        const accessKeyData = querySnapshot.docs[0].data();
         await signInAnonymously(auth);
         
-        // The onAuthStateChanged listener in the provider will handle the user state update.
-        // We can now proceed to the trainer stage.
+        setActiveSessionId(data.username);
+        setActiveUserDisplayName(accessKeyData.displayName);
         setStage('trainer');
-        setActiveSessionId(data.username); // Use username as the session ID
       }
     } catch (error: any) {
         loginForm.setError('root', { message: 'An unexpected error occurred during validation.' });
         console.error("Error validating access key:", error);
     } finally {
         setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    try {
+        await signOut(auth);
+        setStage('login');
+        setActiveSessionId(null);
+        setActiveUserDisplayName(null);
+    } catch (error) {
+        console.error("Error signing out: ", error);
     }
   };
 
@@ -323,6 +335,9 @@ export default function ClientLaunchPage() {
                 <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
                 <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
                 <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>Select a training module to begin.</CardDescription>
+                {activeUserDisplayName && (
+                    <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUserDisplayName}!</p>
+                )}
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
@@ -390,6 +405,12 @@ export default function ClientLaunchPage() {
                   <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeSessionId} />
                 </div>
               </CardContent>
+              <CardFooter className="justify-center">
+                 <Button variant="link" onClick={handleLogout} className={cn(customization?.foregroundColor && 'text-foreground')}>
+                     <LogOut className="mr-2 h-4 w-4"/>
+                     Log Out
+                 </Button>
+              </CardFooter>
             </Card>
           </div>
           <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
@@ -459,3 +480,5 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
+
+    
