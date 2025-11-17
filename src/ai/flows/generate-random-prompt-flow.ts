@@ -27,7 +27,7 @@ Your task is to generate a training document for a fictional company. The produc
 **RULES:**
 - **Broad Industries:** Choose from a wide variety of sectors like consumer packaged goods (e.g., snacks, drinks), manufacturing (e.g., furniture, parts), SaaS (simple software), retail (e.g., clothing, electronics), or services (e.g., landscaping, cleaning).
 - **Simplicity is Key:** The company, product, and prospect's problem must be straightforward and easy to grasp. Avoid complex jargon or niche B2B tools.
-- **Unique Ideas:** Ensure each generated scenario is completely new and different from any previous one.
+- **Unique Ideas:** Ensure each generated scenario is completely new and different from any previous one. Do not repeat ideas.
 
 The document should include:
 1.  **Fictional Company & Product:** Invent a simple company name and describe a very common product or service.
@@ -59,7 +59,7 @@ The document should include:
 [Description of how this sales call is happening.]
 ---
 
-Generate a new, unique, and simple scenario now. Do not repeat ideas. Make it completely different from any prior output.`,
+Generate a new, unique, and simple scenario now. Make it completely different from any prior output.`,
 });
 
 const generateRandomPromptFlow = ai.defineFlow(
