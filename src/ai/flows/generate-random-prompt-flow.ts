@@ -23,15 +23,14 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert creative writer tasked with generating a new, unique, and simple sales training scenario.
 
 **Your Thought Process (CRITICAL):**
-1.  **Choose an Industry:** Pick a broad, common industry (e.g., Food & Beverage, Automotive, Technology, Apparel, Home Services).
-2.  **Choose a Sub-Industry:** Narrow it down (e.g., if Food & Beverage, choose 'Coffee Shops' or 'Packaged Snacks').
-3.  **Find a Niche:** Get specific (e.g., if Coffee Shops, choose 'Mobile Coffee Cart for Events').
+1.  **Choose an Industry:** Randomly pick an industry from this specific list: **Healthcare, consumer packaged goods, home services, SAAS, business consulting, pet services, food and drink, entertainment, audio/video, travel, phone and wifi, windows and doors.** Do not select the same industry you chose in the previous generation.
+2.  **Choose a Sub-Industry:** Narrow it down (e.g., if Home Services, choose 'Lawn Care' or 'House Painting').
+3.  **Find a Niche:** Get specific (e.g., if Lawn Care, choose 'Organic, pet-safe fertilization services').
 4.  **Create the Scenario:** Build the training document based on that niche.
 
 **RULES:**
-*   **NO REPEATS:** You have been generating similar ideas. You MUST NOT generate a scenario that is similar to any you have created in the last 12 generations. The industry, sub-industry, and niche MUST be different each time.
+*   **NO REPEATS:** You MUST NOT generate a scenario that is similar to any you have created in the last 12 generations. The industry, sub-industry, and niche MUST be different each time.
 *   **8th Grade Level:** The company, product, and prospect's problem must be straightforward and easy to grasp. Avoid complex jargon.
-*   **Broad Industries:** Choose from a wide variety of sectors like consumer goods, manufacturing, simple SaaS, retail, or local services.
 
 **Output Structure:**
 ---
