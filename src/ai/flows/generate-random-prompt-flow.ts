@@ -20,22 +20,20 @@ export async function generateRandomPrompt(): Promise<GenerateRandomPromptOutput
 const prompt = ai.definePrompt({
   name: 'generateRandomPrompt',
   output: {schema: GenerateRandomPromptOutputSchema},
-  prompt: `You are a creative writer who creates simple and clear scenarios for sales training.
+  prompt: `You are an expert creative writer tasked with generating a new, unique, and simple sales training scenario.
 
-Your task is to generate a training document for a fictional company. The product or service should be from a common, everyday industry that an 8th grader would easily understand.
+**Your Thought Process (CRITICAL):**
+1.  **Choose an Industry:** Pick a broad, common industry (e.g., Food & Beverage, Automotive, Technology, Apparel, Home Services).
+2.  **Choose a Sub-Industry:** Narrow it down (e.g., if Food & Beverage, choose 'Coffee Shops' or 'Packaged Snacks').
+3.  **Find a Niche:** Get specific (e.g., if Coffee Shops, choose 'Mobile Coffee Cart for Events').
+4.  **Create the Scenario:** Build the training document based on that niche.
 
 **RULES:**
-- **Broad Industries:** Choose from a wide variety of sectors like consumer packaged goods (e.g., snacks, drinks), manufacturing (e.g., furniture, parts), SaaS (simple software), retail (e.g., clothing, electronics), or services (e.g., landscaping, cleaning).
-- **Simplicity is Key:** The company, product, and prospect's problem must be straightforward and easy to grasp. Avoid complex jargon or niche B2B tools.
-- **Unique Ideas:** Ensure each generated scenario is completely new and different from any previous one. Do not repeat ideas.
+*   **NO REPEATS:** You have been generating similar ideas. You MUST NOT generate a scenario that is similar to any you have created in the last 12 generations. The industry, sub-industry, and niche MUST be different each time.
+*   **8th Grade Level:** The company, product, and prospect's problem must be straightforward and easy to grasp. Avoid complex jargon.
+*   **Broad Industries:** Choose from a wide variety of sectors like consumer goods, manufacturing, simple SaaS, retail, or local services.
 
-The document should include:
-1.  **Fictional Company & Product:** Invent a simple company name and describe a very common product or service.
-2.  **Product Details:** Briefly describe what it does, 1-2 key features, and a realistic price.
-3.  **Prospect Persona:** Create a relatable character. Give them a name, a simple job or role, a clear personality (e.g., skeptical, busy, friendly), and a simple problem the product can solve.
-4.  **Scenario Context:** Briefly explain how the salesperson is contacting the prospect (e.g., cold call, store visit, referral).
-
-**Example Structure:**
+**Output Structure:**
 ---
 **PRODUCT STUDY GUIDE: [Fictional Company Name] - [Product/Service Name]**
 
@@ -59,7 +57,7 @@ The document should include:
 [Description of how this sales call is happening.]
 ---
 
-Generate a new, unique, and simple scenario now. Make it completely different from any prior output.`,
+Generate a new, unique, and simple scenario now. Make it completely different from any prior output by following your thought process.`,
 });
 
 const generateRandomPromptFlow = ai.defineFlow(
