@@ -1,55 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// IMPORTANT: Replace this with your actual Make.com webhook URL
-const MAKE_WEBHOOK_URL = 'https://hook.us1.make.com/your-webhook-id';
-
 export async function POST(request: NextRequest) {
   try {
     const { phoneNumber, message } = await request.json();
 
+    // Validate inputs
     if (!phoneNumber || !message) {
       return NextResponse.json(
-        { error: 'phoneNumber and message are required' },
+        { error: 'Phone number and message are required' },
         { status: 400 }
       );
     }
-    
-    if (MAKE_WEBHOOK_URL.includes('your-webhook-id')) {
-        console.warn('Make.com webhook URL is not configured.');
-        return NextResponse.json(
-            { error: 'Webhook URL is not configured on the server. Please contact an administrator.' },
-            { status: 500 }
-        );
-    }
 
+    // Replace with your Make webhook URL
+    const makeWebhookUrl = process.env.MAKE_WEBHOOK_URL;
 
-    // Forward the request to the Make.com webhook
-    const response = await fetch(MAKE_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, message }),
-      }
-    );
-
-    // Make.com typically responds with a 200 OK and "Accepted".
-    // We don't need to parse the response body unless there's a specific need.
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error from Make.com webhook:', errorText);
+    if (!makeWebhookUrl) {
       return NextResponse.json(
-        { error: 'Failed to trigger webhook.' },
-        { status: response.status }
+        { error: 'Webhook URL not configured' },
+        { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'SMS successfully queued via webhook.',
+    // Send to Make
+    const response = await fetch(makeWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phoneNumber,
+        message,
+        timestamp: new Date().toISOString(),
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to trigger Make scenario');
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'SMS queued for sending' 
+    });
+
   } catch (error: any) {
-    console.error('Error in send-sms API route:', error);
+    console.error('Error sending SMS:', error);
     return NextResponse.json(
-      { error: `Server error: ${error.message}` },
+      { error: 'Failed to send SMS' },
       { status: 500 }
     );
   }
