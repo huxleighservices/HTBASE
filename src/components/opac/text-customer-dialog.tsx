@@ -95,29 +95,25 @@ export function TextCustomerDialog({
     setIsSending(true);
 
     try {
-      const fullCustomerPath = `${client.path}/opacCustomers/${customer.id}`;
-      
-      const response = await fetch(
-        "https://us-central1-studio-9495804365-10cc6.cloudfunctions.net/sendSMS",
-        {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({
-            customerPath: fullCustomerPath,
-            message: message
-          })
-        }
-      );
-      
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send SMS");
-      }
-      
-      console.log("SMS sent successfully:", data);
-      toast({ title: "Success", description: "Text message sent!" });
-      onOpenChange(false);
+      const response = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: customer.phoneNumber,
+          message: message,
+        }),
+      });
 
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({ title: "Success", description: "Message sent successfully!" });
+        onOpenChange(false);
+      } else {
+        throw new Error(data.error || 'Failed to send SMS');
+      }
     } catch (error: any) {
         console.error("Error sending SMS:", error);
         toast({ 
