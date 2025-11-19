@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -42,7 +43,7 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle as OpacDialogTitle, DialogDescription } from '../ui/dialog';
-import { cn, normalizePhoneNumber } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { TextCustomerDialog } from './text-customer-dialog';
 
 type OpacTrackerDialogProps = {
@@ -67,12 +68,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
 
   const handleAddCustomer = (customer: Omit<OpaCustomer, 'id' | 'notes'>) => {
     if (!customersCollectionRef) return;
-     // Normalize phone number before adding
-    const customerWithNormalizedPhone = {
-        ...customer,
-        phoneNumber: customer.phoneNumber ? normalizePhoneNumber(customer.phoneNumber) : ''
-    };
-    addDocumentNonBlocking(customersCollectionRef, customerWithNormalizedPhone);
+    addDocumentNonBlocking(customersCollectionRef, customer);
     toast({ title: 'Customer Added', description: `${customer.firstName} ${customer.lastName} has been added.` });
   };
 

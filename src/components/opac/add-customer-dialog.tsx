@@ -33,7 +33,9 @@ const formSchema = z.object({
   formerCompany: z.string().optional(),
   planDetails: z.string().optional(),
   dateLeft: z.string().optional(),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z.string().optional().refine(val => !val || val.length === 10, {
+    message: "Phone number must be exactly 10 digits",
+  }),
   extraInfo: z.string().optional(),
 });
 
@@ -149,7 +151,7 @@ export function AddOpaCustomerDialog({
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Phone Number</FormLabel>
-                    <FormControl><Input type="tel" {...field} /></FormControl>
+                    <FormControl><Input type="tel" {...field} placeholder="10 digits only" /></FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
