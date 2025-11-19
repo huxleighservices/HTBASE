@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { phoneNumber, message } = await request.json();
+    // Await the JSON body from the incoming request
+    const body = await request.json();
+    const { phoneNumber, message } = body;
 
     // Validate inputs
     if (!phoneNumber || !message) {
@@ -12,30 +14,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Replace with your Make webhook URL
     const makeWebhookUrl = process.env.MAKE_WEBHOOK_URL;
 
     if (!makeWebhookUrl) {
+      console.error('MAKE_WEBHOOK_URL not set in environment variables.');
       return NextResponse.json(
         { error: 'Webhook URL not configured' },
         { status: 500 }
       );
     }
 
-    // Send to Make
+    // Send the received body directly to Make
     const response = await fetch(makeWebhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        phoneNumber,
-        message,
-        timestamp: new Date().toISOString(),
-      }),
+      // Pass the original body, which already contains phoneNumber and message
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
+       console.error('Failed to trigger Make scenario:', await response.text());
       throw new Error('Failed to trigger Make scenario');
     }
 
@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error sending SMS:', error);
+    console.error('Error in /api/send-sms:', error);
     return NextResponse.json(
-      { error: 'Failed to send SMS' },
+      { error: error.message || 'Failed to send SMS' },
       { status: 500 }
     );
   }
