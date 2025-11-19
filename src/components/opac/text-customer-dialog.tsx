@@ -112,7 +112,12 @@ export function TextCustomerDialog({
         toast({ title: "Success", description: "Message sent successfully!" });
         onOpenChange(false);
       } else {
-        throw new Error(data.error || 'Failed to send SMS');
+        // Instead of throwing an error, show a destructive toast
+        toast({
+          title: "Sending Failed",
+          description: data.error || 'An unexpected error occurred.',
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
         console.error("Error sending SMS:", error);

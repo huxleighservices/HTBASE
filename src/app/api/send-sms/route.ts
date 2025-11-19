@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    // Await the JSON body from the incoming request
-    const body = await request.json();
-    const { phoneNumber, message } = body;
+    const { phoneNumber, message } = await request.json();
 
-    // Validate inputs
+    console.log('Received request:', { phoneNumber, message });
+
     if (!phoneNumber || !message) {
       return NextResponse.json(
         { error: 'Phone number and message are required' },
@@ -14,40 +13,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const makeWebhookUrl = process.env.MAKE_WEBHOOK_URL;
-
-    if (!makeWebhookUrl) {
-      console.error('MAKE_WEBHOOK_URL not set in environment variables.');
-      return NextResponse.json(
-        { error: 'Webhook URL not configured' },
-        { status: 500 }
-      );
+    // Format phone number to E.164 if needed
+    let formattedPhone = phoneNumber;
+    if (!phoneNumber.startsWith('+')) {
+      formattedPhone = '+1' + phoneNumber.replace(/\D/g, '');
     }
 
-    // Send the received body directly to Make
+    console.log('Formatted phone:', formattedPhone);
+
+    // Your Make webhook URL - replace with your actual URL
+    const makeWebhookUrl = 'https://hook.us2.make.com/53qbv5mfdpxyue0reapkbe26mor';
+
+    console.log('Sending to Make...');
+
     const response = await fetch(makeWebhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // Pass the original body, which already contains phoneNumber and message
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        phoneNumber: formattedPhone,
+        message,
+      }),
     });
 
+    console.log('Make response status:', response.status);
+
     if (!response.ok) {
-       console.error('Failed to trigger Make scenario:', await response.text());
+      const errorText = await response.text();
+      console.error('Make error:', errorText);
       throw new Error('Failed to trigger Make scenario');
     }
 
     return NextResponse.json({ 
       success: true,
-      message: 'SMS queued for sending' 
+      message: 'SMS sent successfully' 
     });
 
-  } catch (error: any) {
-    console.error('Error in /api/send-sms:', error);
+  } catch (error) {
+    console.error('Error in send-sms route:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to send SMS' },
+      { error: 'Failed to send SMS', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
