@@ -27,19 +27,12 @@ import type { OpaCustomer, Client } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Send, Trash2, Calendar as CalendarIcon } from 'lucide-react';
-import { Input } from '../ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Calendar } from '../ui/calendar';
-import { useAuth } from '@/firebase';
-import { getIdToken } from 'firebase/auth';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
   followUps: z.array(z.object({
-    date: z.date({ required_error: "A date is required." }),
-    time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
+    delay: z.string(),
   })).max(5, "You can add a maximum of 5 follow-ups."),
 });
 
@@ -51,15 +44,25 @@ type TextCustomerDialogProps = {
   client: Client;
 };
 
+const delayOptions = [
+    { value: '1', label: '1 day from now' },
+    { value: '2', label: '2 days from now' },
+    { value: '3', label: '3 days from now' },
+    { value: '7', label: '1 week from now' },
+];
+
+const delayToMs = (delay: string): number => {
+    const days = parseInt(delay, 10);
+    return days * 24 * 60 * 60 * 1000;
+};
+
 export function TextCustomerDialog({
   open,
   onOpenChange,
   customer,
-  client,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
-  const auth = useAuth();
 
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
 
@@ -85,17 +88,8 @@ export function TextCustomerDialog({
     }
   }, [open, customer, form, defaultMessage]);
   
-  const handleSendNow = async () => {
-    const message = form.getValues("message");
-    if (!message) {
-      form.setError("message", { type: "manual", message: "Message cannot be empty." });
-      return;
-    }
-    
-    setIsSending(true);
-
-    try {
-      const response = await fetch('/api/send-sms', {
+  const sendSmsRequest = async (message: string) => {
+    const response = await fetch('/api/send-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,19 +100,25 @@ export function TextCustomerDialog({
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        toast({ title: "Success", description: "Message sent successfully!" });
-        onOpenChange(false);
-      } else {
-        // Instead of throwing an error, show a destructive toast
-        toast({
-          title: "Sending Failed",
-          description: data.error || 'An unexpected error occurred.',
-          variant: "destructive",
-        });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'A network error occurred.');
       }
+      return response.json();
+  }
+
+  const handleSendNow = async () => {
+    const message = form.getValues("message");
+    if (!message) {
+      form.setError("message", { type: "manual", message: "Message cannot be empty." });
+      return;
+    }
+    
+    setIsSending(true);
+    try {
+      await sendSmsRequest(message);
+      toast({ title: "Success", description: "Message sent successfully!" });
+      onOpenChange(false);
     } catch (error: any) {
         console.error("Error sending SMS:", error);
         toast({ 
@@ -133,17 +133,27 @@ export function TextCustomerDialog({
 
   const handleSchedule: SubmitHandler<FormValues> = (data) => {
     setIsSending(true);
-    // This is a placeholder. A real implementation would use a backend service
-    // like Cloud Functions with a scheduler to create these documents at the specified times.
-    console.log("Scheduling messages:", data);
-    setTimeout(() => {
-        toast({
-            title: "Messages Scheduled!",
-            description: `${data.followUps.length} follow-up message(s) have been scheduled.`
-        });
-        setIsSending(false);
-        onOpenChange(false);
-    }, 1000);
+
+    const message = data.message;
+    const followUps = data.followUps;
+
+    followUps.forEach(followUp => {
+        const delayMs = delayToMs(followUp.delay);
+        setTimeout(() => {
+            console.log(`Sending scheduled message after ${followUp.delay} days...`);
+            sendSmsRequest(message)
+              .then(() => console.log(`Successfully sent scheduled message to ${customer.phoneNumber}`))
+              .catch(err => console.error(`Failed to send scheduled message to ${customer.phoneNumber}:`, err));
+        }, delayMs);
+    });
+
+    toast({
+        title: "Messages Scheduled!",
+        description: `${followUps.length} follow-up message(s) have been scheduled.`
+    });
+
+    setIsSending(false);
+    onOpenChange(false);
   };
 
 
@@ -180,7 +190,7 @@ export function TextCustomerDialog({
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => append({ date: new Date(), time: '09:00' })}
+                        onClick={() => append({ delay: '1' })}
                         disabled={fields.length >= 5 || isSending}
                     >
                         <Plus className="mr-2 h-4 w-4"/> Add Follow-up
@@ -192,43 +202,21 @@ export function TextCustomerDialog({
                             <div key={field.id} className="flex items-center gap-2">
                                 <FormField
                                     control={form.control}
-                                    name={`followUps.${index}.date`}
+                                    name={`followUps.${index}.delay`}
                                     render={({ field }) => (
                                         <FormItem className="flex-1">
-                                             <Popover>
-                                                <PopoverTrigger asChild>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSending}>
                                                 <FormControl>
-                                                    <Button
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
-                                                    )}
-                                                    >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                                    </Button>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a delay" />
+                                                    </SelectTrigger>
                                                 </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={field.value}
-                                                    onSelect={field.onChange}
-                                                    initialFocus
-                                                />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name={`followUps.${index}.time`}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormControl><Input type="time" {...field} className="w-[120px]" disabled={isSending} /></FormControl>
+                                                <SelectContent>
+                                                    {delayOptions.map(opt => (
+                                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )}

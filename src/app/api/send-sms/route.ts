@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         console.error('Failed to trigger Make scenario. Status:', response.status, 'Body:', errorBody);
         // Do not throw an error, instead return a structured JSON response
         return NextResponse.json(
-            { error: 'Failed to trigger Make scenario', details: errorBody },
+            { error: 'Failed to trigger Make webhook', details: errorBody },
             { status: response.status }
         );
     }
