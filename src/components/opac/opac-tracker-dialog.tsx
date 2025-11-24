@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -57,7 +58,11 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
     if (!customer.activityLog || customer.activityLog.length === 0) {
         return null;
     }
-    const sortedLog = [...customer.activityLog].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const sortedLog = [...customer.activityLog].sort((a, b) => {
+        const dateA = (a.timestamp as any)?.toDate ? (a.timestamp as any).toDate() : new Date(a.timestamp);
+        const dateB = (b.timestamp as any)?.toDate ? (b.timestamp as any).toDate() : new Date(b.timestamp);
+        return dateB.getTime() - dateA.getTime();
+    });
 
     return (
         <TooltipProvider>
@@ -68,14 +73,17 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
                 <TooltipContent className='max-w-xs'>
                     <p className="font-bold mb-2">Activity Log</p>
                     <ul className='space-y-2'>
-                        {sortedLog.map((log, index) => (
-                            <li key={index} className='text-xs'>
-                                <p className='font-medium'>{log.activity}</p>
-                                <p className='text-muted-foreground'>
-                                    {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
-                                </p>
-                            </li>
-                        ))}
+                        {sortedLog.map((log, index) => {
+                             const date = (log.timestamp as any)?.toDate ? (log.timestamp as any).toDate() : new Date(log.timestamp);
+                             return (
+                                <li key={index} className='text-xs'>
+                                    <p className='font-medium'>{log.activity}</p>
+                                    <p className='text-muted-foreground'>
+                                        {formatDistanceToNow(date, { addSuffix: true })}
+                                    </p>
+                                </li>
+                             )
+                        })}
                     </ul>
                 </TooltipContent>
             </Tooltip>
