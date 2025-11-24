@@ -147,7 +147,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUserDispla
                 A tool to keep track of certain customers for {client.firmName}.
             </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-8 pt-4 h-full overflow-hidden">
+        <div className="flex flex-col gap-8 pt-4 h-full">
             <div className="flex justify-between items-center">
                 <div />
                  <Button onClick={() => setIsAddCustomerOpen(true)}>
