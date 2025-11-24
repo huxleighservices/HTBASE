@@ -83,7 +83,7 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
                                         <span className="font-bold">{log.user || 'System'}:</span> {log.activity}
                                     </p>
                                     <p className='text-muted-foreground'>
-                                         {formatDistanceToNow(date, { addSuffix: true })}
+                                        {formatDistanceToNow(date, { addSuffix: true })}
                                     </p>
                                 </li>
                              )
@@ -156,14 +156,14 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUserDispla
                   </Button>
             </div>
 
-            <Card className='flex-grow flex flex-col'>
+            <Card className='flex-grow flex flex-col overflow-hidden'>
                 <CardHeader>
                 <CardTitle>Customer List</CardTitle>
                 <CardDescription>
                     All tracked customers are listed below. Click on a row to view or edit notes.
                 </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow overflow-auto">
+                <CardContent className="flex-grow overflow-y-auto">
                 {isLoading ? (
                     <div className="flex justify-center items-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin" />
