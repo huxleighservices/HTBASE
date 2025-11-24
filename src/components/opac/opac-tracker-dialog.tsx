@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Database, Activity } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Database, Activity, Edit } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -47,11 +47,13 @@ import { cn } from '@/lib/utils';
 import { TextCustomerDialog } from './text-customer-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
+import { EditOpaCustomerDialog } from './edit-customer-dialog';
 
 type OpacTrackerDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     client: Client;
+    activeUserDisplayName: string | null;
 };
 
 const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
@@ -77,9 +79,11 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
                              const date = (log.timestamp as any)?.toDate ? (log.timestamp as any).toDate() : new Date(log.timestamp);
                              return (
                                 <li key={index} className='text-xs'>
-                                    <p className='font-medium'>{log.activity}</p>
+                                    <p className='font-medium'>
+                                        <span className="font-bold">{log.user || 'System'}:</span> {log.activity}
+                                    </p>
                                     <p className='text-muted-foreground'>
-                                        {formatDistanceToNow(date, { addSuffix: true })}
+                                         {formatDistanceToNow(date, { addSuffix: true })}
                                     </p>
                                 </li>
                              )
@@ -92,12 +96,14 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
 };
 
 
-export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDialogProps) {
+export function OpacTrackerDialog({ open, onOpenChange, client, activeUserDisplayName }: OpacTrackerDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [customerForNotes, setCustomerForNotes] = useState<OpaCustomer | null>(null);
   const [customerForText, setCustomerForText] = useState<OpaCustomer | null>(null);
+  const [customerToEdit, setCustomerToEdit] = useState<OpaCustomer | null>(null);
+
 
   const customersCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -122,6 +128,11 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
   const handleTextClick = (e: React.MouseEvent, customer: OpaCustomer) => {
     e.stopPropagation();
     setCustomerForText(customer);
+  }
+
+  const handleEditClick = (e: React.MouseEvent, customer: OpaCustomer) => {
+    e.stopPropagation();
+    setCustomerToEdit(customer);
   }
 
   return (
@@ -199,7 +210,10 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                                 <TableCell>
                                     <ActivityLogTooltip customer={customer} />
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right space-x-1">
+                                    <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, customer)}>
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
@@ -244,7 +258,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
 
     {customerForNotes && (
         <NotesDialog
-            key={customerForNotes.id}
+            key={`notes-${customerForNotes.id}`}
             open={!!customerForNotes}
             onOpenChange={(isOpen) => !isOpen && setCustomerForNotes(null)}
             customer={customerForNotes}
@@ -253,10 +267,21 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
     )}
      {customerForText && (
         <TextCustomerDialog
+            key={`text-${customerForText.id}`}
             open={!!customerForText}
             onOpenChange={(isOpen) => !isOpen && setCustomerForText(null)}
             customer={customerForText}
             client={client}
+            activeUserDisplayName={activeUserDisplayName}
+        />
+    )}
+    {customerToEdit && client.path && (
+        <EditOpaCustomerDialog
+            key={`edit-${customerToEdit.id}`}
+            open={!!customerToEdit}
+            onOpenChange={(isOpen) => !isOpen && setCustomerToEdit(null)}
+            customer={customerToEdit}
+            clientPath={client.path}
         />
     )}
     </>

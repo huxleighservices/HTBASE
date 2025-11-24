@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -45,6 +46,7 @@ type TextCustomerDialogProps = {
   onOpenChange: (open: boolean) => void;
   customer: OpaCustomer;
   client: Client;
+  activeUserDisplayName: string | null;
 };
 
 const delayToMs = (value: number, unit: 'minutes' | 'hours' | 'days'): number => {
@@ -60,6 +62,7 @@ export function TextCustomerDialog({
   onOpenChange,
   customer,
   client,
+  activeUserDisplayName,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -89,11 +92,15 @@ export function TextCustomerDialog({
     }
   }, [open, customer, form, defaultMessage]);
   
-  const addActivityLogEntry = (logEntry: ActivityLogEntry) => {
+  const addActivityLogEntry = (logEntry: Omit<ActivityLogEntry, 'user'>) => {
     if (!firestore || !client.path) return;
     const customerDocRef = doc(firestore, client.path, 'opacCustomers', customer.id);
+    const completeLogEntry: ActivityLogEntry = {
+        ...logEntry,
+        user: activeUserDisplayName || 'Unknown User'
+    };
     updateDocumentNonBlocking(customerDocRef, {
-        activityLog: arrayUnion(logEntry)
+        activityLog: arrayUnion(completeLogEntry)
     });
   };
 

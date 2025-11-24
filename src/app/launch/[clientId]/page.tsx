@@ -415,7 +415,7 @@ export default function ClientLaunchPage() {
           </div>
           <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
           <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
-          {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} />}
+          {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUserDisplayName={activeUserDisplayName}/>}
         </>
       );
     }
@@ -480,5 +480,3 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
-
-    

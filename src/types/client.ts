@@ -61,6 +61,7 @@ export type Asset = {
 export type ActivityLogEntry = {
     timestamp: Date;
     activity: string;
+    user: string;
 };
 
 export type OpaCustomer = {
