@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -23,16 +22,20 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { OpaCustomer, Client } from '@/types/client';
+import type { OpaCustomer, Client, ActivityLogEntry } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Plus, Send, Trash2, Calendar as CalendarIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Input } from '../ui/input';
+import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
+import { doc, arrayUnion } from 'firebase/firestore';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
   followUps: z.array(z.object({
-    delay: z.string(),
+    value: z.coerce.number().min(1, "Must be at least 1"),
+    unit: z.enum(['minutes', 'hours', 'days']),
   })).max(5, "You can add a maximum of 5 follow-ups."),
 });
 
@@ -44,24 +47,22 @@ type TextCustomerDialogProps = {
   client: Client;
 };
 
-const delayOptions = [
-    { value: '1', label: '1 day from now' },
-    { value: '2', label: '2 days from now' },
-    { value: '3', label: '3 days from now' },
-    { value: '7', label: '1 week from now' },
-];
-
-const delayToMs = (delay: string): number => {
-    const days = parseInt(delay, 10);
-    return days * 24 * 60 * 60 * 1000;
+const delayToMs = (value: number, unit: 'minutes' | 'hours' | 'days'): number => {
+    switch (unit) {
+        case 'minutes': return value * 60 * 1000;
+        case 'hours': return value * 60 * 60 * 1000;
+        case 'days': return value * 24 * 60 * 60 * 1000;
+    }
 };
 
 export function TextCustomerDialog({
   open,
   onOpenChange,
   customer,
+  client,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isSending, setIsSending] = useState(false);
 
   const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
@@ -88,6 +89,14 @@ export function TextCustomerDialog({
     }
   }, [open, customer, form, defaultMessage]);
   
+  const addActivityLogEntry = (logEntry: ActivityLogEntry) => {
+    if (!firestore || !client.path) return;
+    const customerDocRef = doc(firestore, client.path, 'opacCustomers', customer.id);
+    updateDocumentNonBlocking(customerDocRef, {
+        activityLog: arrayUnion(logEntry)
+    });
+  };
+
   const sendSmsRequest = async (message: string) => {
     const response = await fetch('/api/send-sms', {
         method: 'POST',
@@ -105,7 +114,7 @@ export function TextCustomerDialog({
         throw new Error(data.error || 'A network error occurred.');
       }
       return response.json();
-  }
+  };
 
   const handleSendNow = async () => {
     const message = form.getValues("message");
@@ -117,6 +126,10 @@ export function TextCustomerDialog({
     setIsSending(true);
     try {
       await sendSmsRequest(message);
+      addActivityLogEntry({
+          timestamp: new Date(),
+          activity: 'Initial message sent.'
+      });
       toast({ title: "Success", description: "Message sent successfully!" });
       onOpenChange(false);
     } catch (error: any) {
@@ -136,20 +149,33 @@ export function TextCustomerDialog({
 
     const message = data.message;
     const followUps = data.followUps;
+    let scheduledCount = 0;
 
     followUps.forEach(followUp => {
-        const delayMs = delayToMs(followUp.delay);
+        const delayMs = delayToMs(followUp.value, followUp.unit);
+        const scheduledSendTime = new Date(Date.now() + delayMs);
+        
         setTimeout(() => {
-            console.log(`Sending scheduled message after ${followUp.delay} days...`);
             sendSmsRequest(message)
-              .then(() => console.log(`Successfully sent scheduled message to ${customer.phoneNumber}`))
+              .then(() => {
+                addActivityLogEntry({
+                    timestamp: new Date(),
+                    activity: `Sent scheduled follow-up.`
+                });
+              })
               .catch(err => console.error(`Failed to send scheduled message to ${customer.phoneNumber}:`, err));
         }, delayMs);
+
+        addActivityLogEntry({
+            timestamp: scheduledSendTime,
+            activity: `Follow-up scheduled for ${followUp.value} ${followUp.unit} from now.`
+        });
+        scheduledCount++;
     });
 
     toast({
         title: "Messages Scheduled!",
-        description: `${followUps.length} follow-up message(s) have been scheduled.`
+        description: `${scheduledCount} follow-up message(s) have been scheduled.`
     });
 
     setIsSending(false);
@@ -190,7 +216,7 @@ export function TextCustomerDialog({
                         type="button" 
                         variant="outline" 
                         size="sm"
-                        onClick={() => append({ delay: '1' })}
+                        onClick={() => append({ value: 1, unit: 'days' })}
                         disabled={fields.length >= 5 || isSending}
                     >
                         <Plus className="mr-2 h-4 w-4"/> Add Follow-up
@@ -202,19 +228,31 @@ export function TextCustomerDialog({
                             <div key={field.id} className="flex items-center gap-2">
                                 <FormField
                                     control={form.control}
-                                    name={`followUps.${index}.delay`}
+                                    name={`followUps.${index}.value`}
+                                    render={({ field }) => (
+                                        <FormItem className="flex-1">
+                                            <FormControl>
+                                                <Input type="number" {...field} disabled={isSending} min={1}/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name={`followUps.${index}.unit`}
                                     render={({ field }) => (
                                         <FormItem className="flex-1">
                                             <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSending}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select a delay" />
+                                                        <SelectValue placeholder="Select unit" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    {delayOptions.map(opt => (
-                                                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                                    ))}
+                                                    <SelectItem value="minutes">Minutes</SelectItem>
+                                                    <SelectItem value="hours">Hours</SelectItem>
+                                                    <SelectItem value="days">Days</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

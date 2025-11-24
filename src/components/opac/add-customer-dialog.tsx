@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -33,8 +32,8 @@ const formSchema = z.object({
   formerCompany: z.string().optional(),
   planDetails: z.string().optional(),
   dateLeft: z.string().optional(),
-  phoneNumber: z.string().optional().refine(val => !val || val.length === 10, {
-    message: "Phone number must be exactly 10 digits",
+  phoneNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), {
+    message: "Phone number must be exactly 10 digits.",
   }),
   extraInfo: z.string().optional(),
 });
@@ -43,7 +42,7 @@ type FormValues = z.infer<typeof formSchema>;
 type AddOpaCustomerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddCustomer: (customer: Omit<OpaCustomer, 'id' | 'notes'>) => void;
+  onAddCustomer: (customer: Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>) => void;
 };
 
 export function AddOpaCustomerDialog({
@@ -72,7 +71,7 @@ export function AddOpaCustomerDialog({
   }, [open, form]);
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    onAddCustomer(data as Omit<OpaCustomer, 'id' | 'notes'>);
+    onAddCustomer(data as Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>);
     onOpenChange(false);
   };
 

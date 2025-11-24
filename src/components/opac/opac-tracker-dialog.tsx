@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -18,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Database } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Database, Activity } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -45,12 +44,45 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle as OpacDialogTitle, DialogDescription } from '../ui/dialog';
 import { cn } from '@/lib/utils';
 import { TextCustomerDialog } from './text-customer-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { formatDistanceToNow } from 'date-fns';
 
 type OpacTrackerDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     client: Client;
 };
+
+const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
+    if (!customer.activityLog || customer.activityLog.length === 0) {
+        return null;
+    }
+    const sortedLog = [...customer.activityLog].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Activity className="h-4 w-4 text-blue-500 cursor-pointer" />
+                </TooltipTrigger>
+                <TooltipContent className='max-w-xs'>
+                    <p className="font-bold mb-2">Activity Log</p>
+                    <ul className='space-y-2'>
+                        {sortedLog.map((log, index) => (
+                            <li key={index} className='text-xs'>
+                                <p className='font-medium'>{log.activity}</p>
+                                <p className='text-muted-foreground'>
+                                    {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                                </p>
+                            </li>
+                        ))}
+                    </ul>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+};
+
 
 export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDialogProps) {
   const firestore = useFirestore();
@@ -66,9 +98,9 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
 
   const { data: customers, isLoading } = useCollection<OpaCustomer>(customersCollectionRef);
 
-  const handleAddCustomer = (customer: Omit<OpaCustomer, 'id' | 'notes'>) => {
+  const handleAddCustomer = (customer: Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>) => {
     if (!customersCollectionRef) return;
-    addDocumentNonBlocking(customersCollectionRef, customer);
+    addDocumentNonBlocking(customersCollectionRef, {...customer, activityLog: []});
     toast({ title: 'Customer Added', description: `${customer.firstName} ${customer.lastName} has been added.` });
   };
 
@@ -130,6 +162,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                         <TableHead>Plan Details</TableHead>
                         <TableHead>Date Left</TableHead>
                         <TableHead>Phone Number</TableHead>
+                        <TableHead>Activity</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -154,6 +187,9 @@ export function OpacTrackerDialog({ open, onOpenChange, client }: OpacTrackerDia
                                         </Button>
                                       )}
                                   </div>
+                                </TableCell>
+                                <TableCell>
+                                    <ActivityLogTooltip customer={customer} />
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <AlertDialog>

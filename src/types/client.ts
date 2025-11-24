@@ -58,6 +58,11 @@ export type Asset = {
   description: string;
 };
 
+export type ActivityLogEntry = {
+    timestamp: Date;
+    activity: string;
+};
+
 export type OpaCustomer = {
     id: string;
     firstName: string;
@@ -68,4 +73,5 @@ export type OpaCustomer = {
     phoneNumber: string;
     extraInfo: string;
     notes?: string;
+    activityLog?: ActivityLogEntry[];
 };

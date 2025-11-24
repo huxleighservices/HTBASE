@@ -225,6 +225,22 @@
         },
         "notes": {
           "type": "string"
+        },
+        "activityLog": {
+          "type": "array",
+          "description": "A log of contact activities for the customer.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "activity": {
+                "type": "string"
+              }
+            }
+          }
         }
       },
       "required": ["id", "firstName", "lastName"]
