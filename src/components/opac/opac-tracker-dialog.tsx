@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Database, Activity, Edit } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Database, Activity, Edit, Upload } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -49,6 +49,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { formatDistanceToNow } from 'date-fns';
 import { EditOpaCustomerDialog } from './edit-customer-dialog';
 import type { AccessKey } from '@/types/session';
+import { BulkAddCustomersDialog } from './bulk-add-customers-dialog';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -101,6 +102,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
   const [customerForNotes, setCustomerForNotes] = useState<OpaCustomer | null>(null);
   const [customerForText, setCustomerForText] = useState<OpaCustomer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<OpaCustomer | null>(null);
@@ -151,10 +153,16 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
         <div className="flex flex-col gap-8 pt-4 flex-grow min-h-0">
             <div className="flex justify-between items-center">
                 <div />
-                 <Button onClick={() => setIsAddCustomerOpen(true)}>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)}>
+                    <Upload className="mr-2"/>
+                    Bulk Add
+                  </Button>
+                  <Button onClick={() => setIsAddCustomerOpen(true)}>
                     <PlusCircle className="mr-2"/>
                     Add Customer
                   </Button>
+                </div>
             </div>
 
             <Card className='flex-grow flex flex-col min-h-0'>
@@ -164,87 +172,89 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                     All tracked customers are listed below. Click on a row to view or edit notes.
                 </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow overflow-y-auto">
-                {isLoading ? (
-                    <div className="flex justify-center items-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
-                ) : !customers || customers.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                    <p>No customers found. Click "Add Customer" to get started.</p>
-                    </div>
-                ) : (
-                    <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Former Company</TableHead>
-                        <TableHead>Plan Details</TableHead>
-                        <TableHead>Date Left</TableHead>
-                        <TableHead>Phone Number</TableHead>
-                        <TableHead>Activity</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {customers.map(customer => (
-                            <TableRow key={customer.id} onClick={() => setCustomerForNotes(customer)} className="cursor-pointer">
-                                <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
-                                <TableCell>{customer.formerCompany}</TableCell>
-                                <TableCell>{customer.planDetails}</TableCell>
-                                <TableCell>{customer.dateLeft}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                      <span>{customer.phoneNumber}</span>
-                                      {customer.phoneNumber && (
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={(e) => handleTextClick(e, customer)}
-                                            className="bg-green-500 hover:bg-green-600 text-white"
-                                        >
-                                            Text
-                                        </Button>
-                                      )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                    <ActivityLogTooltip customer={customer} />
-                                </TableCell>
-                                <TableCell className="text-right space-x-1">
-                                    <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, customer)}>
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This will permanently delete the record for {customer.firstName} {customer.lastName}.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={() => handleDeleteCustomer(customer.id)}
-                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                                Delete
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </TableCell>
+                <CardContent className="flex-grow overflow-hidden relative">
+                  <div className="absolute inset-0 overflow-auto">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : !customers || customers.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                        <p>No customers found. Click "Add Customer" to get started.</p>
+                        </div>
+                    ) : (
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Former Company</TableHead>
+                            <TableHead>Plan Details</TableHead>
+                            <TableHead>Date Left</TableHead>
+                            <TableHead>Phone Number</TableHead>
+                            <TableHead>Activity</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                    </Table>
-                )}
+                        </TableHeader>
+                        <TableBody>
+                            {customers.map(customer => (
+                                <TableRow key={customer.id} onClick={() => setCustomerForNotes(customer)} className="cursor-pointer">
+                                    <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
+                                    <TableCell>{customer.formerCompany}</TableCell>
+                                    <TableCell>{customer.planDetails}</TableCell>
+                                    <TableCell>{customer.dateLeft}</TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-2">
+                                          <span>{customer.phoneNumber}</span>
+                                          {customer.phoneNumber && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={(e) => handleTextClick(e, customer)}
+                                                className="bg-green-500 hover:bg-green-600 text-white"
+                                            >
+                                                Text
+                                            </Button>
+                                          )}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <ActivityLogTooltip customer={customer} />
+                                    </TableCell>
+                                    <TableCell className="text-right space-x-1">
+                                        <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, customer)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will permanently delete the record for {customer.firstName} {customer.lastName}.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={() => handleDeleteCustomer(customer.id)}
+                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                >
+                                                    Delete
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                        </Table>
+                    )}
+                  </div>
                 </CardContent>
             </Card>
         </div>
@@ -256,6 +266,14 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
         onOpenChange={setIsAddCustomerOpen}
         onAddCustomer={handleAddCustomer}
     />
+
+    {customersCollectionRef && 
+        <BulkAddCustomersDialog
+            open={isBulkAddOpen}
+            onOpenChange={setIsBulkAddOpen}
+            collectionRef={customersCollectionRef}
+        />
+    }
 
     {customerForNotes && (
         <NotesDialog
