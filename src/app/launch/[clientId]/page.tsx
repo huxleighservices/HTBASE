@@ -53,6 +53,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 import { signInAnonymously, signOut } from 'firebase/auth';
+import type { AccessKey } from '@/types/session';
 
 type Stage = 'login' | 'trainer';
 
@@ -74,8 +75,7 @@ export default function ClientLaunchPage() {
   const [customization, setCustomization] = useState<BrandCustomization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [activeUserDisplayName, setActiveUserDisplayName] = useState<string | null>(null);
+  const [activeUser, setActiveUser] = useState<AccessKey | null>(null);
 
   const firestore = useFirestore();
 
@@ -219,11 +219,11 @@ export default function ClientLaunchPage() {
       if (querySnapshot.empty) {
         loginForm.setError('root', { message: 'Invalid credentials. Please try again.' });
       } else {
-        const accessKeyData = querySnapshot.docs[0].data();
+        const accessKeyDoc = querySnapshot.docs[0];
+        const accessKeyData = { ...accessKeyDoc.data(), id: accessKeyDoc.id } as AccessKey;
         await signInAnonymously(auth);
         
-        setActiveSessionId(data.username);
-        setActiveUserDisplayName(accessKeyData.displayName);
+        setActiveUser(accessKeyData);
         setStage('trainer');
       }
     } catch (error: any) {
@@ -239,8 +239,7 @@ export default function ClientLaunchPage() {
     try {
         await signOut(auth);
         setStage('login');
-        setActiveSessionId(null);
-        setActiveUserDisplayName(null);
+        setActiveUser(null);
     } catch (error) {
         console.error("Error signing out: ", error);
     }
@@ -335,8 +334,8 @@ export default function ClientLaunchPage() {
                 <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
                 <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
                 <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>Select a training module to begin.</CardDescription>
-                {activeUserDisplayName && (
-                    <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUserDisplayName}!</p>
+                {activeUser?.displayName && (
+                    <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUser.displayName}!</p>
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
@@ -402,7 +401,7 @@ export default function ClientLaunchPage() {
                 )}
 
                 <div className="pt-6">
-                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeSessionId} />
+                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
                 </div>
               </CardContent>
               <CardFooter className="justify-center">
@@ -413,9 +412,9 @@ export default function ClientLaunchPage() {
               </CardFooter>
             </Card>
           </div>
-          <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
-          <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeSessionId} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
-          {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUserDisplayName={activeUserDisplayName}/>}
+          <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
+          <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
+          {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }

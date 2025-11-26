@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Input } from '../ui/input';
 import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
 import { doc, arrayUnion } from 'firebase/firestore';
+import type { AccessKey } from '@/types/session';
 
 const formSchema = z.object({
   message: z.string().min(1, 'Message cannot be empty.'),
@@ -46,7 +47,7 @@ type TextCustomerDialogProps = {
   onOpenChange: (open: boolean) => void;
   customer: OpaCustomer;
   client: Client;
-  activeUserDisplayName: string | null;
+  activeUser: AccessKey | null;
 };
 
 const delayToMs = (value: number, unit: 'minutes' | 'hours' | 'days'): number => {
@@ -62,13 +63,17 @@ export function TextCustomerDialog({
   onOpenChange,
   customer,
   client,
-  activeUserDisplayName,
+  activeUser,
 }: TextCustomerDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSending, setIsSending] = useState(false);
 
-  const defaultMessage = `Hello ${customer.firstName} ${customer.lastName}, due to recent changes in your employment, your insurance with Globe Life is no longer covered and is now billed out-of-pocket. If you would like to make changes to this, please contact us at Globe Life at (412) 507-3454.`;
+  const customerName = `${customer.firstName} ${customer.lastName}`;
+  const senderName = activeUser?.displayName || 'your representative';
+  const senderPhone = activeUser?.phoneNumber || '[Your Phone Number]';
+
+  const defaultMessage = `Hello ${customerName}, this is ${senderName} from Globe Life. I am reaching out today regarding your recent exit from your place of employment. If you would like to continue receiving your Globe Life benefits or make any changes, please reach out to me directly at ${senderPhone}. Thank you!`;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -97,7 +102,7 @@ export function TextCustomerDialog({
     const customerDocRef = doc(firestore, client.path, 'opacCustomers', customer.id);
     const completeLogEntry: ActivityLogEntry = {
         ...logEntry,
-        user: activeUserDisplayName || 'Unknown User'
+        user: activeUser?.displayName || 'Unknown User'
     };
     updateDocumentNonBlocking(customerDocRef, {
         activityLog: arrayUnion(completeLogEntry)

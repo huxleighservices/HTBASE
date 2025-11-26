@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,9 +26,9 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where, getDocs } from 'firebase/firestore';
 import { AddOpaCustomerDialog } from '@/components/opac/add-customer-dialog';
-import type { Client, OpaCustomer } from '@/types/client';
+import type { Client, OpaCustomer, ActivityLogEntry } from '@/types/client';
 import { NotesDialog } from '@/components/opac/notes-dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -48,12 +48,13 @@ import { TextCustomerDialog } from './text-customer-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { formatDistanceToNow } from 'date-fns';
 import { EditOpaCustomerDialog } from './edit-customer-dialog';
+import type { AccessKey } from '@/types/session';
 
 type OpacTrackerDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     client: Client;
-    activeUserDisplayName: string | null;
+    activeUser: AccessKey | null;
 };
 
 const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
@@ -96,7 +97,7 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
 };
 
 
-export function OpacTrackerDialog({ open, onOpenChange, client, activeUserDisplayName }: OpacTrackerDialogProps) {
+export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: OpacTrackerDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
@@ -156,7 +157,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUserDispla
                   </Button>
             </div>
 
-            <Card className='flex-grow flex flex-col overflow-hidden'>
+            <Card className='flex-grow flex flex-col min-h-0'>
                 <CardHeader>
                 <CardTitle>Customer List</CardTitle>
                 <CardDescription>
@@ -272,7 +273,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUserDispla
             onOpenChange={(isOpen) => !isOpen && setCustomerForText(null)}
             customer={customerForText}
             client={client}
-            activeUserDisplayName={activeUserDisplayName}
+            activeUser={activeUser}
         />
     )}
     {customerToEdit && client.path && (
