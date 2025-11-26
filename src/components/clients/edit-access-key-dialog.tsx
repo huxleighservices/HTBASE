@@ -26,6 +26,7 @@ import {
 import { useEffect, useState } from 'react';
 import type { AccessKey } from '@/types/session';
 import { Loader2 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 
 const editKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
