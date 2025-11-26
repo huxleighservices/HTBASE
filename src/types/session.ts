@@ -5,6 +5,7 @@ export type AccessKey = {
   password?: string; // Optional for security when reading lists
   displayName: string;
   createdAt: any;
+  phoneNumber?: string;
 };
 
 // The Session type is now effectively obsolete for the new flow,

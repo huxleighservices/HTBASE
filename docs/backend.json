@@ -127,6 +127,10 @@
         "createdAt": {
             "type": "string",
             "format": "date-time"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The phone number of the trainee."
         }
       },
       "required": ["id", "username", "password", "displayName", "createdAt"]

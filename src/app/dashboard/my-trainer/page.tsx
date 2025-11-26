@@ -29,7 +29,7 @@ import {
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, KeyRound, PlusCircle, Trash2, Wrench } from 'lucide-react';
+import { Loader2, KeyRound, PlusCircle, Trash2, Wrench, Edit } from 'lucide-react';
 import type { UserProfile } from '@/types/user';
 import type { Client } from '@/types/client';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { AccessKey } from '@/types/session';
 import { SessionObservation } from '@/components/clients/session-observation';
 import { SetupTrainerDialog } from '@/components/clients/setup-trainer-dialog';
+import { EditAccessKeyDialog } from '@/components/clients/edit-access-key-dialog';
 
 const addKeyFormSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
@@ -78,6 +79,7 @@ const addKeyFormSchema = z.object({
       'Username can only contain letters, numbers, and symbols: _ . -'
     ),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  phoneNumber: z.string().optional(),
 });
 type AddKeyFormValues = z.infer<typeof addKeyFormSchema>;
 
@@ -91,6 +93,7 @@ export default function MyTrainerPage() {
   const [isClientLoading, setIsClientLoading] = useState(true);
   const [isAddKeyOpen, setIsAddKeyOpen] = useState(false);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
+  const [keyToEdit, setKeyToEdit] = useState<AccessKey | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -168,7 +171,7 @@ export default function MyTrainerPage() {
 
   const addKeyForm = useForm<AddKeyFormValues>({
     resolver: zodResolver(addKeyFormSchema),
-    defaultValues: { displayName: '', username: '', password: '' },
+    defaultValues: { displayName: '', username: '', password: '', phoneNumber: '' },
   });
 
   const handleAddKey: SubmitHandler<AddKeyFormValues> = async data => {
@@ -230,6 +233,17 @@ export default function MyTrainerPage() {
         variant: 'destructive',
       });
     }
+  };
+  
+  const handleUpdateKey = (keyId: string, data: Partial<AccessKey>) => {
+    if (!firestore || !client?.path) return;
+    const keyDocRef = doc(firestore, client.path, 'accessKeys', keyId);
+    updateDocumentNonBlocking(keyDocRef, data);
+    toast({
+      title: 'Access Key Updated',
+      description: 'The key has been updated successfully.',
+    });
+    setKeyToEdit(null); // Close the dialog
   };
 
   const isLoading = isUserLoading || isProfileLoading || isClientLoading;
@@ -333,6 +347,7 @@ export default function MyTrainerPage() {
                     <TableHead>Display Name</TableHead>
                     <TableHead>Username</TableHead>
                     <TableHead>Password</TableHead>
+                    <TableHead>Phone Number</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -346,7 +361,15 @@ export default function MyTrainerPage() {
                       <TableCell className="font-mono text-muted-foreground">
                         ••••••••
                       </TableCell>
+                      <TableCell>{key.phoneNumber || 'N/A'}</TableCell>
                       <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setKeyToEdit(key)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -391,6 +414,24 @@ export default function MyTrainerPage() {
                       <Input
                         {...field}
                         placeholder="e.g., Trainee 1"
+                        disabled={isCreatingKey}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={addKeyForm.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        {...field}
+                        placeholder="e.g., 1234567890"
                         disabled={isCreatingKey}
                       />
                     </FormControl>
@@ -453,6 +494,16 @@ export default function MyTrainerPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      
+      {keyToEdit && (
+        <EditAccessKeyDialog
+          key={keyToEdit.id}
+          isOpen={!!keyToEdit}
+          onOpenChange={(open) => !open && setKeyToEdit(null)}
+          accessKey={keyToEdit}
+          onUpdateKey={handleUpdateKey}
+        />
+      )}
     </>
   );
 }
