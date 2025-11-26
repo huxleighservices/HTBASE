@@ -97,6 +97,14 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
     );
 };
 
+const formatDate = (dateString: string | undefined) => {
+    if (!dateString || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString || '';
+    }
+    const [year, month, day] = dateString.split('-');
+    return `${month}-${day}-${year}`;
+};
+
 
 export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: OpacTrackerDialogProps) {
   const firestore = useFirestore();
@@ -172,7 +180,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                     All tracked customers are listed below. Click on a row to view or edit notes.
                 </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow overflow-hidden relative">
+                <CardContent className="flex-grow relative">
                   <div className="absolute inset-0 overflow-auto">
                     {isLoading ? (
                         <div className="flex justify-center items-center py-12">
@@ -201,7 +209,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                                     <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
                                     <TableCell>{customer.formerCompany}</TableCell>
                                     <TableCell>{customer.planDetails}</TableCell>
-                                    <TableCell>{customer.dateLeft}</TableCell>
+                                    <TableCell>{formatDate(customer.dateLeft)}</TableCell>
                                     <TableCell>
                                       <div className="flex items-center gap-2">
                                           <span>{customer.phoneNumber}</span>
