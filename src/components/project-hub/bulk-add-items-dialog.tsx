@@ -27,6 +27,7 @@ import { Label } from '../ui/label';
 import { writeBatch, doc, CollectionReference } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { Project, ProjectItem } from '@/types/client';
+import { Input } from '../ui/input';
 
 type BulkAddItemsDialogProps = {
   open: boolean;
@@ -36,6 +37,8 @@ type BulkAddItemsDialogProps = {
 };
 
 type Stage = 'paste' | 'map' | 'confirm';
+
+type MappedItem = Omit<ProjectItem, 'id'>;
 
 export function BulkAddItemsDialog({
   open,
@@ -50,6 +53,7 @@ export function BulkAddItemsDialog({
   const [parsedRows, setParsedRows] = useState<string[][]>([]);
   const [header, setHeader] = useState<string[]>([]);
   const [columnMap, setColumnMap] = useState<Record<number, string | 'ignore'>>({});
+  const [mappedItems, setMappedItems] = useState<MappedItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
@@ -60,10 +64,25 @@ export function BulkAddItemsDialog({
         setParsedRows([]);
         setHeader([]);
         setColumnMap({});
+        setMappedItems([]);
         setIsProcessing(false);
       }, 200);
     }
   }, [open]);
+  
+  const getMappedItems = (rows: string[][], currentColumnMap: typeof columnMap): MappedItem[] => {
+    const dataRows = rows.slice(1);
+    return dataRows.map(row => {
+      const item: MappedItem = { data: {} };
+      Object.entries(currentColumnMap).forEach(([colIndexStr, headerField]) => {
+        const colIndex = parseInt(colIndexStr, 10);
+        if (headerField !== 'ignore' && item.data) {
+          item.data[headerField] = row[colIndex] || '';
+        }
+      });
+      return item;
+    });
+  };
 
   const handleNextToMap = () => {
     if (!pastedData.trim()) {
@@ -71,65 +90,58 @@ export function BulkAddItemsDialog({
       return;
     }
     const rows = pastedData.trim().split('\n').map(row => row.split('\t'));
-    if (rows.length === 0) {
-      toast({ title: 'No rows found', variant: 'destructive' });
+    if (rows.length < 2) { // Must have header and at least one data row
+      toast({ title: 'Not enough data', description: 'Please paste at least a header row and one data row.', variant: 'destructive' });
       return;
     }
     
     setParsedRows(rows);
-    const numColumns = rows[0]?.length || 0;
-    const initialHeader = rows[0] || Array.from({ length: numColumns }, (_, i) => `Column ${i + 1}`);
+    const initialHeader = rows[0] || [];
     setHeader(initialHeader);
 
-    // Auto-map based on header names from project
     const newColumnMap: typeof columnMap = {};
     initialHeader.forEach((cell, index) => {
-        const matchingHeader = project.headers.find(h => h.toLowerCase() === cell.toLowerCase().trim());
+        const matchingHeader = project.headers.find(h => h.toLowerCase().trim() === cell.toLowerCase().trim());
         newColumnMap[index] = matchingHeader || 'ignore';
     });
     setColumnMap(newColumnMap);
-
+    setMappedItems(getMappedItems(rows, newColumnMap));
     setStage('map');
   };
 
   const handleMapChange = (columnIndex: number, field: string | 'ignore') => {
-    setColumnMap(prev => ({ ...prev, [columnIndex]: field }));
+    const newColumnMap = { ...columnMap, [columnIndex]: field };
+    setColumnMap(newColumnMap);
+    setMappedItems(getMappedItems(parsedRows, newColumnMap));
   };
-
-  const getMappedItems = () => {
-    const dataRows = parsedRows.slice(1);
-    return dataRows.map(row => {
-      const item: Partial<Omit<ProjectItem, 'id'>> = { data: {} };
-      Object.entries(columnMap).forEach(([colIndexStr, headerField]) => {
-        const colIndex = parseInt(colIndexStr, 10);
-        if (headerField !== 'ignore' && item.data) {
-          item.data[headerField] = row[colIndex] || '';
-        }
-      });
-      return item as Omit<ProjectItem, 'id'>;
-    });
+  
+  const handleItemDataChange = (itemIndex: number, header: string, value: string) => {
+    const newItems = [...mappedItems];
+    if (newItems[itemIndex]) {
+        newItems[itemIndex].data[header] = value;
+        setMappedItems(newItems);
+    }
   };
 
   const handleBulkAdd = async () => {
     if (!firestore) return;
     setIsProcessing(true);
-    const itemsToAdd = getMappedItems();
 
-    if (itemsToAdd.length === 0) {
+    if (mappedItems.length === 0) {
         toast({title: "No items to add", variant: "destructive"});
         setIsProcessing(false);
         return;
     }
 
     const batch = writeBatch(firestore);
-    itemsToAdd.forEach(itemData => {
+    mappedItems.forEach(itemData => {
         const newDocRef = doc(itemsCollectionRef);
         batch.set(newDocRef, itemData);
     });
 
     try {
         await batch.commit();
-        toast({ title: "Success!", description: `${itemsToAdd.length} items added to project.` });
+        toast({ title: "Success!", description: `${mappedItems.length} items added to project.` });
         onOpenChange(false);
     } catch (error: any) {
         toast({ title: 'Bulk add failed', description: error.message, variant: 'destructive'});
@@ -147,8 +159,8 @@ export function BulkAddItemsDialog({
           <DialogTitle>Bulk Import to "{project.name}"</DialogTitle>
           <DialogDescription>
             {stage === 'paste' && 'Paste data from your spreadsheet (including headers).'}
-            {stage === 'map' && 'Map your columns to the correct project headers.'}
-            {stage === 'confirm' && 'Review the items to be added.'}
+            {stage === 'map' && 'Map your spreadsheet columns to the project headers.'}
+            {stage === 'confirm' && 'Review and edit the data before importing.'}
           </DialogDescription>
         </DialogHeader>
         
@@ -199,9 +211,17 @@ export function BulkAddItemsDialog({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {getMappedItems().map((item, index) => (
-                                <TableRow key={index}>
-                                    {project.headers.map(field => <TableCell key={field}>{item.data[field] || ''}</TableCell>)}
+                            {mappedItems.map((item, itemIndex) => (
+                                <TableRow key={itemIndex}>
+                                    {project.headers.map(header => (
+                                        <TableCell key={header}>
+                                            <Input 
+                                                value={item.data[header] || ''}
+                                                onChange={(e) => handleItemDataChange(itemIndex, header, e.target.value)}
+                                                className="h-8"
+                                            />
+                                        </TableCell>
+                                    ))}
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -228,7 +248,7 @@ export function BulkAddItemsDialog({
                 <Button variant="outline" onClick={() => setStage('map')}>Back</Button>
                 <Button onClick={handleBulkAdd} disabled={isProcessing}>
                     {isProcessing && <Loader2 className="mr-2 animate-spin" />}
-                    {isProcessing ? 'Adding...' : `Add ${getMappedItems().length} Items`}
+                    {isProcessing ? 'Adding...' : `Add ${mappedItems.length} Items`}
                 </Button>
             </div>
           )}
@@ -237,5 +257,3 @@ export function BulkAddItemsDialog({
     </Dialog>
   );
 }
-
-    
