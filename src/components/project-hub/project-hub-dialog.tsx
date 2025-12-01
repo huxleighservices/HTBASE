@@ -129,7 +129,7 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                     {currentProject && <p className="text-xs text-muted-foreground mt-1">Created: {format(currentProject.createdAt.toDate(), 'PPP')}</p>}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!currentProject}>
+                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!currentProject || !itemsCollectionRef}>
                     <Upload className="mr-2"/>
                     Bulk Import
                   </Button>
@@ -234,5 +234,3 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
     </>
   );
 }
-
-    
