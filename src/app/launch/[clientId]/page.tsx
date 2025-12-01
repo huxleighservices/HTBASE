@@ -296,6 +296,7 @@ export default function ClientLaunchPage() {
     }
           
     if (stage === 'trainer') {
+      const filteredAssets = assets?.filter(asset => asset.title !== 'Project Hub');
       return (
         <>
           <div className="mx-auto max-w-4xl w-full">
@@ -346,11 +347,11 @@ export default function ClientLaunchPage() {
                   </div>
                 )}
 
-                {assets && assets.length > 0 && (
+                {filteredAssets && filteredAssets.length > 0 && (
                     <div className="space-y-4 pt-6">
                          <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
                         <div className="grid gap-6 md:grid-cols-2">
-                        {assets.map(asset => {
+                        {filteredAssets.map(asset => {
                            const isOpac = asset.title.includes('OPAC');
                            const Icon = isOpac ? Database : Code;
                            const handleAssetClick = () => {
