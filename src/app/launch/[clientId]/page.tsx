@@ -41,16 +41,6 @@ import { SessionManager } from '@/components/trainer/session-manager';
 import { useFirestore, useUser, useCollection, useMemoFirebase, useAuth } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent as PasswordDialogContent,
-  DialogDescription as PasswordDialogDescription,
-  DialogFooter as PasswordDialogFooter,
-  DialogHeader as PasswordDialogHeader,
-  DialogTitle as PasswordDialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 import { signInAnonymously, signOut } from 'firebase/auth';
 import type { AccessKey } from '@/types/session';
@@ -314,7 +304,7 @@ export default function ClientLaunchPage() {
                 <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
                 <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
                 <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>
-                  {isSalesClient ? 'Select a training module to begin.' : 'Welcome to your portal.'}
+                   {isSalesClient ? 'Select a training module to begin.' : 'Welcome to your portal.'}
                 </CardDescription>
                 {activeUser?.displayName && (
                     <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUser.displayName}!</p>
@@ -350,10 +340,10 @@ export default function ClientLaunchPage() {
                   </div>
                 )}
                 
-                {!isSalesClient && (
-                    <div className="text-center text-muted-foreground p-4">
-                        This portal does not have sales training modules enabled.
-                    </div>
+                {!isSalesClient && client?.displayId === 'HG5DR6' && (
+                  <div className="text-center text-muted-foreground p-4">
+                    This portal does not have sales training modules enabled.
+                  </div>
                 )}
 
                 {assets && assets.length > 0 && (
@@ -399,7 +389,6 @@ export default function ClientLaunchPage() {
                                         <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FolderKanban className="size-6" /></div>
                                         <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
                                     </div>
-                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage custom projects and data.</CardDescription>
                                 </CardHeader>
                                 <CardFooter>
                                     <Button onClick={() => setIsProjectHubOpen(true)}>Open Hub</Button>
@@ -457,5 +446,3 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
-
-    
