@@ -303,6 +303,37 @@
         }
       },
       "required": ["to", "body"]
+    },
+    "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project",
+      "type": "object",
+      "description": "Represents a project in the Project Hub.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "columns": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["id", "name", "createdAt", "columns"]
+    },
+    "ProjectItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProjectItem",
+      "type": "object",
+      "description": "Represents an item within a Project Hub project.",
+      "properties": {
+        "id": { "type": "string" },
+        "data": {
+          "type": "object",
+          "description": "A map of column headers to cell values.",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "required": ["id", "data"]
     }
   },
   "auth": {
@@ -441,10 +472,35 @@
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/clients/{clientId}/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": { "$ref": "#/entities/Project" },
+          "description": "Stores Project Hub projects for a specific client.",
+          "params": [
+            { "name": "userId", "description": "The user owner." },
+            { "name": "clientId", "description": "The client being customized." },
+            { "name": "projectId", "description": "Unique ID for the project." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/clients/{clientId}/projects/{projectId}/items/{itemId}",
+        "definition": {
+          "entityName": "ProjectItem",
+          "schema": { "$ref": "#/entities/ProjectItem" },
+          "description": "Stores items for a specific Project Hub project.",
+          "params": [
+            { "name": "userId", "description": "The user owner." },
+            { "name": "clientId", "description": "The client being customized." },
+            { "name": "projectId", "description": "The parent project." },
+            { "name": "itemId", "description": "Unique ID for the item." }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }
-
-    

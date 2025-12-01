@@ -84,4 +84,15 @@ export type TimePunch = {
     type: 'punch-in' | 'punch-out';
 };
 
+export type Project = {
+    id: string;
+    name: string;
+    createdAt: any;
+    columns: string[];
+};
+
+export type ProjectItem = {
+    id: string;
+    data: Record<string, string>;
+}
     
