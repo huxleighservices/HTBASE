@@ -81,11 +81,14 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
 
   const { data: items, isLoading: areItemsLoading } = useCollection<ProjectItem>(itemsCollectionRef);
   
-  const sortedProjects = projects?.sort((a,b) => {
-      const timeA = a.createdAt?.toMillis() || 0;
-      const timeB = b.createdAt?.toMillis() || 0;
-      return timeB - timeA;
-  });
+  const sortedProjects = useMemoFirebase(() => {
+    if (!projects) return [];
+      return [...projects].sort((a,b) => {
+        const timeA = a.createdAt?.toMillis() || 0;
+        const timeB = b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
+    });
+  }, [projects]);
 
   // Effect to set the initial project
   useEffect(() => {
@@ -97,8 +100,6 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
         setSelectedProject(sortedProjects?.[0] || null);
     }
   }, [projects, sortedProjects, selectedProject]);
-
-  const currentProject = selectedProject;
   
   const handleSelectProject = (projectId: string) => {
     const project = projects?.find(p => p.id === projectId);
@@ -131,7 +132,7 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
         <div className="flex flex-col gap-8 pt-4 flex-grow min-h-0">
             <div className="flex justify-between items-center">
                 <div className="w-72">
-                    <Select onValueChange={handleSelectProject} value={currentProject?.id || ""}>
+                    <Select onValueChange={handleSelectProject} value={selectedProject?.id || ""}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a project..." />
                         </SelectTrigger>
@@ -142,10 +143,10 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                             ))}
                         </SelectContent>
                     </Select>
-                    {currentProject && currentProject.createdAt?.toDate && <p className="text-xs text-muted-foreground mt-1">Created: {format(currentProject.createdAt.toDate(), 'PPP')}</p>}
+                    {selectedProject && selectedProject.createdAt?.toDate && <p className="text-xs text-muted-foreground mt-1">Created: {format(selectedProject.createdAt.toDate(), 'PPP')}</p>}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!currentProject}>
+                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!selectedProject}>
                     <Upload className="mr-2"/>
                     Bulk Import
                   </Button>
@@ -159,12 +160,12 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
             <Card className='flex-grow flex flex-col min-h-0'>
                 <CardHeader className="flex-row items-center justify-between">
                     <div>
-                        <CardTitle>{currentProject?.name || "No Project Selected"}</CardTitle>
+                        <CardTitle>{selectedProject?.name || "No Project Selected"}</CardTitle>
                         <CardDescription>
-                            {currentProject ? `${items?.length || 0} items found.` : "Select or create a project to get started."}
+                            {selectedProject ? `${items?.length || 0} items found.` : "Select or create a project to get started."}
                         </CardDescription>
                     </div>
-                    {currentProject && (
+                    {selectedProject && (
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" size="sm">
@@ -176,13 +177,13 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                                 <AlertDialogHeader>
                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This will permanently delete the project "{currentProject.name}" and all its data. This action cannot be undone.
+                                    This will permanently delete the project "{selectedProject.name}" and all its data. This action cannot be undone.
                                 </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                    onClick={() => handleDeleteProject(currentProject.id)}
+                                    onClick={() => handleDeleteProject(selectedProject!.id)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
                                     Delete
@@ -198,7 +199,7 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                         <div className="flex justify-center items-center py-12">
                             <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
-                    ) : !currentProject ? (
+                    ) : !selectedProject ? (
                         <div className="text-center py-12 text-muted-foreground">
                             <p>No project selected. Select one from the dropdown or create a new one.</p>
                         </div>
@@ -210,14 +211,14 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                         <Table>
                         <TableHeader>
                             <TableRow>
-                                {currentProject.headers.map(header => <TableHead key={header}>{header}</TableHead>)}
+                                {selectedProject.headers.map(header => <TableHead key={header}>{header}</TableHead>)}
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {items.map(item => (
                                 <TableRow key={item.id}>
-                                    {currentProject.headers.map(header => <TableCell key={header}>{item.data[header] || ''}</TableCell>)}
+                                    {selectedProject.headers.map(header => <TableCell key={header}>{item.data[header] || ''}</TableCell>)}
                                     <TableCell className="text-right">
                                         {/* Actions like edit/delete item would go here */}
                                     </TableCell>
@@ -239,11 +240,11 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
         client={client}
     />
     
-    {projectsCollectionRef && currentProject && itemsCollectionRef &&(
+    {projectsCollectionRef && selectedProject && itemsCollectionRef &&(
         <BulkAddItemsDialog
             open={isBulkAddOpen}
             onOpenChange={setIsBulkAddOpen}
-            project={currentProject}
+            project={selectedProject}
             itemsCollectionRef={itemsCollectionRef}
         />
     )}
