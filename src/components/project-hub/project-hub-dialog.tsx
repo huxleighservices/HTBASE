@@ -81,7 +81,11 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
 
   const { data: items, isLoading: areItemsLoading } = useCollection<ProjectItem>(itemsCollectionRef);
   
-  const sortedProjects = projects?.sort((a,b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+  const sortedProjects = projects?.sort((a,b) => {
+      const timeA = a.createdAt?.toMillis() || 0;
+      const timeB = b.createdAt?.toMillis() || 0;
+      return timeB - timeA;
+  });
   const currentProject = selectedProject || sortedProjects?.[0];
   
   const handleSelectProject = (projectId: string) => {
@@ -126,7 +130,7 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                             ))}
                         </SelectContent>
                     </Select>
-                    {currentProject && <p className="text-xs text-muted-foreground mt-1">Created: {format(currentProject.createdAt.toDate(), 'PPP')}</p>}
+                    {currentProject && currentProject.createdAt?.toDate && <p className="text-xs text-muted-foreground mt-1">Created: {format(currentProject.createdAt.toDate(), 'PPP')}</p>}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!currentProject || !itemsCollectionRef}>
