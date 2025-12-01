@@ -240,7 +240,7 @@ export default function ClientLaunchPage() {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.displayId !== 'HG5DR6';
-    const isSunmmuClient = client?.displayId === 'SUNMMU';
+    const showProjectHub = client?.displayId === 'SUNMMU' || client?.displayId === 'HG5DR6';
 
 
     if (stage === 'login') {
@@ -380,7 +380,7 @@ export default function ClientLaunchPage() {
                     </div>
                 )}
                 
-                {isSunmmuClient && (
+                {showProjectHub && (
                     <div className="space-y-4 pt-6">
                         <div className="grid gap-6 md:grid-cols-2">
                             <Card>
