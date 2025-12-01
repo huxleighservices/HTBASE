@@ -1,10 +1,194 @@
-
+/**
+ * Core Philosophy: This ruleset enforces a strict user-ownership model where all
+ * data is nested hierarchically under a specific user's document. A user can
+ * only access data that exists within their own data tree, ensuring strong
+ * privacy and preventing any cross-user data access.
+ *
+ * Data Structure: All application data is organized under the top-level
+ * `/users/{userId}` collection. This includes a user's clients, a client's
+ * assets, and an asset's time punches, forming a clear, nested hierarchy:
+ * /users/{userId}/clients/{clientId}/assets/{assetId}/timePunches/{timePunchId}
+ *
+ * Key Security Decisions:
+ * - User Enumeration Disabled: Listing the top-level `/users` collection is
+ *   explicitly forbidden to protect user privacy.
+ * - Strict Path-Based Ownership: Access to any document is determined by checking
+ *   if the requesting user's UID matches the `{userId}` segment in the path.
+ * - No Public Data: All collections and subcollections require authentication
+ *   and ownership for any type of access. There is no publicly readable data.
+ *
+ * Denormalization for Authorization: To ensure fast and secure rule evaluation
+ * without costly `get()` calls, relational integrity is enforced on create and
+ * update operations. For example, a `Client` document created at
+ * `/users/abc/clients/123` must contain the field `userId: 'abc'`. This field is
+ * then made immutable to maintain a permanent link to its owner. This principle
+ * is applied throughout the data hierarchy.
+ *
+ * Structural Segregation: The entire data model uses structural segregation by
+ * nesting user-specific data in subcollections under their unique user document.
+ * This is the most secure and performant way to manage private user data and
+ * enables simple, path-based security rules for list operations.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // These rules are wide open for development.
-    match /{document=**} {
-      allow read, write: if true;
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the given userId.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * A robust check for update/delete operations, ensuring the user is the
+     * owner and the document already exists in the database.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * On create, validates that the new User document's `id` field matches the
+     * document's ID in the path ({userId}). This creates a permanent,
+     * unchangeable link between the document and its owner path.
+     */
+    function isValidNewUser(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * On update, ensures the `id` field of a User document cannot be changed,
+     * preserving the critical link to its path-based owner.
+     */
+    function isImmutableUserId() {
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * On create, validates that a new Client contains a `userId` field matching
+     * the {userId} from the path.
+     */
+    function isValidNewClient(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * On update, ensures the `userId` field on a Client document is immutable.
+     */
+    function isImmutableClientOwner() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    /**
+     * On create, validates that a new Asset contains a `clientId` field matching
+     * the {clientId} from the path.
+     */
+    function isValidNewAsset(clientId) {
+      return request.resource.data.clientId == clientId;
+    }
+
+    /**
+     * On update, ensures the `clientId` field on an Asset document is immutable.
+     */
+    function isImmutableAssetParent() {
+      return request.resource.data.clientId == resource.data.clientId;
+    }
+
+    /**
+     * On create, validates that a new TimePunch contains `clientId` and `assetId`
+     * fields matching the path parameters.
+     */
+    function isValidNewTimePunch(clientId, assetId) {
+      return request.resource.data.clientId == clientId
+          && request.resource.data.assetId == assetId;
+    }
+    
+    /**
+     * On update, ensures the `clientId` and `assetId` fields on a TimePunch
+     * document are immutable.
+     */
+    function areImmutableTimePunchParents() {
+      return request.resource.data.clientId == resource.data.clientId
+          && request.resource.data.assetId == resource.data.assetId;
+    }
+
+    //-------------------------------------------------------------------------
+    // Collection Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own user document for the first time.
+     * @allow (get, update, delete) An authenticated user accessing their own document.
+     * @deny (list) Any user, including authenticated ones, from listing all user documents.
+     * @deny (get) An authenticated user attempting to read another user's document.
+     * @principle Enforces self-creation and ownership, while preventing user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow user enumeration for security
+      allow create: if isOwner(userId) && isValidNewUser(userId);
+      allow update: if isExistingOwner(userId) && isImmutableUserId();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Controls access to a user's list of clients.
+       * @path /users/{userId}/clients/{clientId}
+       * @allow (get, list, create, update, delete) An authenticated user managing clients within their own data tree.
+       * @deny (get, list) An authenticated user attempting to access clients belonging to another user.
+       * @principle Restricts all access to the data owner based on the path.
+       */
+      match /clients/{clientId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidNewClient(userId);
+        allow update: if isExistingOwner(userId) && isImmutableClientOwner();
+        allow delete: if isExistingOwner(userId);
+
+        /**
+         * @description Controls access to a client's list of assets.
+         * @path /users/{userId}/clients/{clientId}/assets/{assetId}
+         * @allow (get, list, create, update, delete) An authenticated user managing assets for a client they own.
+         * @deny (get, list) An authenticated user attempting to access assets belonging to another user.
+         * @principle Restricts all access to the data owner based on the path.
+         */
+        match /assets/{assetId} {
+          allow get: if isOwner(userId);
+          allow list: if isOwner(userId);
+          allow create: if isOwner(userId) && isValidNewAsset(clientId);
+          allow update: if isExistingOwner(userId) && isImmutableAssetParent();
+          allow delete: if isExistingOwner(userId);
+
+          /**
+           * @description Controls access to an asset's list of time punches.
+           * @path /users/{userId}/clients/{clientId}/assets/{assetId}/timePunches/{timePunchId}
+           * @allow (get, list, create, update, delete) An authenticated user managing time punches for an asset they own.
+           * @deny (get, list) An authenticated user attempting to access time punches belonging to another user.
+           * @principle Restricts all access to the data owner based on the path.
+           */
+          match /timePunches/{timePunchId} {
+            allow get: if isOwner(userId);
+            allow list: if isOwner(userId);
+            allow create: if isOwner(userId) && isValidNewTimePunch(clientId, assetId);
+            allow update: if isExistingOwner(userId) && areImmutableTimePunchParents();
+            allow delete: if isExistingOwner(userId);
+          }
+        }
+      }
     }
   }
 }

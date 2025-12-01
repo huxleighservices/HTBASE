@@ -1,15 +1,19 @@
-
 {
   "entities": {
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user within the HTBase.",
+      "description": "Represents a user of the HTBase portal.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
         },
         "firstName": {
           "type": "string",
@@ -19,322 +23,135 @@
           "type": "string",
           "description": "Last name of the user."
         },
-        "email": {
+        "createdAt": {
           "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
+          "description": "Date and time when the user account was created.",
+          "format": "date-time"
         },
-        "role": {
+        "updatedAt": {
           "type": "string",
-          "description": "The role of the user.",
-          "enum": ["admin", "manager", "user"]
-        },
-        "assignedClientId": {
-            "type": "string",
-            "description": "The 6-digit display ID of the client assigned to a manager."
+          "description": "Date and time when the user account was last updated.",
+          "format": "date-time"
         }
       },
       "required": [
         "id",
-        "email"
+        "email",
+        "firstName",
+        "lastName",
+        "createdAt",
+        "updatedAt"
       ]
     },
     "Client": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Client",
       "type": "object",
-      "description": "Represents a client of the user.",
+      "description": "Represents a white-label client using the HTBase platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Client entity."
+          "description": "Unique identifier for the client entity."
         },
-        "displayId": {
+        "name": {
           "type": "string",
-          "description": "A random 6-character ID for display purposes."
+          "description": "Name of the client."
         },
-        "firmName": {
-          "type": "string"
-        },
-        "legalFirstName": {
-          "type": "string"
-        },
-        "legalLastName": {
-          "type": "string"
-        },
-        "firmSize": {
-          "type": "string"
-        },
-        "firmEstYear": {
-          "type": "string"
-        },
-        "industry": {
-          "type": "string"
-        },
-        "contactEmail": {
+        "logoUrl": {
           "type": "string",
-          "format": "email"
+          "description": "URL to the client's logo image.",
+          "format": "uri"
         },
-        "contactPhoneNumber": {
-          "type": "string"
-        },
-        "location": {
-          "type": "string"
-        },
-        "status": {
+        "primaryColor": {
           "type": "string",
-          "enum": ["pending", "active", "archived"]
+          "description": "Primary color code for the client's branding (e.g., hex code)."
         },
-        "trainingData": {
+        "userId": {
           "type": "string",
-          "description": "Custom product information or training material for the AI."
+          "description": "Reference to User. (Relationship: User 1:N Client)"
         },
-        "isEdu": {
-            "type": "boolean",
-            "description": "Indicates if the client is an education-based organization."
+        "tagline": {
+          "type": "string",
+          "description": "Tagline of the client."
         }
       },
       "required": [
         "id",
-        "displayId",
-        "firmName",
-        "contactEmail",
-        "status"
+        "name",
+        "userId"
       ]
-    },
-    "AccessKey": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AccessKey",
-      "type": "object",
-      "description": "Represents a temporary user credential for client access.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "The unique document ID of the access key."
-        },
-        "username": {
-          "type": "string",
-          "description": "The username for the access key."
-        },
-        "password": {
-          "type": "string",
-          "description": "The password for the access key."
-        },
-        "displayName": {
-          "type": "string",
-          "description": "A friendly name for the key (e.g., 'Trainee 1')."
-        },
-        "createdAt": {
-            "type": "string",
-            "format": "date-time"
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The phone number of the trainee."
-        }
-      },
-      "required": ["id", "username", "password", "displayName", "createdAt"]
-    },
-    "BrandCustomization": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BrandCustomization",
-      "type": "object",
-      "description": "Stores the brand customization settings for a client's launch portal.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Should always be 'config'"
-        },
-        "primaryColor": {
-          "type": "string",
-          "description": "Primary color in HSL format (e.g., '262.1 83.3% 57.8%')."
-        },
-        "backgroundColor": {
-          "type": "string",
-          "description": "Background color in HSL format."
-        },
-        "accentColor": {
-          "type": "string",
-          "description": "Accent color in HSL format."
-        },
-        "foregroundColor": {
-          "type": "string",
-          "description": "Text color in HSL format."
-        },
-        "logoUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "URL for the client's logo."
-        },
-        "tagline": {
-          "type": "string",
-          "description": "Custom tagline or name for the portal."
-        },
-        "fontFamily": {
-          "type": "string",
-          "description": "The font family for the portal.",
-          "enum": ["Montserrat", "Arial", "Times New Roman", "Inter", "Georgia", "Space Grotesk"]
-        }
-      },
-      "required": ["id"]
     },
     "Asset": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Asset",
       "type": "object",
-      "description": "A custom feature or module exclusive to a client.",
+      "description": "Represents an digital asset associated with a client.",
       "properties": {
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Unique identifier for the asset entity."
         },
-        "title": {
-          "type": "string"
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N Asset)"
         },
-        "description": {
-          "type": "string"
+        "assetName": {
+          "type": "string",
+          "description": "Name of the asset."
+        },
+        "assetUrl": {
+          "type": "string",
+          "description": "location of the digital asset.",
+          "format": "uri"
+        },
+        "assetType": {
+          "type": "string",
+          "description": "Type of the digital asset."
         }
       },
-      "required": ["id", "title", "description"]
+      "required": [
+        "id",
+        "clientId",
+        "assetName",
+        "assetUrl",
+        "assetType"
+      ]
     },
     "TimePunch": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "TimePunch",
-        "description": "Represents a single time punch event for an access key user.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "accessKeyUsername": { "type": "string", "description": "The username of the access key user who punched in/out." },
-            "timestamp": { "type": "string", "format": "date-time" },
-            "type": { "type": "string", "enum": ["punch-in", "punch-out"] },
-            "description": { "type": "string", "description": "A description of work done, required for punch-out."}
-        },
-        "required": ["id", "accessKeyUsername", "timestamp", "type"]
-    },
-    "OpaCustomer": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "OpaCustomer",
+      "title": "TimePunch",
       "type": "object",
-      "description": "Represents a customer in the OPAC Tracker.",
+      "description": "Represents a time punch tracking for a client and their assets.",
       "properties": {
         "id": {
-          "type": "string"
-        },
-        "firstName": {
-          "type": "string"
-        },
-        "lastName": {
-          "type": "string"
-        },
-        "formerCompany": {
-          "type": "string"
-        },
-        "planDetails": {
-          "type": "string"
-        },
-        "dateLeft": {
           "type": "string",
-          "format": "date"
+          "description": "Unique identifier for the time punch entity."
         },
-        "phoneNumber": {
-          "type": "string"
-        },
-        "extraInfo": {
-          "type": "string"
-        },
-        "notes": {
-          "type": "string"
-        },
-        "activityLog": {
-          "type": "array",
-          "description": "A log of contact activities for the customer.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "timestamp": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "activity": {
-                "type": "string"
-              },
-              "user": {
-                "type": "string",
-                "description": "The display name of the user who performed the action."
-              }
-            }
-          }
-        }
-      },
-      "required": ["id", "firstName", "lastName"]
-    },
-    "Message": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Message",
-      "type": "object",
-      "description": "Represents a message to be sent by the Twilio extension.",
-      "properties": {
-        "to": {
+        "clientId": {
           "type": "string",
-          "description": "The recipient's phone number in E.164 format."
+          "description": "Reference to Client. (Relationship: Client 1:N TimePunch)"
         },
-        "body": {
+        "assetId": {
           "type": "string",
-          "description": "The content of the message to be sent."
+          "description": "Reference to Asset. (Relationship: Asset 1:N TimePunch)"
         },
-        "delivery": {
-          "type": "object",
-          "description": "A field managed by the extension to track message status.",
-          "properties": {
-            "state": {
-              "type": "string",
-              "enum": ["PENDING", "PROCESSING", "SUCCESS", "ERROR"]
-            },
-            "startTime": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "endTime": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "error": {
-              "type": "string"
-            }
-          }
+        "punchInTime": {
+          "type": "string",
+          "description": "Time the time punch was initiated.",
+          "format": "date-time"
+        },
+        "punchOutTime": {
+          "type": "string",
+          "description": "Time the time punch was ended.",
+          "format": "date-time"
         }
       },
-      "required": ["to", "body"]
-    },
-    "Project": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Project",
-      "type": "object",
-      "description": "Represents a project in the Project Hub.",
-      "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "columns": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      },
-      "required": ["id", "name", "createdAt", "columns"]
-    },
-    "ProjectItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ProjectItem",
-      "type": "object",
-      "description": "Represents an item within a Project Hub project.",
-      "properties": {
-        "id": { "type": "string" },
-        "data": {
-          "type": "object",
-          "description": "A map of column headers to cell values.",
-          "additionalProperties": { "type": "string" }
-        }
-      },
-      "required": ["id", "data"]
+      "required": [
+        "id",
+        "clientId",
+        "assetId",
+        "punchInTime"
+      ]
     }
   },
   "auth": {
@@ -350,9 +167,9 @@
         "definition": {
           "entityName": "User",
           "schema": {
-            "$ref": "#/entities/User"
+            "$ref": "#/backend/entities/User"
           },
-          "description": "Collection to store user profiles. Only the authenticated user can read/write their own profile.",
+          "description": "Stores user profiles.  Top-level collection, path-based ownership.",
           "params": [
             {
               "name": "userId",
@@ -366,44 +183,18 @@
         "definition": {
           "entityName": "Client",
           "schema": {
-            "$ref": "#/entities/Client"
+            "$ref": "#/backend/entities/Client"
           },
-          "description": "Subcollection to store clients for a specific user.",
+          "description": "Stores client data associated with a user. Includes `userId` (denormalized) for authorization independence.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user who owns the client."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "clientId",
               "description": "The unique identifier of the client."
             }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/clients/{clientId}/accessKeys/{accessKeyId}",
-        "definition": {
-          "entityName": "AccessKey",
-          "schema": { "$ref": "#/entities/AccessKey" },
-          "description": "Subcollection to store temporary access keys for a client.",
-          "params": [
-            { "name": "userId", "description": "The user owner of the client." },
-            { "name": "clientId", "description": "The client the key belongs to." },
-            { "name": "accessKeyId", "description": "The unique document ID of the key." }
-          ]
-        }
-      },
-       {
-        "path": "/users/{userId}/clients/{clientId}/customization/{customizationId}",
-        "definition": {
-          "entityName": "BrandCustomization",
-          "schema": { "$ref": "#/entities/BrandCustomization" },
-          "description": "Stores brand customization for a specific client portal. The document ID should be a singleton, like 'config'.",
-          "params": [
-            { "name": "userId", "description": "The user owner." },
-            { "name": "clientId", "description": "The client being customized." },
-            { "name": "customizationId", "description": "Singleton ID, e.g., 'config'." }
           ]
         }
       },
@@ -411,97 +202,55 @@
         "path": "/users/{userId}/clients/{clientId}/assets/{assetId}",
         "definition": {
           "entityName": "Asset",
-          "schema": { "$ref": "#/entities/Asset" },
-          "description": "Stores custom assets for a specific client portal.",
-          "params": [
-            { "name": "userId", "description": "The user owner." },
-            { "name": "clientId", "description": "The client being customized." },
-            { "name": "assetId", "description": "Unique ID for the asset." }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/clients/{clientId}/assets/{assetId}/timePunches/{punchId}",
-        "definition": {
-          "entityName": "TimePunch",
-          "schema": { "$ref": "#/entities/TimePunch" },
-          "description": "Stores time punch entries for the Time Punch asset.",
-          "params": [
-            { "name": "userId", "description": "The user owner." },
-            { "name": "clientId", "description": "The client owner." },
-            { "name": "assetId", "description": "The parent asset (should be the Time Punch asset)." },
-            { "name": "punchId", "description": "Unique ID for the time punch." }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/clients/{clientId}/opacCustomers/{customerId}",
-        "definition": {
-          "entityName": "OpaCustomer",
           "schema": {
-            "$ref": "#/entities/OpaCustomer"
+            "$ref": "#/backend/entities/Asset"
           },
-          "description": "Subcollection to store OPAC tracker customers for a specific client.",
+          "description": "Stores assets associated with a client. Includes `clientId` for authorization independence.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user who owns the client."
+              "description": "The unique identifier of the user."
             },
             {
               "name": "clientId",
               "description": "The unique identifier of the client."
             },
             {
-              "name": "customerId",
-              "description": "The unique identifier of the OPAC customer."
+              "name": "assetId",
+              "description": "The unique identifier of the asset."
             }
           ]
         }
       },
       {
-        "path": "/messages/{messageId}",
+        "path": "/users/{userId}/clients/{clientId}/assets/{assetId}/timePunches/{timePunchId}",
         "definition": {
-          "entityName": "Message",
+          "entityName": "TimePunch",
           "schema": {
-            "$ref": "#/entities/Message"
+            "$ref": "#/backend/entities/TimePunch"
           },
-          "description": "Collection that the Twilio 'Send Message' extension listens to. New documents trigger a message.",
+          "description": "Stores time punch data associated with an asset. Includes `clientId` and `assetId` for authorization independence.",
           "params": [
             {
-              "name": "messageId",
-              "description": "The unique identifier for the message document."
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "clientId",
+              "description": "The unique identifier of the client."
+            },
+            {
+              "name": "assetId",
+              "description": "The unique identifier of the asset."
+            },
+            {
+              "name": "timePunchId",
+              "description": "The unique identifier of the time punch."
             }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/clients/{clientId}/projects/{projectId}",
-        "definition": {
-          "entityName": "Project",
-          "schema": { "$ref": "#/entities/Project" },
-          "description": "Stores Project Hub projects for a specific client.",
-          "params": [
-            { "name": "userId", "description": "The user owner." },
-            { "name": "clientId", "description": "The client being customized." },
-            { "name": "projectId", "description": "Unique ID for the project." }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/clients/{clientId}/projects/{projectId}/items/{itemId}",
-        "definition": {
-          "entityName": "ProjectItem",
-          "schema": { "$ref": "#/entities/ProjectItem" },
-          "description": "Stores items for a specific Project Hub project.",
-          "params": [
-            { "name": "userId", "description": "The user owner." },
-            { "name": "clientId", "description": "The client being customized." },
-            { "name": "projectId", "description": "The parent project." },
-            { "name": "itemId", "description": "Unique ID for the item." }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs (Queries are not Filters), and maintain data clarity.  Authorization Independence is achieved through denormalization. Specifically, the `Client.userId` field is used to associate Clients with Users. Deeper within the hierarchy, `TimePunches` store `clientId` and `assetId` which allow direct association, avoiding the need for `get()` calls in security rules to validate ownership. Structural Segregation is implemented by using hierarchical paths to represent user-owned data.  The structure facilitates secure `list` operations (QAPs) by leveraging path-based ownership, ensuring that users can only access data within their designated paths. For instance, listing TimePunches is restricted to the context of a specific Asset owned by a specific Client of a specific User. The structure also supports invariants such as ownership by enforcing the `userId` at the root level of data related to that user."
   }
 }
