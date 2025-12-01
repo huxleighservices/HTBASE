@@ -205,7 +205,8 @@
             "id": { "type": "string" },
             "accessKeyUsername": { "type": "string", "description": "The username of the access key user who punched in/out." },
             "timestamp": { "type": "string", "format": "date-time" },
-            "type": { "type": "string", "enum": ["punch-in", "punch-out"] }
+            "type": { "type": "string", "enum": ["punch-in", "punch-out"] },
+            "description": { "type": "string", "description": "A description of work done, required for punch-out."}
         },
         "required": ["id", "accessKeyUsername", "timestamp", "type"]
     },

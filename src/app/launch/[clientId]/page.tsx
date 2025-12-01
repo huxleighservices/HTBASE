@@ -45,6 +45,7 @@ import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 import { signInAnonymously, signOut } from 'firebase/auth';
 import type { AccessKey } from '@/types/session';
 import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
+import { TimePunchDialog } from '@/components/time-punch/time-punch-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -244,7 +245,11 @@ export default function ClientLaunchPage() {
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.displayId !== 'HG5DR6';
     const showProjectHub = client?.displayId === 'SUNMMU' || client?.displayId === 'HG5DR6';
-    const hasCustomAssets = (assets && assets.length > 0) || showProjectHub;
+    
+    // Filter out 'Project Hub' from assets to avoid duplication
+    const customAssets = assets?.filter(asset => !asset.title.includes('Project Hub')) || [];
+    const hasCustomAssets = customAssets.length > 0 || showProjectHub;
+
 
     if (stage === 'login') {
       return (
@@ -347,13 +352,13 @@ export default function ClientLaunchPage() {
                     <div className="space-y-4 pt-6">
                          <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
                         <div className="grid gap-6 md:grid-cols-2">
-                        {assets?.map(asset => {
+                        {customAssets.map(asset => {
                            const isOpac = asset.title.includes('OPAC');
                            const isTimePunch = asset.title.includes('Time Punch');
-                           if (!isOpac && !isTimePunch) return null; // Don't render other assets for now
+                           if (!isOpac && !isTimePunch) return null;
 
                            let Icon = Code;
-                           let buttonText = 'Coming Soon';
+                           let buttonText = 'Open';
                            let action = () => {};
 
                            if (isOpac) {
@@ -418,6 +423,7 @@ export default function ClientLaunchPage() {
           {isSalesClient && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {isSalesClient && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
+          {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
         </>
       );
@@ -451,5 +457,3 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
-
-    

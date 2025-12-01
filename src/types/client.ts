@@ -82,6 +82,7 @@ export type TimePunch = {
     accessKeyUsername: string;
     timestamp: any;
     type: 'punch-in' | 'punch-out';
+    description?: string; // Optional description for punch-out
 };
 
 export type Project = {
