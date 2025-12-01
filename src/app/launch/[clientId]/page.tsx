@@ -244,8 +244,7 @@ export default function ClientLaunchPage() {
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.displayId !== 'HG5DR6';
     const showProjectHub = client?.displayId === 'SUNMMU' || client?.displayId === 'HG5DR6';
-
-    const filteredAssets = assets?.filter(asset => asset.title !== 'Project Hub');
+    const hasCustomAssets = (assets && assets.length > 0) || showProjectHub;
 
     if (stage === 'login') {
       return (
@@ -344,27 +343,29 @@ export default function ClientLaunchPage() {
                   </div>
                 )}
                 
-                {!isSalesClient && client?.displayId === 'HG5DR6' && !showProjectHub && (
-                  <div className="text-center text-muted-foreground p-4">
-                    This portal does not have sales training modules enabled.
-                  </div>
-                )}
-
-                 {filteredAssets && filteredAssets.length > 0 && (
+                {hasCustomAssets && (
                     <div className="space-y-4 pt-6">
                          <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
                         <div className="grid gap-6 md:grid-cols-2">
-                        {filteredAssets.map(asset => {
+                        {assets?.map(asset => {
                            const isOpac = asset.title.includes('OPAC');
                            const isTimePunch = asset.title.includes('Time Punch');
-                           let Icon = Code;
-                           if (isOpac) Icon = Database;
-                           if (isTimePunch) Icon = Timer;
+                           if (!isOpac && !isTimePunch) return null; // Don't render other assets for now
 
-                           const handleAssetClick = () => {
-                             if (isOpac) setIsOpacTrackerOpen(true);
-                             if (isTimePunch) setIsTimePunchOpen(true);
-                           };
+                           let Icon = Code;
+                           let buttonText = 'Coming Soon';
+                           let action = () => {};
+
+                           if (isOpac) {
+                            Icon = Database;
+                            buttonText = 'Open Tracker';
+                            action = () => setIsOpacTrackerOpen(true);
+                           }
+                           if (isTimePunch) {
+                            Icon = Timer;
+                            buttonText = 'Open Time Punch';
+                            action = () => setIsTimePunchOpen(true);
+                           }
 
                            return (
                             <Card key={asset.id}>
@@ -373,41 +374,33 @@ export default function ClientLaunchPage() {
                                     <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-6" /></div>
                                     <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
                                 </div>
-                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
+                                {asset.title !== 'Time Punch' && <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>}
                                 </CardHeader>
                                 <CardFooter>
-                                    <Button onClick={handleAssetClick} disabled={!isOpac && !isTimePunch}>
-                                        {isOpac && 'Open Tracker'}
-                                        {isTimePunch && 'Open Time Punch'}
-                                        {!isOpac && !isTimePunch && 'Coming Soon'}
+                                    <Button onClick={action}>
+                                        {buttonText}
                                     </Button>
                                 </CardFooter>
                             </Card>
                            );
                         })}
+                        {showProjectHub && (
+                          <Card>
+                              <CardHeader>
+                              <div className="flex items-center gap-3">
+                                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><GanttChartSquare className="size-6" /></div>
+                                  <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
+                              </div>
+                              </CardHeader>
+                              <CardFooter>
+                                  <Button onClick={() => setIsProjectHubOpen(true)}>
+                                      Open Hub
+                                  </Button>
+                              </CardFooter>
+                          </Card>
+                        )}
                         </div>
                     </div>
-                )}
-                
-                {showProjectHub && (
-                  <div className="space-y-4 pt-6">
-                    <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <Card>
-                          <CardHeader>
-                          <div className="flex items-center gap-3">
-                              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><GanttChartSquare className="size-6" /></div>
-                              <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
-                          </div>
-                          </CardHeader>
-                          <CardFooter>
-                              <Button onClick={() => setIsProjectHubOpen(true)}>
-                                  Open Hub
-                              </Button>
-                          </CardFooter>
-                      </Card>
-                    </div>
-                  </div>
                 )}
 
                 <div className="pt-6">
@@ -458,3 +451,5 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
+
+    
