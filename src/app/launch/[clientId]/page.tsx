@@ -247,6 +247,7 @@ export default function ClientLaunchPage() {
   const renderContent = () => {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
+    const isSalesClient = client?.displayId !== 'HG5DR6';
 
     if (stage === 'login') {
       return (
@@ -324,7 +325,11 @@ export default function ClientLaunchPage() {
                       <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
                     </CardHeader>
                     <CardFooter>
-                      <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
+                       {isSalesClient ? (
+                        <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
+                       ) : (
+                        <p className="text-sm text-muted-foreground">This is not a sales client.</p>
+                       )}
                     </CardFooter>
                   </Card>
                   <Card>
@@ -336,7 +341,11 @@ export default function ClientLaunchPage() {
                       <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
                     </CardHeader>
                     <CardFooter>
-                      <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
+                       {isSalesClient ? (
+                          <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
+                       ) : (
+                        <p className="text-sm text-muted-foreground">This is not a sales client.</p>
+                       )}
                     </CardFooter>
                   </Card>
                 </div>
@@ -387,8 +396,8 @@ export default function ClientLaunchPage() {
               </CardFooter>
             </Card>
           </div>
-          <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
-          <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>
+          {isSalesClient && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
+          {isSalesClient && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
         </>
       );
@@ -422,5 +431,3 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
-
-    
