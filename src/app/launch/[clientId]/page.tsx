@@ -22,7 +22,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, FolderKanban } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -44,7 +44,6 @@ import { cn } from '@/lib/utils';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 import { signInAnonymously, signOut } from 'firebase/auth';
 import type { AccessKey } from '@/types/session';
-import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
 
 type Stage = 'login' | 'trainer';
 
@@ -73,7 +72,7 @@ export default function ClientLaunchPage() {
   const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
   const [isColdCallOpen, setIsColdCallOpen] = useState(false);
   const [isOpacTrackerOpen, setIsOpacTrackerOpen] = useState(false);
-  const [isProjectHubOpen, setIsProjectHubOpen] = useState(false);
+  const [isTimePunchOpen, setIsTimePunchOpen] = useState(false);
 
   
   // If a regular user is already logged in, redirect them away.
@@ -240,7 +239,7 @@ export default function ClientLaunchPage() {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.displayId !== 'HG5DR6';
-    const showProjectHub = client?.displayId === 'SUNMMU' || client?.displayId === 'HG5DR6';
+    const showTimePunch = client?.displayId === 'HG5DR6';
 
 
     if (stage === 'login') {
@@ -381,18 +380,18 @@ export default function ClientLaunchPage() {
                     </div>
                 )}
                 
-                {showProjectHub && (
+                {showTimePunch && (
                     <div className="space-y-4 pt-6">
                         <div className="grid gap-6 md:grid-cols-2">
                             <Card>
                                 <CardHeader>
                                     <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FolderKanban className="size-6" /></div>
-                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Timer className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Time Punch</CardTitle>
                                     </div>
                                 </CardHeader>
                                 <CardFooter>
-                                    <Button onClick={() => setIsProjectHubOpen(true)}>Open Hub</Button>
+                                    <Button onClick={() => setIsTimePunchOpen(true)}>Open Time Punch</Button>
                                 </CardFooter>
                             </Card>
                         </div>
@@ -414,7 +413,6 @@ export default function ClientLaunchPage() {
           {isSalesClient && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {isSalesClient && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
-          {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
@@ -447,3 +445,5 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
+
+    

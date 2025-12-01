@@ -77,16 +77,11 @@ export type OpaCustomer = {
     activityLog?: ActivityLogEntry[];
 };
 
-export type Project = {
+export type TimePunch = {
     id: string;
-    name: string;
-    headers: string[];
-    createdAt: any;
-};
-
-export type ProjectItem = {
-    id: string;
-    data: Record<string, string>;
+    accessKeyUsername: string;
+    timestamp: any;
+    type: 'punch-in' | 'punch-out';
 };
 
     
