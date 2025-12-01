@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -86,7 +86,19 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
       const timeB = b.createdAt?.toMillis() || 0;
       return timeB - timeA;
   });
-  const currentProject = selectedProject || sortedProjects?.[0];
+
+  // Effect to set the initial project
+  useEffect(() => {
+    if (!selectedProject && sortedProjects && sortedProjects.length > 0) {
+      setSelectedProject(sortedProjects[0]);
+    }
+    // If the selected project is deleted from the list, reset it
+    if (selectedProject && projects && !projects.find(p => p.id === selectedProject.id)) {
+        setSelectedProject(sortedProjects?.[0] || null);
+    }
+  }, [projects, sortedProjects, selectedProject]);
+
+  const currentProject = selectedProject;
   
   const handleSelectProject = (projectId: string) => {
     const project = projects?.find(p => p.id === projectId);
@@ -119,7 +131,7 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
         <div className="flex flex-col gap-8 pt-4 flex-grow min-h-0">
             <div className="flex justify-between items-center">
                 <div className="w-72">
-                    <Select onValueChange={handleSelectProject} value={currentProject?.id}>
+                    <Select onValueChange={handleSelectProject} value={currentProject?.id || ""}>
                         <SelectTrigger>
                             <SelectValue placeholder="Select a project..." />
                         </SelectTrigger>
@@ -133,7 +145,7 @@ export function ProjectHubDialog({ open, onOpenChange, client, activeUser }: Pro
                     {currentProject && currentProject.createdAt?.toDate && <p className="text-xs text-muted-foreground mt-1">Created: {format(currentProject.createdAt.toDate(), 'PPP')}</p>}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!currentProject || !itemsCollectionRef}>
+                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)} disabled={!currentProject}>
                     <Upload className="mr-2"/>
                     Bulk Import
                   </Button>
