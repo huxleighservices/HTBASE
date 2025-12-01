@@ -309,46 +309,48 @@ export default function ClientLaunchPage() {
               <CardHeader className="items-center text-center">
                 <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
                 <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
-                <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>Select a training module to begin.</CardDescription>
+                <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>
+                  {isSalesClient ? 'Select a training module to begin.' : 'Welcome to your portal.'}
+                </CardDescription>
                 {activeUser?.displayName && (
                     <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUser.displayName}!</p>
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
-                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
-                      </div>
-                      <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                       {isSalesClient ? (
-                        <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
-                       ) : (
-                        <p className="text-sm text-muted-foreground">This is not a sales client.</p>
-                       )}
-                    </CardFooter>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
-                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
-                      </div>
-                      <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
-                    </CardHeader>
-                    <CardFooter>
-                       {isSalesClient ? (
-                          <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
-                       ) : (
-                        <p className="text-sm text-muted-foreground">This is not a sales client.</p>
-                       )}
-                    </CardFooter>
-                  </Card>
-                </div>
+                {isSalesClient && (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
+                          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
+                        </div>
+                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
+                      </CardHeader>
+                      <CardFooter>
+                         <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
+                      </CardFooter>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
+                          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
+                        </div>
+                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
+                      </CardHeader>
+                      <CardFooter>
+                         <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                )}
+                
+                {!isSalesClient && (
+                    <div className="text-center text-muted-foreground p-4">
+                        This portal does not have sales training modules enabled.
+                    </div>
+                )}
 
                 {assets && assets.length > 0 && (
                     <div className="space-y-4 pt-6">
