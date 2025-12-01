@@ -88,6 +88,16 @@ service cloud.firestore {
       allow read, list, create, update, delete: if isOwner(userId);
     }
     
+    match /users/{userId}/clients/{clientId}/projects/{projectId} {
+        // Admins and assigned managers can manage projects
+        allow read, list, create, update, delete: if isOwner(userId) || isManagerOfClient();
+    }
+    
+    match /users/{userId}/clients/{clientId}/projects/{projectId}/items/{itemId} {
+        // Admins and assigned managers can manage project items
+        allow read, list, create, update, delete: if isOwner(userId) || isManagerOfClient();
+    }
+    
     match /messages/{messageId} {
       // Allow any authenticated user to create (send) messages.
       // The extension will update the status, so writes need to be allowed.
@@ -95,3 +105,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

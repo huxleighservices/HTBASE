@@ -76,3 +76,17 @@ export type OpaCustomer = {
     notes?: string;
     activityLog?: ActivityLogEntry[];
 };
+
+export type Project = {
+    id: string;
+    name: string;
+    headers: string[];
+    createdAt: any;
+};
+
+export type ProjectItem = {
+    id: string;
+    data: Record<string, string>;
+};
+
+    

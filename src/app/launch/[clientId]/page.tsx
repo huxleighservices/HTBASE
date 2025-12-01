@@ -22,7 +22,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, FolderKanban } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -54,6 +54,7 @@ import { Label } from '@/components/ui/label';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 import { signInAnonymously, signOut } from 'firebase/auth';
 import type { AccessKey } from '@/types/session';
+import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
 
 type Stage = 'login' | 'trainer';
 
@@ -82,6 +83,7 @@ export default function ClientLaunchPage() {
   const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
   const [isColdCallOpen, setIsColdCallOpen] = useState(false);
   const [isOpacTrackerOpen, setIsOpacTrackerOpen] = useState(false);
+  const [isProjectHubOpen, setIsProjectHubOpen] = useState(false);
 
   
   // If a regular user is already logged in, redirect them away.
@@ -248,6 +250,8 @@ export default function ClientLaunchPage() {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.displayId !== 'HG5DR6';
+    const isSunmmuClient = client?.displayId === 'SUNMMU';
+
 
     if (stage === 'login') {
       return (
@@ -385,6 +389,25 @@ export default function ClientLaunchPage() {
                         </div>
                     </div>
                 )}
+                
+                {isSunmmuClient && (
+                    <div className="space-y-4 pt-6">
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FolderKanban className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
+                                    </div>
+                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage custom projects and data.</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={() => setIsProjectHubOpen(true)}>Open Hub</Button>
+                                </CardFooter>
+                            </Card>
+                        </div>
+                    </div>
+                )}
 
                 <div className="pt-6">
                   <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
@@ -401,6 +424,7 @@ export default function ClientLaunchPage() {
           {isSalesClient && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {isSalesClient && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
+          {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
@@ -433,3 +457,5 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
+
+    

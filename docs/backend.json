@@ -253,6 +253,46 @@
       },
       "required": ["id", "firstName", "lastName"]
     },
+    "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Project",
+      "description": "Represents a project in the Project Hub, containing a name and custom headers.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the project."
+        },
+        "headers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "An ordered list of custom column headers for this project."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "name", "headers", "createdAt"]
+    },
+    "ProjectItem": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ProjectItem",
+        "description": "Represents a single row of data (an item) within a project.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "data": {
+                "type": "object",
+                "description": "A map of key-value pairs where keys are the project headers and values are the cell data.",
+                "additionalProperties": { "type": "string" }
+            }
+        },
+        "required": ["id", "data"]
+    },
     "Message": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Message",
@@ -400,6 +440,33 @@
         }
       },
       {
+        "path": "/users/{userId}/clients/{clientId}/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": { "$ref": "#/entities/Project" },
+          "description": "Stores projects for the Project Hub asset.",
+          "params": [
+            { "name": "userId", "description": "The user owner." },
+            { "name": "clientId", "description": "The client the project belongs to." },
+            { "name": "projectId", "description": "Unique ID for the project." }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/clients/{clientId}/projects/{projectId}/items/{itemId}",
+        "definition": {
+          "entityName": "ProjectItem",
+          "schema": { "$ref": "#/entities/ProjectItem" },
+          "description": "Stores individual data rows (items) for a specific project.",
+          "params": [
+            { "name": "userId", "description": "The user owner." },
+            { "name": "clientId", "description": "The client owner." },
+            { "name": "projectId", "description": "The parent project." },
+            { "name": "itemId", "description": "Unique ID for the data item." }
+          ]
+        }
+      },
+      {
         "path": "/messages/{messageId}",
         "definition": {
           "entityName": "Message",
@@ -419,3 +486,5 @@
     "reasoning": "The Firestore structure is designed to be secure and scalable. The root `users` collection contains profiles for admins and managers. The `clients` subcollection under a user allows for clear ownership. The new `accessKeys` subcollection under each client securely stores the credentials created by a manager for their specific client, ensuring they are logically grouped and easy to manage."
   }
 }
+
+    
