@@ -20,7 +20,7 @@ const CallPersonaSchema = z.object({
 
 const CallConversationMessageSchema = z.object({
     role: z.enum(['user', 'assistant']),
-    text: z.string(),
+    content: z.string(),
 });
 
 const CallSimulationFlowInputSchema = z.object({
@@ -53,7 +53,6 @@ const prompt = ai.definePrompt({
   input: { schema: CallSimulationInternalInputSchema },
   // Output schema is slightly different from flow's output, as audioUrl is added later
   output: { schema: CallSimulationOutputSchema.omit({ audioUrl: true }) },
-  model: 'googleai/gemini-2.5-flash',
   prompt: `You are an advanced AI role-playing and training assistant. You are simulating a voice call.
 
 SIMULATION CONTEXT:
@@ -69,7 +68,7 @@ YOUR PERSONA:
 
 CONVERSATION HISTORY (so far):
 {{#each conversationHistory}}
--   {{role}}: {{{text}}}
+-   {{role}}: {{{content}}}
 {{/each}}
 
 YOUR TASK:

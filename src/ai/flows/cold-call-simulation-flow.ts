@@ -54,7 +54,6 @@ export async function runColdCallSimulation(input: z.infer<typeof SimulationInpu
 
       Based on the conversation, provide an overall assessment, a few positive points, and a few areas for improvement for the salesperson's cold calling skills.
       `,
-      model: 'googleai/gemini-2.5-flash',
       output: {
         schema: SimulationFeedbackSchema,
       },
@@ -73,7 +72,6 @@ export async function runColdCallSimulation(input: z.infer<typeof SimulationInpu
       user: ${conversationHistory[conversationHistory.length - 1].content}
       
       Based on the persona for difficulty '${difficulty}', generate the prospect's response. Your opening line should be something like "Hello?".`,
-      model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
       output: {
         schema: z.object({ response: z.string() })
