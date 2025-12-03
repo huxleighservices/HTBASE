@@ -111,13 +111,10 @@ export default function ClientsPage() {
     }
   }, [userProfile, isProfileLoading, router]);
 
-
-  const isServiceAccount = user?.email === 'service@huxleigh.com';
-
   const clientsCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'clients');
-  }, [firestore, user]);
+    if (!firestore) return null;
+    return collection(firestore, 'clients');
+  }, [firestore]);
 
   const { data: clients, isLoading: areClientsLoading } = useCollection<Client>(
     clientsCollectionRef
@@ -142,7 +139,7 @@ export default function ClientsPage() {
   };
 
   useEffect(() => {
-    if (clients && firestore && user) {
+    if (clients && firestore) {
       clients.forEach(client => {
         if (!client.displayId) {
           const updates: Partial<Client> = {
@@ -150,8 +147,6 @@ export default function ClientsPage() {
           };
           const clientDocRef = doc(
             firestore,
-            'users',
-            user.uid,
             'clients',
             client.id
           );
@@ -159,7 +154,7 @@ export default function ClientsPage() {
         }
       });
     }
-  }, [clients, firestore, user]);
+  }, [clients, firestore]);
 
   const handleAddClient = (
     client: Omit<Client, 'id' | 'status' | 'displayId' | 'trainingData'>
@@ -177,11 +172,9 @@ export default function ClientsPage() {
     clientId: string,
     client: Omit<Client, 'id' | 'status' | 'displayId'>
   ) => {
-    if (!firestore || !user) return;
+    if (!firestore) return;
     const clientDocRef = doc(
       firestore,
-      'users',
-      user.uid,
       'clients',
       clientId
     );
@@ -189,11 +182,9 @@ export default function ClientsPage() {
   };
   
   const handleUpdateTrainingData = (clientId: string, trainingData: string) => {
-    if (!firestore || !user) return;
+    if (!firestore) return;
     const clientDocRef = doc(
       firestore,
-      'users',
-      user.uid,
       'clients',
       clientId
     );
@@ -204,11 +195,9 @@ export default function ClientsPage() {
     clientId: string,
     status: 'active' | 'archived'
   ) => {
-    if (!firestore || !user) return;
+    if (!firestore) return;
     const clientDocRef = doc(
       firestore,
-      'users',
-      user.uid,
       'clients',
       clientId
     );
@@ -216,11 +205,9 @@ export default function ClientsPage() {
   };
 
   const handleDeleteClient = (clientId: string) => {
-    if (!firestore || !user) return;
+    if (!firestore) return;
     const clientDocRef = doc(
       firestore,
-      'users',
-      user.uid,
       'clients',
       clientId
     );
@@ -246,9 +233,9 @@ export default function ClientsPage() {
 
   const ClientListItem = ({ client }: { client: Client }) => {
     const assetsCollectionRef = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return collection(firestore, 'users', user.uid, 'clients', client.id, 'assets');
-    }, [firestore, user, client.id]);
+        if (!firestore) return null;
+        return collection(firestore, 'clients', client.id, 'assets');
+    }, [firestore, client.id]);
     const { data: assets } = useCollection<Asset>(assetsCollectionRef);
     const hasAssets = assets && assets.length > 0;
 
@@ -283,7 +270,7 @@ export default function ClientsPage() {
                 </div>
             )}
             {hasAssets && client.status === 'active' && (
-                <ManageAssetsDialog client={{...client, path: `users/${user?.uid}/clients/${client.id}`}}>
+                <ManageAssetsDialog client={{...client, path: `clients/${client.id}`}}>
                     <Button variant="outline">
                         <Box className="mr-2"/>
                         Assets

@@ -16,7 +16,6 @@ import {
   collection,
   query,
   where,
-  collectionGroup,
   getDocs,
   doc,
   getDoc,
@@ -94,7 +93,7 @@ export default function ClientLaunchPage() {
       setIsLoading(true);
       try {
         const clientQuery = query(
-          collectionGroup(firestore, 'clients'),
+          collection(firestore, 'clients'),
           where('displayId', '==', clientId)
         );
         const querySnapshot = await getDocs(clientQuery);
@@ -350,7 +349,6 @@ export default function ClientLaunchPage() {
                 
                 {hasCustomAssets && (
                     <div className="space-y-4 pt-6">
-                         <h3 className={cn("font-headline text-lg text-center", customization?.foregroundColor && 'text-foreground')}>Custom Assets</h3>
                         <div className="grid gap-6 md:grid-cols-2">
                         {customAssets.map(asset => {
                            const isOpac = asset.title.includes('OPAC');

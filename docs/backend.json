@@ -68,7 +68,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Client)"
+          "description": "Reference to User who created the client."
         },
         "tagline": {
           "type": "string",
@@ -169,7 +169,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles.  Top-level collection, path-based ownership.",
+          "description": "Stores user profiles.",
           "params": [
             {
               "name": "userId",
@@ -179,18 +179,14 @@
         }
       },
       {
-        "path": "/users/{userId}/clients/{clientId}",
+        "path": "/clients/{clientId}",
         "definition": {
           "entityName": "Client",
           "schema": {
             "$ref": "#/backend/entities/Client"
           },
-          "description": "Stores client data associated with a user. Includes `userId` (denormalized) for authorization independence.",
+          "description": "Stores all client data. This is a root-level collection.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
             {
               "name": "clientId",
               "description": "The unique identifier of the client."
@@ -199,7 +195,7 @@
         }
       },
       {
-        "path": "/users/{userId}/clients/{clientId}/assets/{assetId}",
+        "path": "/clients/{clientId}/assets/{assetId}",
         "definition": {
           "entityName": "Asset",
           "schema": {
@@ -207,10 +203,6 @@
           },
           "description": "Stores assets associated with a client. Includes `clientId` for authorization independence.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
             {
               "name": "clientId",
               "description": "The unique identifier of the client."
@@ -223,7 +215,7 @@
         }
       },
       {
-        "path": "/users/{userId}/clients/{clientId}/assets/{assetId}/timePunches/{timePunchId}",
+        "path": "/clients/{clientId}/assets/{assetId}/timePunches/{timePunchId}",
         "definition": {
           "entityName": "TimePunch",
           "schema": {
@@ -231,10 +223,6 @@
           },
           "description": "Stores time punch data associated with an asset. Includes `clientId` and `assetId` for authorization independence.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
             {
               "name": "clientId",
               "description": "The unique identifier of the client."
@@ -251,6 +239,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs (Queries are not Filters), and maintain data clarity.  Authorization Independence is achieved through denormalization. Specifically, the `Client.userId` field is used to associate Clients with Users. Deeper within the hierarchy, `TimePunches` store `clientId` and `assetId` which allow direct association, avoiding the need for `get()` calls in security rules to validate ownership. Structural Segregation is implemented by using hierarchical paths to represent user-owned data.  The structure facilitates secure `list` operations (QAPs) by leveraging path-based ownership, ensuring that users can only access data within their designated paths. For instance, listing TimePunches is restricted to the context of a specific Asset owned by a specific Client of a specific User. The structure also supports invariants such as ownership by enforcing the `userId` at the root level of data related to that user."
+    "reasoning": "The Firestore structure is designed to be globally accessible for admins. The `clients` collection is at the root level. All related data (assets, time punches) are nested under their respective client documents. The `users` collection is separate and used only for user profile management."
   }
 }

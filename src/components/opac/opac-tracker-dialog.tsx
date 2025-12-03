@@ -26,7 +26,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { AddOpaCustomerDialog } from '@/components/opac/add-customer-dialog';
 import type { Client, OpaCustomer, ActivityLogEntry } from '@/types/client';
 import { NotesDialog } from '@/components/opac/notes-dialog';
