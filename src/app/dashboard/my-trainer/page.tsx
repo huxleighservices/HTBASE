@@ -26,6 +26,7 @@ import {
   getDocs,
   collection,
   serverTimestamp,
+  getDoc,
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -105,32 +106,21 @@ export default function MyTrainerPage() {
 
   useEffect(() => {
     const fetchClientData = async () => {
-      if (isProfileLoading || !firestore) {
-        return;
-      }
-
-      if (!userProfile) {
-        setClient(null);
+      if (isProfileLoading || !firestore || !userProfile?.assignedClientId) {
         setIsClientLoading(false);
-        return;
-      }
-
-      const isAuthorized =
-        userProfile.role === 'manager' || userProfile.role === 'admin';
-      if (!isAuthorized || !userProfile.assignedClientId) {
         setClient(null);
-        setIsClientLoading(false);
         return;
       }
 
       setIsClientLoading(true);
       try {
-        const clientsQuery = query(
+        const clientQuery = query(
           collection(firestore, 'clients'),
           where('displayId', '==', userProfile.assignedClientId)
         );
+        
+        const querySnapshot = await getDocs(clientQuery);
 
-        const querySnapshot = await getDocs(clientsQuery);
         if (!querySnapshot.empty) {
           const clientDoc = querySnapshot.docs[0];
           setClient({
