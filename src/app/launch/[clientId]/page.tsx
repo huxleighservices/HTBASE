@@ -94,7 +94,7 @@ export default function ClientLaunchPage() {
       setIsLoading(true);
       try {
         const clientQuery = query(
-          collectionGroup(firestore, 'clients'),
+          collection(firestore, 'clients'),
           where('displayId', '==', clientId)
         );
         const querySnapshot = await getDocs(clientQuery);
@@ -108,13 +108,17 @@ export default function ClientLaunchPage() {
           };
           setClient(fetchedClient);
 
-          const customizationRef = doc(firestore, fetchedClient.path, 'customization', 'config');
+          const customizationRef = doc(firestore, 'clients', clientDoc.id, 'customization', 'config');
           const customizationSnap = await getDoc(customizationRef);
+
           if (customizationSnap.exists()) {
             setCustomization(customizationSnap.data() as BrandCustomization);
+          } else {
+            setCustomization(null); // Reset if no customization found
           }
         } else {
           setClient(null);
+          setCustomization(null);
         }
       } catch (e) {
         console.error('Error fetching client data:', e);
