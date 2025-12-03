@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,6 +70,8 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
 
   const [isAnswering, setIsAnswering] = useState(false);
   const [learnConversation, setLearnConversation] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
+  
+  const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const sopsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -87,6 +89,10 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
     resolver: zodResolver(learnFormSchema),
     defaultValues: { question: '' },
   });
+  
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [learnConversation, isAnswering]);
 
   const handleCreateSop: SubmitHandler<SopFormValues> = (data) => {
     if (!sopsCollectionRef) return;
@@ -104,6 +110,7 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
     setSelectedSop(null);
     setIsEditing(false);
     sopForm.reset();
+    setActiveTab('view');
   };
 
   const handleDeleteSop = (sop: Sop) => {
@@ -226,18 +233,23 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                     </div>
                 )}
               </CardContent>
+              <CardFooter>
+                 <DialogClose asChild>
+                    <Button variant="outline">Close</Button>
+                </DialogClose>
+              </CardFooter>
             </Card>
           </TabsContent>
 
-          <TabsContent value="write" className="flex-grow mt-4">
-             <Card>
-                <CardHeader>
-                    <CardTitle>{isEditing ? `Editing: ${selectedSop?.title}` : 'Create New SOP Section'}</CardTitle>
-                    <CardDescription>{isEditing ? 'Modify the details below and save your changes.' : 'Add a new titled section to your SOPs.'}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Form {...sopForm}>
-                        <form onSubmit={sopForm.handleSubmit(isEditing ? handleUpdateSop : handleCreateSop)} className="space-y-4">
+          <TabsContent value="write" className="flex-grow mt-4 overflow-hidden">
+             <Form {...sopForm}>
+                <form onSubmit={sopForm.handleSubmit(isEditing ? handleUpdateSop : handleCreateSop)} className="h-full flex flex-col">
+                    <Card className="flex-grow flex flex-col">
+                        <CardHeader>
+                            <CardTitle>{isEditing ? `Editing: ${selectedSop?.title}` : 'Create New SOP Section'}</CardTitle>
+                            <CardDescription>{isEditing ? 'Modify the details below and save your changes.' : 'Add a new titled section to your SOPs.'}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4 flex-grow flex flex-col">
                             <FormField control={sopForm.control} name="title" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Section Title</FormLabel>
@@ -246,20 +258,25 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                                 </FormItem>
                             )} />
                             <FormField control={sopForm.control} name="content" render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="flex-grow flex flex-col">
                                     <FormLabel>Content</FormLabel>
-                                    <FormControl><Textarea {...field} rows={12} /></FormControl>
+                                    <FormControl className="flex-grow">
+                                      <Textarea {...field} className="h-full resize-none" />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <div className="flex justify-end gap-2">
-                                {isEditing && <Button type="button" variant="ghost" onClick={() => {setIsEditing(false); setSelectedSop(null); sopForm.reset(); setActiveTab('view'); }}>Cancel Edit</Button>}
-                                <Button type="submit">{isEditing ? 'Save Changes' : 'Create Section'}</Button>
-                            </div>
-                        </form>
-                    </Form>
-                </CardContent>
-             </Card>
+                        </CardContent>
+                         <CardFooter className="justify-end gap-2">
+                             {isEditing && <Button type="button" variant="ghost" onClick={() => {setIsEditing(false); setSelectedSop(null); sopForm.reset(); setActiveTab('view'); }}>Cancel Edit</Button>}
+                             <DialogClose asChild>
+                                <Button type="button" variant="outline">Cancel</Button>
+                            </DialogClose>
+                            <Button type="submit">{isEditing ? 'Save Changes' : 'Create Section'}</Button>
+                        </CardFooter>
+                    </Card>
+                </form>
+            </Form>
           </TabsContent>
 
           <TabsContent value="learn" className="flex-grow mt-4 flex flex-col h-full overflow-hidden">
@@ -269,41 +286,40 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                     <CardDescription>Ask the SOP Bot a question about your procedures.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-y-auto">
-                    <ScrollArea className="h-full pr-4 -mr-4">
-                        <div className="space-y-4">
-                            {learnConversation.map((msg, index) => (
-                                <div key={index} className={cn("flex items-start gap-3 text-sm", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                                    {msg.role === 'assistant' && (
-                                        <Avatar className="w-8 h-8 border-2 border-primary">
-                                            <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
-                                        </Avatar>
-                                    )}
-                                    <div className={cn("max-w-lg rounded-lg p-3", msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                                        <p className="whitespace-pre-wrap">{msg.text}</p>
-                                    </div>
-                                     {msg.role === 'user' && (
-                                        <Avatar className="w-8 h-8 border-2 border-muted-foreground">
-                                            <AvatarFallback>You</AvatarFallback>
-                                        </Avatar>
-                                    )}
-                                </div>
-                            ))}
-                             {isAnswering && (
-                                <div className="flex items-start gap-3">
+                    <div className="h-full pr-4 -mr-4 space-y-4">
+                        {learnConversation.map((msg, index) => (
+                            <div key={index} className={cn("flex items-start gap-3 text-sm", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                                {msg.role === 'assistant' && (
                                     <Avatar className="w-8 h-8 border-2 border-primary">
                                         <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
                                     </Avatar>
-                                    <div className="max-w-lg rounded-lg p-3 bg-muted flex items-center">
-                                        <Loader2 className="animate-spin h-5 w-5"/>
-                                    </div>
+                                )}
+                                <div className={cn("max-w-lg rounded-lg p-3", msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                                    <p className="whitespace-pre-wrap">{msg.text}</p>
                                 </div>
-                            )}
-                        </div>
-                    </ScrollArea>
+                                    {msg.role === 'user' && (
+                                    <Avatar className="w-8 h-8 border-2 border-muted-foreground">
+                                        <AvatarFallback>You</AvatarFallback>
+                                    </Avatar>
+                                )}
+                            </div>
+                        ))}
+                            {isAnswering && (
+                            <div className="flex items-start gap-3">
+                                <Avatar className="w-8 h-8 border-2 border-primary">
+                                    <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
+                                </Avatar>
+                                <div className="max-w-lg rounded-lg p-3 bg-muted flex items-center">
+                                    <Loader2 className="animate-spin h-5 w-5"/>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={conversationEndRef} />
+                    </div>
                 </CardContent>
-                <CardContent className="border-t pt-6">
+                <CardFooter className="border-t pt-6">
                     <Form {...learnForm}>
-                        <form onSubmit={learnForm.handleSubmit(handleAskQuestion)} className="flex items-center gap-2">
+                        <form onSubmit={learnForm.handleSubmit(handleAskQuestion)} className="flex items-center gap-2 w-full">
                             <FormField control={learnForm.control} name="question" render={({ field }) => (
                                 <FormItem className="flex-grow">
                                     <FormControl>
@@ -317,16 +333,10 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                             </Button>
                         </form>
                     </Form>
-                </CardContent>
+                </CardFooter>
              </Card>
           </TabsContent>
         </Tabs>
-
-        <DialogFooter className="pt-4">
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
