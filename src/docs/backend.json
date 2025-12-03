@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -162,22 +163,10 @@
       "type": "object",
       "description": "Represents a data project for a client, containing multiple items.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "columns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "columns": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["id", "name", "createdAt", "columns"]
     },
@@ -186,17 +175,22 @@
       "type": "object",
       "description": "A single data entry within a project.",
       "properties": {
-        "id": {
-          "type": "string"
-        },
-        "data": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
+        "id": { "type": "string" },
+        "data": { "type": "object", "additionalProperties": { "type": "string" } }
       },
       "required": ["id", "data"]
+    },
+    "Sop": {
+      "title": "SOP",
+      "type": "object",
+      "description": "A Standard Operating Procedure document section.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
     }
   },
   "auth": {
@@ -211,36 +205,28 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
+          "schema": { "$ref": "#/backend/entities/User" },
           "description": "Stores user profiles.",
           "subcollections": [
             {
               "path": "/clients/{clientId}",
               "definition": {
                 "entityName": "Client",
-                "schema": {
-                  "$ref": "#/backend/entities/Client"
-                },
+                "schema": { "$ref": "#/backend/entities/Client" },
                 "description": "Stores client data for a specific user.",
                 "subcollections": [
                   {
                     "path": "/assets/{assetId}",
                     "definition": {
                       "entityName": "Asset",
-                      "schema": {
-                        "$ref": "#/backend/entities/Asset"
-                      },
+                      "schema": { "$ref": "#/backend/entities/Asset" },
                       "description": "Stores assets associated with a client.",
                       "subcollections": [
                         {
                           "path": "/timePunches/{timePunchId}",
                           "definition": {
                             "entityName": "TimePunch",
-                            "schema": {
-                              "$ref": "#/backend/entities/TimePunch"
-                            },
+                            "schema": { "$ref": "#/backend/entities/TimePunch" },
                             "description": "Stores time punch data associated with an asset."
                           }
                         }
@@ -263,6 +249,14 @@
                           }
                         }
                       ]
+                    }
+                  },
+                  {
+                    "path": "/sops/{sopId}",
+                    "definition": {
+                      "entityName": "Sop",
+                      "schema": { "$ref": "#/backend/entities/Sop" },
+                      "description": "Standard Operating Procedures for a client."
                     }
                   }
                 ]

@@ -96,4 +96,11 @@ export type ProjectItem = {
     id: string;
     data: Record<string, string>;
 }
+
+export type Sop = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: any;
+};
     

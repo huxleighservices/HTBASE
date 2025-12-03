@@ -22,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -46,6 +46,7 @@ import { signInAnonymously, signOut } from 'firebase/auth';
 import type { AccessKey } from '@/types/session';
 import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
 import { TimePunchDialog } from '@/components/time-punch/time-punch-dialog';
+import { SopBotDialog } from '@/components/sop-bot/sop-bot-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -77,6 +78,7 @@ export default function ClientLaunchPage() {
   const [isOpacTrackerOpen, setIsOpacTrackerOpen] = useState(false);
   const [isTimePunchOpen, setIsTimePunchOpen] = useState(false);
   const [isProjectHubOpen, setIsProjectHubOpen] = useState(false);
+  const [isSopBotOpen, setIsSopBotOpen] = useState(false);
 
 
   
@@ -248,6 +250,7 @@ export default function ClientLaunchPage() {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.isEdu !== true;
+    const isSunmmuClient = client?.displayId === 'SUNMMU';
     const hasAssets = assets && assets.length > 0;
 
     const getAssetIcon = (title: string) => {
@@ -371,6 +374,21 @@ export default function ClientLaunchPage() {
                     </>
                     )}
 
+                    {isSunmmuClient && (
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Bot className="size-6" /></div>
+                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>SOP Bot</CardTitle>
+                                </div>
+                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Create, view, and ask questions about your Standard Operating Procedures.</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button onClick={() => setIsSopBotOpen(true)}>Open SOP Bot</Button>
+                            </CardFooter>
+                        </Card>
+                    )}
+
                     {hasAssets && assets.map(asset => (
                         <Card key={asset.id}>
                             <CardHeader>
@@ -410,6 +428,7 @@ export default function ClientLaunchPage() {
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
           {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
+          {client && isSunmmuClient && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
