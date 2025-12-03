@@ -115,7 +115,7 @@ export default function MyTrainerPage() {
       setIsClientLoading(true);
       try {
         const clientQuery = query(
-          collection(firestore, 'clients'),
+          collectionGroup(firestore, 'clients'),
           where('displayId', '==', userProfile.assignedClientId)
         );
         
