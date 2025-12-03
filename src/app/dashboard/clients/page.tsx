@@ -39,7 +39,7 @@ import {
   deleteDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, collectionGroup, query } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
@@ -113,7 +113,8 @@ export default function ClientsPage() {
 
   const clientsCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'clients');
+    // Querying all clients across all users for the admin view.
+    return query(collectionGroup(firestore, 'clients'));
   }, [firestore]);
 
   const { data: clients, isLoading: areClientsLoading } = useCollection<Client>(
@@ -145,11 +146,8 @@ export default function ClientsPage() {
           const updates: Partial<Client> = {
             displayId: generateDisplayId(clients, client.isEdu)
           };
-          const clientDocRef = doc(
-            firestore,
-            'clients',
-            client.id
-          );
+          if (!client.path) return;
+          const clientDocRef = doc(firestore, client.path);
           updateDocumentNonBlocking(clientDocRef, updates);
         }
       });
@@ -157,11 +155,12 @@ export default function ClientsPage() {
   }, [clients, firestore]);
 
   const handleAddClient = (
-    client: Omit<Client, 'id' | 'status' | 'displayId' | 'trainingData'>
+    client: Omit<Client, 'id' | 'status' | 'displayId' | 'trainingData' | 'path'>
   ) => {
-    if (!clientsCollectionRef) return;
+    if (!firestore || !user) return;
+    const userClientsCollectionRef = collection(firestore, 'users', user.uid, 'clients');
     const displayId = generateDisplayId(clients, client.isEdu);
-    addDocumentNonBlocking(clientsCollectionRef, {
+    addDocumentNonBlocking(userClientsCollectionRef, {
       ...client,
       displayId,
       status: 'pending',
@@ -169,48 +168,32 @@ export default function ClientsPage() {
   };
 
   const handleUpdateClient = (
-    clientId: string,
-    client: Omit<Client, 'id' | 'status' | 'displayId'>
+    clientPath: string,
+    client: Omit<Client, 'id' | 'status' | 'displayId' | 'path'>
   ) => {
     if (!firestore) return;
-    const clientDocRef = doc(
-      firestore,
-      'clients',
-      clientId
-    );
+    const clientDocRef = doc(firestore, clientPath);
     updateDocumentNonBlocking(clientDocRef, client);
   };
   
-  const handleUpdateTrainingData = (clientId: string, trainingData: string) => {
+  const handleUpdateTrainingData = (clientPath: string, trainingData: string) => {
     if (!firestore) return;
-    const clientDocRef = doc(
-      firestore,
-      'clients',
-      clientId
-    );
+    const clientDocRef = doc(firestore, clientPath);
     updateDocumentNonBlocking(clientDocRef, { trainingData });
   }
 
   const handleUpdateClientStatus = (
-    clientId: string,
+    clientPath: string,
     status: 'active' | 'archived'
   ) => {
     if (!firestore) return;
-    const clientDocRef = doc(
-      firestore,
-      'clients',
-      clientId
-    );
+    const clientDocRef = doc(firestore, clientPath);
     updateDocumentNonBlocking(clientDocRef, { status });
   };
 
-  const handleDeleteClient = (clientId: string) => {
+  const handleDeleteClient = (clientPath: string) => {
     if (!firestore) return;
-    const clientDocRef = doc(
-      firestore,
-      'clients',
-      clientId
-    );
+    const clientDocRef = doc(firestore, clientPath);
     deleteDocumentNonBlocking(clientDocRef);
   };
 
@@ -233,9 +216,9 @@ export default function ClientsPage() {
 
   const ClientListItem = ({ client }: { client: Client }) => {
     const assetsCollectionRef = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'clients', client.id, 'assets');
-    }, [firestore, client.id]);
+        if (!firestore || !client.path) return null;
+        return collection(firestore, client.path, 'assets');
+    }, [firestore, client.path]);
     const { data: assets } = useCollection<Asset>(assetsCollectionRef);
     const hasAssets = assets && assets.length > 0;
 
@@ -270,7 +253,7 @@ export default function ClientsPage() {
                 </div>
             )}
             {hasAssets && client.status === 'active' && (
-                <ManageAssetsDialog client={{...client, path: `clients/${client.id}`}}>
+                <ManageAssetsDialog client={client}>
                     <Button variant="outline">
                         <Box className="mr-2"/>
                         Assets
@@ -290,7 +273,7 @@ export default function ClientsPage() {
                     {client.status === 'pending' && (
                         <>
                             <DropdownMenuItem asChild>
-                                <AddClientDialog clientToEdit={client} onEditClient={handleUpdateClient}>
+                                <AddClientDialog clientToEdit={client} onEditClient={(clientId, clientData) => handleUpdateClient(client.path!, clientData)}>
                                     <button className="w-full text-left">
                                     <Edit className="mr-2" />
                                     Edit Client
@@ -300,8 +283,8 @@ export default function ClientsPage() {
                             <DropdownMenuItem asChild>
                                 <ReviewClientDialog
                                     client={client}
-                                    onActivate={() => handleUpdateClientStatus(client.id, 'active')}
-                                    onReject={() => handleUpdateClientStatus(client.id, 'archived')}
+                                    onActivate={() => handleUpdateClientStatus(client.path!, 'active')}
+                                    onReject={() => handleUpdateClientStatus(client.path!, 'archived')}
                                     action="activate"
                                     triggerButton={<button className="w-full text-left"><Undo className="mr-2" />Review & Activate</button>}
                                 />
@@ -319,7 +302,7 @@ export default function ClientsPage() {
                                 </AddAssetDialog>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <SetupTrainerDialog client={client} onUpdateTrainingData={handleUpdateTrainingData}>
+                                <SetupTrainerDialog client={client} onUpdateTrainingData={(clientId, trainingData) => handleUpdateTrainingData(client.path!, trainingData)}>
                                     <button className="w-full text-left">
                                         <Wrench className="mr-2" />
                                         Setup Trainer
@@ -336,14 +319,14 @@ export default function ClientsPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                                <AddClientDialog clientToEdit={client} onEditClient={handleUpdateClient}>
+                                <AddClientDialog clientToEdit={client} onEditClient={(clientId, clientData) => handleUpdateClient(client.path!, clientData)}>
                                     <button className="w-full text-left">
                                         <Edit className="mr-2" />
                                         Edit Client
                                     </button>
                                 </AddClientDialog>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleUpdateClientStatus(client.id, 'archived')}>
+                            <DropdownMenuItem onSelect={() => handleUpdateClientStatus(client.path!, 'archived')}>
                                 <Archive className="mr-2" />
                                 Archive Client
                             </DropdownMenuItem>
@@ -363,14 +346,14 @@ export default function ClientsPage() {
                             <DropdownMenuItem asChild>
                                 <ReviewClientDialog
                                     client={client}
-                                    onActivate={() => handleUpdateClientStatus(client.id, 'active')}
+                                    onActivate={() => handleUpdateClientStatus(client.path!, 'active')}
                                     onReject={() => {}}
                                     action="reactivate"
                                     triggerButton={<button className="w-full text-left"><Undo className="mr-2" />Re-activate</button>}
                                 />
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => handleDeleteClient(client.id)} className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onSelect={() => handleDeleteClient(client.path!)} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2" />
                                 Delete Permanently
                             </DropdownMenuItem>

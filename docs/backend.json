@@ -170,75 +170,45 @@
             "$ref": "#/backend/entities/User"
           },
           "description": "Stores user profiles.",
-          "params": [
+          "subcollections": [
             {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}",
-        "definition": {
-          "entityName": "Client",
-          "schema": {
-            "$ref": "#/backend/entities/Client"
-          },
-          "description": "Stores all client data. This is a root-level collection.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}/assets/{assetId}",
-        "definition": {
-          "entityName": "Asset",
-          "schema": {
-            "$ref": "#/backend/entities/Asset"
-          },
-          "description": "Stores assets associated with a client. Includes `clientId` for authorization independence.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            },
-            {
-              "name": "assetId",
-              "description": "The unique identifier of the asset."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}/assets/{assetId}/timePunches/{timePunchId}",
-        "definition": {
-          "entityName": "TimePunch",
-          "schema": {
-            "$ref": "#/backend/entities/TimePunch"
-          },
-          "description": "Stores time punch data associated with an asset. Includes `clientId` and `assetId` for authorization independence.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            },
-            {
-              "name": "assetId",
-              "description": "The unique identifier of the asset."
-            },
-            {
-              "name": "timePunchId",
-              "description": "The unique identifier of the time punch."
+              "path": "/clients/{clientId}",
+              "definition": {
+                "entityName": "Client",
+                "schema": {
+                  "$ref": "#/backend/entities/Client"
+                },
+                "description": "Stores client data for a specific user.",
+                "subcollections": [
+                  {
+                    "path": "/assets/{assetId}",
+                    "definition": {
+                      "entityName": "Asset",
+                      "schema": {
+                        "$ref": "#/backend/entities/Asset"
+                      },
+                      "description": "Stores assets associated with a client.",
+                      "subcollections": [
+                        {
+                          "path": "/timePunches/{timePunchId}",
+                          "definition": {
+                            "entityName": "TimePunch",
+                            "schema": {
+                              "$ref": "#/backend/entities/TimePunch"
+                            },
+                            "description": "Stores time punch data associated with an asset."
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to be globally accessible for admins. The `clients` collection is at the root level. All related data (assets, time punches) are nested under their respective client documents. The `users` collection is separate and used only for user profile management."
+    "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
