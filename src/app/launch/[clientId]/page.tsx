@@ -19,6 +19,7 @@ import {
   getDocs,
   doc,
   getDoc,
+  collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
 import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare } from 'lucide-react';
@@ -93,7 +94,7 @@ export default function ClientLaunchPage() {
       setIsLoading(true);
       try {
         const clientQuery = query(
-          collection(firestore, 'clients'),
+          collectionGroup(firestore, 'clients'),
           where('displayId', '==', clientId)
         );
         const querySnapshot = await getDocs(clientQuery);
@@ -247,7 +248,7 @@ export default function ClientLaunchPage() {
     
     // Filter out 'Project Hub' from assets to avoid duplication
     const customAssets = assets?.filter(asset => !asset.title.includes('Project Hub')) || [];
-    const hasCustomAssets = customAssets.length > 0 || showProjectHub;
+    const hasCustomAssets = customAssets.length > 0;
 
 
     if (stage === 'login') {
@@ -347,13 +348,12 @@ export default function ClientLaunchPage() {
                   </div>
                 )}
                 
-                {hasCustomAssets && (
-                    <div className="space-y-4 pt-6">
+                {(hasCustomAssets || showProjectHub) && (
+                    <div className="space-y-4">
                         <div className="grid gap-6 md:grid-cols-2">
                         {customAssets.map(asset => {
                            const isOpac = asset.title.includes('OPAC');
                            const isTimePunch = asset.title.includes('Time Punch');
-                           if (!isOpac && !isTimePunch) return null;
 
                            let Icon = Code;
                            let buttonText = 'Open';
@@ -377,7 +377,7 @@ export default function ClientLaunchPage() {
                                     <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-6" /></div>
                                     <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
                                 </div>
-                                {asset.title !== 'Time Punch' && <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>}
+                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
                                 </CardHeader>
                                 <CardFooter>
                                     <Button onClick={action}>
@@ -394,6 +394,7 @@ export default function ClientLaunchPage() {
                                   <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><GanttChartSquare className="size-6" /></div>
                                   <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
                               </div>
+                              <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage custom data projects and import spreadsheet data.</CardDescription>
                               </CardHeader>
                               <CardFooter>
                                   <Button onClick={() => setIsProjectHubOpen(true)}>

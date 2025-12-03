@@ -1,0 +1,277 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the HTBase portal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date and time when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Date and time when the user account was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a white-label client using the HTBase platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL to the client's logo image.",
+          "format": "uri"
+        },
+        "primaryColor": {
+          "type": "string",
+          "description": "Primary color code for the client's branding (e.g., hex code)."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User who created the client."
+        },
+        "tagline": {
+          "type": "string",
+          "description": "Tagline of the client."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "userId"
+      ]
+    },
+    "Asset": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Asset",
+      "type": "object",
+      "description": "Represents an digital asset associated with a client.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the asset entity."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N Asset)"
+        },
+        "assetName": {
+          "type": "string",
+          "description": "Name of the asset."
+        },
+        "assetUrl": {
+          "type": "string",
+          "description": "location of the digital asset.",
+          "format": "uri"
+        },
+        "assetType": {
+          "type": "string",
+          "description": "Type of the digital asset."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "assetName",
+        "assetUrl",
+        "assetType"
+      ]
+    },
+    "TimePunch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TimePunch",
+      "type": "object",
+      "description": "Represents a time punch tracking for a client and their assets.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the time punch entity."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N TimePunch)"
+        },
+        "assetId": {
+          "type": "string",
+          "description": "Reference to Asset. (Relationship: Asset 1:N TimePunch)"
+        },
+        "punchInTime": {
+          "type": "string",
+          "description": "Time the time punch was initiated.",
+          "format": "date-time"
+        },
+        "punchOutTime": {
+          "type": "string",
+          "description": "Time the time punch was ended.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of work completed during a punch-out event."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "assetId",
+        "punchInTime"
+      ]
+    },
+    "Project": {
+      "title": "Project",
+      "type": "object",
+      "description": "Represents a data project for a client, containing multiple items.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["id", "name", "createdAt", "columns"]
+    },
+    "ProjectItem": {
+      "title": "Project Item",
+      "type": "object",
+      "description": "A single data entry within a project.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["id", "data"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles.",
+          "subcollections": [
+            {
+              "path": "/clients/{clientId}",
+              "definition": {
+                "entityName": "Client",
+                "schema": {
+                  "$ref": "#/backend/entities/Client"
+                },
+                "description": "Stores client data for a specific user.",
+                "subcollections": [
+                  {
+                    "path": "/assets/{assetId}",
+                    "definition": {
+                      "entityName": "Asset",
+                      "schema": {
+                        "$ref": "#/backend/entities/Asset"
+                      },
+                      "description": "Stores assets associated with a client.",
+                      "subcollections": [
+                        {
+                          "path": "/timePunches/{timePunchId}",
+                          "definition": {
+                            "entityName": "TimePunch",
+                            "schema": {
+                              "$ref": "#/backend/entities/TimePunch"
+                            },
+                            "description": "Stores time punch data associated with an asset."
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "path": "/projects/{projectId}",
+                    "definition": {
+                      "entityName": "Project",
+                      "schema": { "$ref": "#/backend/entities/Project" },
+                      "description": "Data projects for a client.",
+                      "subcollections": [
+                        {
+                          "path": "/items/{itemId}",
+                          "definition": {
+                            "entityName": "ProjectItem",
+                            "schema": { "$ref": "#/backend/entities/ProjectItem" },
+                            "description": "Items within a project."
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
+  }
+}
