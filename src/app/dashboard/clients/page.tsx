@@ -171,28 +171,28 @@ export default function ClientsPage() {
     clientPath: string,
     client: Omit<Client, 'id' | 'status' | 'displayId' | 'path'>
   ) => {
-    if (!firestore) return;
+    if (!firestore || !clientPath) return;
     const clientDocRef = doc(firestore, clientPath);
     updateDocumentNonBlocking(clientDocRef, client);
   };
   
   const handleUpdateTrainingData = (clientPath: string, trainingData: string) => {
-    if (!firestore) return;
+    if (!firestore || !clientPath) return;
     const clientDocRef = doc(firestore, clientPath);
     updateDocumentNonBlocking(clientDocRef, { trainingData });
-  }
+  };
 
   const handleUpdateClientStatus = (
     clientPath: string,
     status: 'active' | 'archived'
   ) => {
-    if (!firestore) return;
+    if (!firestore || !clientPath) return;
     const clientDocRef = doc(firestore, clientPath);
     updateDocumentNonBlocking(clientDocRef, { status });
   };
 
   const handleDeleteClient = (clientPath: string) => {
-    if (!firestore) return;
+    if (!firestore || !clientPath) return;
     const clientDocRef = doc(firestore, clientPath);
     deleteDocumentNonBlocking(clientDocRef);
   };
@@ -247,7 +247,7 @@ export default function ClientsPage() {
             </p>
         </div>
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto">
-            {client.status === 'active' && (
+            {client.status === 'active' && client.displayId && (
                 <div className="flex items-center gap-2 w-full">
                     <PortalLink displayId={client.displayId} />
                 </div>
@@ -273,7 +273,7 @@ export default function ClientsPage() {
                     {client.status === 'pending' && (
                         <>
                             <DropdownMenuItem asChild>
-                                <AddClientDialog clientToEdit={client} onEditClient={(clientId, clientData) => handleUpdateClient(client.path!, clientData)}>
+                                <AddClientDialog clientToEdit={client} onEditClient={(clientId, clientData) => handleUpdateClient(client.path, clientData)}>
                                     <button className="w-full text-left">
                                     <Edit className="mr-2" />
                                     Edit Client
@@ -283,8 +283,8 @@ export default function ClientsPage() {
                             <DropdownMenuItem asChild>
                                 <ReviewClientDialog
                                     client={client}
-                                    onActivate={() => handleUpdateClientStatus(client.path!, 'active')}
-                                    onReject={() => handleUpdateClientStatus(client.path!, 'archived')}
+                                    onActivate={() => handleUpdateClientStatus(client.path, 'active')}
+                                    onReject={() => handleUpdateClientStatus(client.path, 'archived')}
                                     action="activate"
                                     triggerButton={<button className="w-full text-left"><Undo className="mr-2" />Review & Activate</button>}
                                 />
@@ -302,7 +302,7 @@ export default function ClientsPage() {
                                 </AddAssetDialog>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <SetupTrainerDialog client={client} onUpdateTrainingData={(clientId, trainingData) => handleUpdateTrainingData(client.path!, trainingData)}>
+                                <SetupTrainerDialog client={client} onUpdateTrainingData={(clientId, trainingData) => handleUpdateTrainingData(client.path, trainingData)}>
                                     <button className="w-full text-left">
                                         <Wrench className="mr-2" />
                                         Setup Trainer
@@ -319,14 +319,14 @@ export default function ClientsPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                                <AddClientDialog clientToEdit={client} onEditClient={(clientId, clientData) => handleUpdateClient(client.path!, clientData)}>
+                                <AddClientDialog clientToEdit={client} onEditClient={(clientId, clientData) => handleUpdateClient(client.path, clientData)}>
                                     <button className="w-full text-left">
                                         <Edit className="mr-2" />
                                         Edit Client
                                     </button>
                                 </AddClientDialog>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleUpdateClientStatus(client.path!, 'archived')}>
+                            <DropdownMenuItem onSelect={() => handleUpdateClientStatus(client.path, 'archived')}>
                                 <Archive className="mr-2" />
                                 Archive Client
                             </DropdownMenuItem>
@@ -346,14 +346,14 @@ export default function ClientsPage() {
                             <DropdownMenuItem asChild>
                                 <ReviewClientDialog
                                     client={client}
-                                    onActivate={() => handleUpdateClientStatus(client.path!, 'active')}
+                                    onActivate={() => handleUpdateClientStatus(client.path, 'active')}
                                     onReject={() => {}}
                                     action="reactivate"
                                     triggerButton={<button className="w-full text-left"><Undo className="mr-2" />Re-activate</button>}
                                 />
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => handleDeleteClient(client.path!)} className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem onSelect={() => handleDeleteClient(client.path)} className="text-destructive focus:text-destructive">
                                 <Trash2 className="mr-2" />
                                 Delete Permanently
                             </DropdownMenuItem>
