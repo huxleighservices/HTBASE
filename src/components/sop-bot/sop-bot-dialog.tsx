@@ -154,6 +154,13 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
     setActiveTab('write');
   };
 
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setSelectedSop(null);
+    sopForm.reset();
+    setActiveTab('view');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
@@ -233,11 +240,6 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                     </div>
                 )}
               </CardContent>
-              <CardFooter>
-                 <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                </DialogClose>
-              </CardFooter>
             </Card>
           </TabsContent>
 
@@ -267,13 +269,6 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                                 </FormItem>
                             )} />
                         </CardContent>
-                         <CardFooter className="justify-end gap-2">
-                             {isEditing && <Button type="button" variant="ghost" onClick={() => {setIsEditing(false); setSelectedSop(null); sopForm.reset(); setActiveTab('view'); }}>Cancel Edit</Button>}
-                             <DialogClose asChild>
-                                <Button type="button" variant="outline">Cancel</Button>
-                            </DialogClose>
-                            <Button type="submit">{isEditing ? 'Save Changes' : 'Create Section'}</Button>
-                        </CardFooter>
                     </Card>
                 </form>
             </Form>
@@ -337,6 +332,17 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
              </Card>
           </TabsContent>
         </Tabs>
+        <DialogFooter className="pt-4">
+            <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+            {activeTab === 'write' && isEditing && (
+                <Button variant="secondary" onClick={cancelEdit}>Cancel Edit</Button>
+            )}
+            {activeTab === 'write' && (
+                <Button onClick={sopForm.handleSubmit(isEditing ? handleUpdateSop : handleCreateSop)}>
+                    {isEditing ? 'Save Changes' : 'Create Section'}
+                </Button>
+            )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
