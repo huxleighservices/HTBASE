@@ -290,7 +290,7 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                             <AvatarFallback><Bot className="h-4 w-4" /></AvatarFallback>
                           </Avatar>
                         )}
-                        <div className={cn("max-w-lg rounded-lg p-3", msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                        <div className={cn("max-w-lg rounded-lg p-3", msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background')}>
                           <p className="whitespace-pre-wrap">{msg.text}</p>
                         </div>
                         {msg.role === 'user' && (
