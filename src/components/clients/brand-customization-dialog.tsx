@@ -167,15 +167,9 @@ export function BrandCustomizationDialog({
   const { toast } = useToast();
 
   const customizationDocRef = useMemoFirebase(() => {
-    if (!firestore || !client) return null;
-    return doc(
-      firestore,
-      'clients',
-      client.id,
-      'customization',
-      'config'
-    );
-  }, [firestore, client]);
+    if (!firestore || !client?.path) return null;
+    return doc(firestore, client.path, 'customization', 'config');
+  }, [firestore, client.path]);
 
   const {
     data: customization,
