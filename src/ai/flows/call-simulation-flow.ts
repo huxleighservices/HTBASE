@@ -20,7 +20,7 @@ const CallPersonaSchema = z.object({
 
 const CallConversationMessageSchema = z.object({
     role: z.enum(['user', 'assistant']),
-    content: z.string(),
+    text: z.string(),
 });
 
 const CallSimulationFlowInputSchema = z.object({
@@ -69,7 +69,7 @@ YOUR PERSONA:
 
 CONVERSATION HISTORY (so far):
 {{#each conversationHistory}}
--   {{role}}: {{{content}}}
+-   {{role}}: {{{text}}}
 {{/each}}
 
 YOUR TASK:
@@ -123,9 +123,5 @@ const callSimulationFlow = ai.defineFlow(
 );
 
 export async function runCallSimulation(input: CallSimulationInput): Promise<SimulationOutput> {
-  const convertedHistory = input.conversationHistory.map(m => ({ role: m.role, content: m.text }));
-  return callSimulationFlow({
-    ...input,
-    conversationHistory: convertedHistory,
-  });
+  return callSimulationFlow(input);
 }

@@ -69,7 +69,7 @@ export async function runQualificationSimulation(input: z.infer<typeof Simulatio
   } else {
     const response = await ai.generate({
       prompt: `Conversation History:
-      ${conversationHistory.map(m => `${mRole}: ${m.content}`).join('\n')}
+      ${conversationHistory.map(m => `${m.role}: ${m.content}`).join('\n')}
       user: ${conversationHistory[conversationHistory.length - 1].content}
       
       Based on the persona for difficulty '${difficulty}', generate the prospect's response.`,
