@@ -250,7 +250,7 @@ export default function ClientLaunchPage() {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.isEdu !== true;
-    const isSunmmuClient = client?.displayId === 'SUNMMU';
+    const isSopBotClient = client?.displayId === '4WK21Y';
     const hasAssets = assets && assets.length > 0;
 
     const getAssetIcon = (title: string) => {
@@ -374,7 +374,7 @@ export default function ClientLaunchPage() {
                     </>
                     )}
 
-                    {isSunmmuClient && (
+                    {isSopBotClient && (
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center gap-3">
@@ -428,7 +428,7 @@ export default function ClientLaunchPage() {
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
           {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
-          {client && isSunmmuClient && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
+          {client && isSopBotClient && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
