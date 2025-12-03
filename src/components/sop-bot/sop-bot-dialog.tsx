@@ -28,6 +28,19 @@ import { Loader2, Bot, Book, PenSquare, Eye, BrainCircuit, Trash2, Send, PlusCir
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { answerSopQuestion } from '@/ai/flows/sop-bot-flow';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { cn } from '@/lib/utils';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+  } from "@/components/ui/alert-dialog"
 
 type SopBotDialogProps = {
   open: boolean;
@@ -156,7 +169,11 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                 {areSopsLoading ? (
                     <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>
                 ) : !sops || sops.length === 0 ? (
-                    <p className="text-muted-foreground text-center">No SOPs found. Go to "Write" mode to create one.</p>
+                    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-8 rounded-lg border-2 border-dashed">
+                        <Book className="w-12 h-12 mb-4"/>
+                        <h3 className="font-semibold text-lg">No SOPs Found</h3>
+                        <p>Go to "Write" mode to create your first SOP section.</p>
+                    </div>
                 ) : (
                     <div className="space-y-4">
                         {sops.map(sop => (
@@ -166,7 +183,21 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                                         {sop.title}
                                         <div className="space-x-1">
                                             <Button variant="ghost" size="icon" onClick={() => startEditing(sop)}><PenSquare className="h-4 w-4" /></Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteSop(sop)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                        <AlertDialogDescription>This action will permanently delete the "{sop.title}" section.</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteSop(sop)} className={cn("bg-destructive text-destructive-foreground hover:bg-destructive/90")}>Delete</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </div>
                                     </CardTitle>
                                 </CardHeader>
@@ -223,24 +254,37 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                     <CardDescription>Ask the SOP Bot a question about your procedures.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow overflow-y-auto">
-                    <div className="space-y-4">
-                        {learnConversation.map((msg, index) => (
-                            <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                                {msg.role === 'assistant' && <div className="p-2 rounded-full bg-primary/20 text-primary"><Bot className="h-5 w-5" /></div>}
-                                <div className={`max-w-lg rounded-lg p-3 ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                                    <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
+                    <ScrollArea className="h-full pr-4 -mr-4">
+                        <div className="space-y-4">
+                            {learnConversation.map((msg, index) => (
+                                <div key={index} className={cn("flex items-start gap-3 text-sm", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                                    {msg.role === 'assistant' && (
+                                        <Avatar className="w-8 h-8 border-2 border-primary">
+                                            <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
+                                        </Avatar>
+                                    )}
+                                    <div className={cn("max-w-lg rounded-lg p-3", msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                    </div>
+                                     {msg.role === 'user' && (
+                                        <Avatar className="w-8 h-8 border-2 border-muted-foreground">
+                                            <AvatarFallback>You</AvatarFallback>
+                                        </Avatar>
+                                    )}
                                 </div>
-                            </div>
-                        ))}
-                         {isAnswering && (
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 rounded-full bg-primary/20 text-primary"><Bot className="h-5 w-5" /></div>
-                                <div className="max-w-lg rounded-lg p-3 bg-muted flex items-center">
-                                    <Loader2 className="animate-spin h-5 w-5"/>
+                            ))}
+                             {isAnswering && (
+                                <div className="flex items-start gap-3">
+                                    <Avatar className="w-8 h-8 border-2 border-primary">
+                                        <AvatarFallback><Bot className="h-4 w-4"/></AvatarFallback>
+                                    </Avatar>
+                                    <div className="max-w-lg rounded-lg p-3 bg-muted flex items-center">
+                                        <Loader2 className="animate-spin h-5 w-5"/>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    </ScrollArea>
                 </CardContent>
                 <CardContent className="border-t pt-6">
                     <Form {...learnForm}>
@@ -253,8 +297,8 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <Button type="submit" disabled={isAnswering}>
-                                {isAnswering ? <Loader2 className="animate-spin" /> : <Send />}
+                            <Button type="submit" disabled={isAnswering} size="icon">
+                                {isAnswering ? <Loader2 className="animate-spin h-4 w-4" /> : <Send className="h-4 w-4" />}
                             </Button>
                         </form>
                     </Form>
