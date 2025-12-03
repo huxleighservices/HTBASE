@@ -102,13 +102,13 @@ export default function ClientLaunchPage() {
         if (!querySnapshot.empty) {
           const clientDoc = querySnapshot.docs[0];
           const fetchedClient = {
-            ...(clientDoc.data() as Omit<Client, 'id'>),
+            ...(clientDoc.data() as Omit<Client, 'id' | 'path'>),
             id: clientDoc.id,
             path: clientDoc.ref.path,
           };
           setClient(fetchedClient);
 
-          const customizationRef = doc(firestore, clientDoc.ref.path, 'customization', 'config');
+          const customizationRef = doc(firestore, fetchedClient.path, 'customization', 'config');
           const customizationSnap = await getDoc(customizationRef);
 
           if (customizationSnap.exists()) {
@@ -442,5 +442,3 @@ export default function ClientLaunchPage() {
     </main>
   );
 }
-
-    
