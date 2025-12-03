@@ -195,7 +195,7 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                 <TabsContent value="view" className="h-full m-0">
                     <Card className="h-full flex flex-col">
                     <CardHeader><CardTitle>All SOP Sections</CardTitle></CardHeader>
-                    <CardContent className="flex-grow overflow-y-auto">
+                    <CardContent className="flex-grow overflow-y-auto min-h-0">
                         {areSopsLoading ? (
                             <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>
                         ) : !sops || sops.length === 0 ? (
@@ -232,7 +232,7 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            <ScrollArea className="h-40 rounded-md border p-4 bg-muted/20">
+                                            <ScrollArea className="h-80 rounded-md border p-4 bg-muted/20">
                                                 <p className="whitespace-pre-wrap text-sm">{sop.content}</p>
                                             </ScrollArea>
                                         </CardContent>
@@ -247,12 +247,12 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                 <TabsContent value="write" className="h-full m-0">
                     <Form {...sopForm}>
                         <form onSubmit={sopForm.handleSubmit(isEditing ? handleUpdateSop : handleCreateSop)} className="h-full flex flex-col">
-                            <Card className="flex-grow flex flex-col">
+                            <Card className="flex-grow flex flex-col min-h-0">
                                 <CardHeader>
                                     <CardTitle>{isEditing ? `Editing: ${selectedSop?.title}` : 'Create New SOP Section'}</CardTitle>
                                     <CardDescription>{isEditing ? 'Modify the details below and save your changes.' : 'Add a new titled section to your SOPs.'}</CardDescription>
                                 </CardHeader>
-                                <CardContent className="space-y-4 flex-grow flex flex-col">
+                                <CardContent className="space-y-4 flex-grow flex flex-col min-h-0">
                                     <FormField control={sopForm.control} name="title" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Section Title</FormLabel>
@@ -281,7 +281,7 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
                             <CardTitle>Learn Mode</CardTitle>
                             <CardDescription>Ask the SOP Bot a question about your procedures.</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-grow overflow-y-auto pr-4">
+                        <CardContent className="flex-grow overflow-y-auto pr-4 min-h-0">
                             <div className="h-full space-y-4">
                                 {learnConversation.map((msg, index) => (
                                     <div key={index} className={cn("flex items-start gap-3 text-sm", msg.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -335,16 +335,21 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
             </div>
         </Tabs>
         <DialogFooter className="pt-4 shrink-0">
-            <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
             {activeTab === 'write' && (
-                <>
-                {isEditing && (
-                    <Button variant="secondary" onClick={cancelEdit}>Cancel Edit</Button>
-                )}
-                <Button onClick={sopForm.handleSubmit(isEditing ? handleUpdateSop : handleCreateSop)}>
-                    {isEditing ? 'Save Changes' : 'Create Section'}
-                </Button>
-                </>
+                <div className="flex w-full justify-between">
+                    {isEditing ? (
+                        <Button variant="secondary" onClick={cancelEdit}>Cancel Edit</Button>
+                    ) : <div></div>}
+                    <div className="flex gap-2">
+                         <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
+                        <Button onClick={sopForm.handleSubmit(isEditing ? handleUpdateSop : handleCreateSop)}>
+                            {isEditing ? 'Save Changes' : 'Create Section'}
+                        </Button>
+                    </div>
+                </div>
+            )}
+             {(activeTab === 'view' || activeTab === 'learn') && (
+                <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
             )}
         </DialogFooter>
       </DialogContent>
