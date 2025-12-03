@@ -250,13 +250,13 @@ export default function ClientLaunchPage() {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.isEdu !== true;
-    const isSopBotClient = client?.displayId === '4WK21Y';
     const hasAssets = assets && assets.length > 0;
 
     const getAssetIcon = (title: string) => {
         if (title.includes('OPAC')) return <Database className="size-6" />;
         if (title.includes('Time Punch')) return <Timer className="size-6" />;
         if (title.includes('Project Hub')) return <GanttChartSquare className="size-6" />;
+        if (title.includes('SOP Bot')) return <Bot className="size-6" />;
         return <Code className="size-6" />;
     };
     
@@ -264,6 +264,7 @@ export default function ClientLaunchPage() {
         if (asset.title.includes('OPAC')) return () => setIsOpacTrackerOpen(true);
         if (asset.title.includes('Time Punch')) return () => setIsTimePunchOpen(true);
         if (asset.title.includes('Project Hub')) return () => setIsProjectHubOpen(true);
+        if (asset.title.includes('SOP Bot')) return () => setIsSopBotOpen(true);
         return () => {};
     };
 
@@ -271,6 +272,7 @@ export default function ClientLaunchPage() {
         if (title.includes('OPAC')) return 'Open Tracker';
         if (title.includes('Time Punch')) return 'Open Time Punch';
         if (title.includes('Project Hub')) return 'Open Hub';
+        if (title.includes('SOP Bot')) return 'Open SOP Bot';
         return 'Open';
     }
 
@@ -374,21 +376,6 @@ export default function ClientLaunchPage() {
                     </>
                     )}
 
-                    {isSopBotClient && (
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Bot className="size-6" /></div>
-                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>SOP Bot</CardTitle>
-                                </div>
-                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Create, view, and ask questions about your Standard Operating Procedures.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button onClick={() => setIsSopBotOpen(true)}>Open SOP Bot</Button>
-                            </CardFooter>
-                        </Card>
-                    )}
-
                     {hasAssets && assets.map(asset => (
                         <Card key={asset.id}>
                             <CardHeader>
@@ -428,7 +415,7 @@ export default function ClientLaunchPage() {
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
           {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
-          {client && isSopBotClient && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
+          {client && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
