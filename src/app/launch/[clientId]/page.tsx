@@ -94,7 +94,7 @@ export default function ClientLaunchPage() {
       setIsLoading(true);
       try {
         const clientQuery = query(
-          collection(firestore, 'clients'),
+          collectionGroup(firestore, 'clients'),
           where('displayId', '==', clientId)
         );
         const querySnapshot = await getDocs(clientQuery);
@@ -108,7 +108,7 @@ export default function ClientLaunchPage() {
           };
           setClient(fetchedClient);
 
-          const customizationRef = doc(firestore, 'clients', clientDoc.id, 'customization', 'config');
+          const customizationRef = doc(firestore, clientDoc.ref.path, 'customization', 'config');
           const customizationSnap = await getDoc(customizationRef);
 
           if (customizationSnap.exists()) {
