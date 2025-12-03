@@ -68,7 +68,7 @@ YOUR PERSONA:
 
 CONVERSATION HISTORY (so far):
 {{#each conversationHistory}}
--   {{role}}: {{{content}}}
+-   {{role}}: {{content}}
 {{/each}}
 
 YOUR TASK:
@@ -122,5 +122,10 @@ const callSimulationFlow = ai.defineFlow(
 );
 
 export async function runCallSimulation(input: CallSimulationInput): Promise<SimulationOutput> {
-  return callSimulationFlow(input);
+  // Map the input from the component to what the flow expects
+  const flowInput: z.infer<typeof CallSimulationFlowInputSchema> = {
+    ...input,
+    conversationHistory: input.conversationHistory.map(m => ({role: m.role, content: m.text}))
+  };
+  return callSimulationFlow(flowInput);
 }
