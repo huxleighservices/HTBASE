@@ -156,10 +156,25 @@ export function SopBotDialog({ open, onOpenChange, client }: SopBotDialogProps) 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col min-h-0">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="view"><Eye className="mr-2" /> View</TabsTrigger>
-            <TabsTrigger value="write"><PenSquare className="mr-2" /> {isEditing ? 'Edit' : 'Write'}</TabsTrigger>
-            <TabsTrigger value="learn"><BrainCircuit className="mr-2" /> Learn</TabsTrigger>
+          <TabsList className="bg-transparent p-0 justify-start gap-2">
+            <TabsTrigger 
+              value="view" 
+              className="rounded-full border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none"
+            >
+              <Eye className="mr-2" /> View
+            </TabsTrigger>
+            <TabsTrigger 
+              value="write"
+              className="rounded-full border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none"
+            >
+              <PenSquare className="mr-2" /> {isEditing ? 'Edit' : 'Write'}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="learn"
+              className="rounded-full border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none"
+            >
+              <BrainCircuit className="mr-2" /> Learn
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="view" className="flex-grow mt-4 overflow-hidden">
