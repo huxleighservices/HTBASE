@@ -243,12 +243,29 @@ export default function ClientLaunchPage() {
   const renderContent = () => {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
-    const isSalesClient = client?.displayId !== 'HG5DR6';
-    const showProjectHub = client?.displayId === 'HG5DR6';
+    const isSalesClient = client?.isEdu !== true;
+    const hasAssets = assets && assets.length > 0;
+
+    const getAssetIcon = (title: string) => {
+        if (title.includes('OPAC')) return <Database className="size-6" />;
+        if (title.includes('Time Punch')) return <Timer className="size-6" />;
+        if (title.includes('Project Hub')) return <GanttChartSquare className="size-6" />;
+        return <Code className="size-6" />;
+    };
     
-    // Filter out 'Project Hub' from assets to avoid duplication
-    const customAssets = assets?.filter(asset => !asset.title.includes('Project Hub')) || [];
-    const hasCustomAssets = customAssets.length > 0;
+    const getAssetAction = (asset: Asset) => {
+        if (asset.title.includes('OPAC')) return () => setIsOpacTrackerOpen(true);
+        if (asset.title.includes('Time Punch')) return () => setIsTimePunchOpen(true);
+        if (asset.title.includes('Project Hub')) return () => setIsProjectHubOpen(true);
+        return () => {};
+    };
+
+    const getAssetButtonText = (title: string) => {
+        if (title.includes('OPAC')) return 'Open Tracker';
+        if (title.includes('Time Punch')) return 'Open Time Punch';
+        if (title.includes('Project Hub')) return 'Open Hub';
+        return 'Open';
+    }
 
 
     if (stage === 'login') {
@@ -319,95 +336,62 @@ export default function ClientLaunchPage() {
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
-                {isSalesClient && (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
-                          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
-                        </div>
-                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
-                      </CardHeader>
-                      <CardFooter>
-                         <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
-                      </CardFooter>
-                    </Card>
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
-                          <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
-                        </div>
-                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
-                      </CardHeader>
-                      <CardFooter>
-                         <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
-                      </CardFooter>
-                    </Card>
-                  </div>
-                )}
                 
-                {(hasCustomAssets || showProjectHub) && (
-                    <div className="grid gap-6 md:grid-cols-2">
-                    {customAssets.map(asset => {
-                        const isOpac = asset.title.includes('OPAC');
-                        const isTimePunch = asset.title.includes('Time Punch');
+                <div className="grid gap-6 md:grid-cols-2">
+                    {isSalesClient && (
+                    <>
+                        <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
+                            </div>
+                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                            <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
+                        </CardFooter>
+                        </Card>
+                        <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
+                            </div>
+                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                            <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
+                        </CardFooter>
+                        </Card>
+                    </>
+                    )}
 
-                        let Icon = Code;
-                        let buttonText = 'Open';
-                        let action = () => {};
-
-                        if (isOpac) {
-                        Icon = Database;
-                        buttonText = 'Open Tracker';
-                        action = () => setIsOpacTrackerOpen(true);
-                        }
-                        if (isTimePunch) {
-                        Icon = Timer;
-                        buttonText = 'Open Time Punch';
-                        action = () => setIsTimePunchOpen(true);
-                        }
-
-                        return (
+                    {hasAssets && assets.map(asset => (
                         <Card key={asset.id}>
                             <CardHeader>
                             <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-6" /></div>
+                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    {getAssetIcon(asset.title)}
+                                </div>
                                 <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
                             </div>
                             <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
                             </CardHeader>
                             <CardFooter>
-                                <Button onClick={action}>
-                                    {buttonText}
+                                <Button onClick={getAssetAction(asset)}>
+                                    {getAssetButtonText(asset.title)}
                                 </Button>
                             </CardFooter>
                         </Card>
-                        );
-                    })}
-                    {showProjectHub && (
-                        <Card>
-                            <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><GanttChartSquare className="size-6" /></div>
-                                <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Project Hub</CardTitle>
-                            </div>
-                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage custom data projects and import spreadsheet data.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button onClick={() => setIsProjectHubOpen(true)}>
-                                    Open Hub
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    )}
+                    ))}
+                </div>
+                
+                {isSalesClient && (
+                    <div className="pt-6">
+                    <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
                     </div>
                 )}
-
-                <div className="pt-6">
-                  <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
-                </div>
               </CardContent>
               <CardFooter className="justify-center">
                  <Button variant="link" onClick={handleLogout} className={cn(customization?.foregroundColor && 'text-foreground')}>
