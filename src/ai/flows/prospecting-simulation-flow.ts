@@ -25,12 +25,6 @@ const SimulationFeedbackSchema = z.object({
   areasForImprovement: z.array(z.string()).describe('A list of specific areas where the user can improve.'),
 });
 
-const SimulationResponseSchema = z.object({
-  response: z.string().nullable().describe('The AI\'s response to the user. Null if the simulation is complete.'),
-  feedback: SimulationFeedbackSchema.nullable().describe('Feedback on the user\'s performance. Null if the simulation is not yet complete.'),
-  isComplete: z.boolean().describe('Whether the simulation is complete.'),
-});
-
 export async function runProspectingSimulation(input: z.infer<typeof SimulationInputSchema>): Promise<ProspectingSimulationOutput> {
   const { difficulty, conversationHistory, trainingData } = input;
   const userMessageCount = conversationHistory.filter(m => m.role === 'user').length;
@@ -96,5 +90,3 @@ export async function runProspectingSimulation(input: z.infer<typeof SimulationI
     };
   }
 }
-
-    

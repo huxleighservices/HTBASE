@@ -87,5 +87,3 @@ export async function runProposalSimulation(input: z.infer<typeof SimulationInpu
     };
   }
 }
-
-    

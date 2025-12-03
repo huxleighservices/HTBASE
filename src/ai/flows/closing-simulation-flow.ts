@@ -88,5 +88,3 @@ export async function runClosingSimulation(input: z.infer<typeof SimulationInput
     };
   }
 }
-
-    

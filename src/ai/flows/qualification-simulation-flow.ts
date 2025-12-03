@@ -87,5 +87,3 @@ export async function runQualificationSimulation(input: z.infer<typeof Simulatio
     };
   }
 }
-
-    
