@@ -39,10 +39,11 @@ type Stage = 'paste' | 'map' | 'confirm';
 const customerFields: (keyof Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>)[] = [
   'firstName',
   'lastName',
-  'formerCompany',
+  'franchise',
+  'writingAgent',
   'planDetails',
-  'dateLeft',
   'phoneNumber',
+  'policyFaceAmount',
   'extraInfo',
 ];
 
@@ -98,6 +99,9 @@ export function BulkAddCustomersDialog({
         if (lowerCell.includes('first')) newColumnMap[index] = 'firstName';
         else if (lowerCell.includes('last')) newColumnMap[index] = 'lastName';
         else if (lowerCell.includes('phone')) newColumnMap[index] = 'phoneNumber';
+        else if (lowerCell.includes('franchise')) newColumnMap[index] = 'franchise';
+        else if (lowerCell.includes('writingagent')) newColumnMap[index] = 'writingAgent';
+        else if (lowerCell.includes('policyface')) newColumnMap[index] = 'policyFaceAmount';
         else newColumnMap[index] = 'ignore';
     });
     setColumnMap(newColumnMap);

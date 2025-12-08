@@ -103,10 +103,11 @@ export function NotesDialog({
             <div className="space-y-4">
                 <CustomerDetail label="First Name" value={customer.firstName} />
                 <CustomerDetail label="Last Name" value={customer.lastName} />
-                <CustomerDetail label="Former Company" value={customer.formerCompany} />
+                <CustomerDetail label="Franchise" value={customer.franchise} />
+                <CustomerDetail label="Writing Agent" value={customer.writingAgent} />
                 <CustomerDetail label="Plan Details / Code" value={customer.planDetails} />
-                <CustomerDetail label="Date Left" value={customer.dateLeft} />
                 <CustomerDetail label="Phone Number" value={customer.phoneNumber} />
+                <CustomerDetail label="Policy Face $" value={customer.policyFaceAmount} />
                 <div>
                      <p className="text-sm font-medium text-muted-foreground">Extra Info</p>
                      <div className="text-base p-2 border rounded-md min-h-20 bg-muted/50 whitespace-pre-wrap">{customer.extraInfo || 'N/A'}</div>

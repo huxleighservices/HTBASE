@@ -34,12 +34,13 @@ import { Loader2 } from 'lucide-react';
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  formerCompany: z.string().optional(),
+  franchise: z.string().optional(),
+  writingAgent: z.string().optional(),
   planDetails: z.string().optional(),
-  dateLeft: z.string().optional(),
   phoneNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), {
     message: "Phone number must be exactly 10 digits.",
   }),
+  policyFaceAmount: z.string().optional(),
   extraInfo: z.string().optional(),
 });
 
@@ -77,10 +78,11 @@ export function EditOpaCustomerDialog({
       form.reset({
         firstName: customer.firstName || '',
         lastName: customer.lastName || '',
-        formerCompany: customer.formerCompany || '',
+        franchise: customer.franchise || '',
+        writingAgent: customer.writingAgent || '',
         planDetails: customer.planDetails || '',
-        dateLeft: customer.dateLeft || '',
         phoneNumber: customer.phoneNumber || '',
+        policyFaceAmount: customer.policyFaceAmount || '',
         extraInfo: customer.extraInfo || '',
       });
     }
@@ -135,10 +137,21 @@ export function EditOpaCustomerDialog({
             </div>
              <FormField
               control={form.control}
-              name="formerCompany"
+              name="franchise"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Former Company</FormLabel>
+                  <FormLabel>Franchise</FormLabel>
+                  <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="writingAgent"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Writing Agent</FormLabel>
                   <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                   <FormMessage />
                 </FormItem>
@@ -158,22 +171,22 @@ export function EditOpaCustomerDialog({
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
-                name="dateLeft"
+                name="phoneNumber"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Date Left</FormLabel>
-                    <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl><Input type="tel" {...field} placeholder="10 digits only" disabled={isSaving}/></FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
                 <FormField
                 control={form.control}
-                name="phoneNumber"
+                name="policyFaceAmount"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl><Input type="tel" {...field} placeholder="10 digits only" disabled={isSaving}/></FormControl>
+                    <FormLabel>Policy Face $</FormLabel>
+                    <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                     <FormMessage />
                     </FormItem>
                 )}

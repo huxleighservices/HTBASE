@@ -68,9 +68,10 @@ export type OpaCustomer = {
     id: string;
     firstName: string;
     lastName: string;
-    formerCompany: string;
+    franchise: string;
+    writingAgent: string;
+    policyFaceAmount: string;
     planDetails: string;
-    dateLeft: string;
     phoneNumber: string;
     extraInfo: string;
     notes?: string;

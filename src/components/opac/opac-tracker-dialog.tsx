@@ -97,15 +97,6 @@ const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
     );
 };
 
-const formatDate = (dateString: string | undefined) => {
-    if (!dateString || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-        return dateString || '';
-    }
-    const [year, month, day] = dateString.split('-');
-    return `${month}-${day}-${year}`;
-};
-
-
 export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: OpacTrackerDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -195,10 +186,11 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                         <TableHeader>
                             <TableRow>
                             <TableHead>Name</TableHead>
-                            <TableHead>Former Company</TableHead>
+                            <TableHead>Franchise</TableHead>
+                            <TableHead>Writing Agent</TableHead>
                             <TableHead>Plan Details</TableHead>
-                            <TableHead>Date Left</TableHead>
                             <TableHead>Phone Number</TableHead>
+                            <TableHead>Policy Face $</TableHead>
                             <TableHead>Activity</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -207,9 +199,9 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                             {customers.map(customer => (
                                 <TableRow key={customer.id} onClick={() => setCustomerForNotes(customer)} className="cursor-pointer">
                                     <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
-                                    <TableCell>{customer.formerCompany}</TableCell>
+                                    <TableCell>{customer.franchise}</TableCell>
+                                    <TableCell>{customer.writingAgent}</TableCell>
                                     <TableCell>{customer.planDetails}</TableCell>
-                                    <TableCell>{formatDate(customer.dateLeft)}</TableCell>
                                     <TableCell>
                                       <div className="flex items-center gap-2">
                                           <span>{customer.phoneNumber}</span>
@@ -225,6 +217,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                                           )}
                                       </div>
                                     </TableCell>
+                                    <TableCell>{customer.policyFaceAmount}</TableCell>
                                     <TableCell>
                                         <ActivityLogTooltip customer={customer} />
                                     </TableCell>
