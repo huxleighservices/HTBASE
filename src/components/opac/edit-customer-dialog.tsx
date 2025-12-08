@@ -36,7 +36,8 @@ const formSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   franchise: z.string().optional(),
   writingAgent: z.string().optional(),
-  planDetails: z.string().optional(),
+  planCode: z.string().optional(),
+  planType: z.string().optional(),
   phoneNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), {
     message: "Phone number must be exactly 10 digits.",
   }),
@@ -80,7 +81,8 @@ export function EditOpaCustomerDialog({
         lastName: customer.lastName || '',
         franchise: customer.franchise || '',
         writingAgent: customer.writingAgent || '',
-        planDetails: customer.planDetails || '',
+        planCode: customer.planCode || '',
+        planType: customer.planType || '',
         phoneNumber: customer.phoneNumber || '',
         policyFaceAmount: customer.policyFaceAmount || '',
         extraInfo: customer.extraInfo || '',
@@ -157,17 +159,30 @@ export function EditOpaCustomerDialog({
                 </FormItem>
               )}
             />
-             <FormField
-              control={form.control}
-              name="planDetails"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan Details / Code</FormLabel>
-                  <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="planCode"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Plan Code</FormLabel>
+                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="planType"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Plan Type</FormLabel>
+                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                 control={form.control}

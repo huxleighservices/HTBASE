@@ -71,7 +71,8 @@ export type OpaCustomer = {
     franchise: string;
     writingAgent: string;
     policyFaceAmount: string;
-    planDetails: string;
+    planCode: string;
+    planType: string;
     phoneNumber: string;
     extraInfo: string;
     notes?: string;

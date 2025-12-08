@@ -188,7 +188,8 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                             <TableHead>Name</TableHead>
                             <TableHead>Franchise</TableHead>
                             <TableHead>Writing Agent</TableHead>
-                            <TableHead>Plan Details</TableHead>
+                            <TableHead>Plan Code</TableHead>
+                            <TableHead>Plan Type</TableHead>
                             <TableHead>Phone Number</TableHead>
                             <TableHead>Policy Face $</TableHead>
                             <TableHead>Activity</TableHead>
@@ -201,7 +202,8 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                                     <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
                                     <TableCell>{customer.franchise}</TableCell>
                                     <TableCell>{customer.writingAgent}</TableCell>
-                                    <TableCell>{customer.planDetails}</TableCell>
+                                    <TableCell>{customer.planCode}</TableCell>
+                                    <TableCell>{customer.planType}</TableCell>
                                     <TableCell>
                                       <div className="flex items-center gap-2">
                                           <span>{customer.phoneNumber}</span>

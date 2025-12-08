@@ -105,7 +105,8 @@ export function NotesDialog({
                 <CustomerDetail label="Last Name" value={customer.lastName} />
                 <CustomerDetail label="Franchise" value={customer.franchise} />
                 <CustomerDetail label="Writing Agent" value={customer.writingAgent} />
-                <CustomerDetail label="Plan Details / Code" value={customer.planDetails} />
+                <CustomerDetail label="Plan Code" value={customer.planCode} />
+                <CustomerDetail label="Plan Type" value={customer.planType} />
                 <CustomerDetail label="Phone Number" value={customer.phoneNumber} />
                 <CustomerDetail label="Policy Face $" value={customer.policyFaceAmount} />
                 <div>

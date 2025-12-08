@@ -32,7 +32,8 @@ const formSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   franchise: z.string().optional(),
   writingAgent: z.string().optional(),
-  planDetails: z.string().optional(),
+  planCode: z.string().optional(),
+  planType: z.string().optional(),
   phoneNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), {
     message: "Phone number must be exactly 10 digits.",
   }),
@@ -60,7 +61,8 @@ export function AddOpaCustomerDialog({
       lastName: '',
       franchise: '',
       writingAgent: '',
-      planDetails: '',
+      planCode: '',
+      planType: '',
       phoneNumber: '',
       policyFaceAmount: '',
       extraInfo: '',
@@ -135,17 +137,30 @@ export function AddOpaCustomerDialog({
                 </FormItem>
               )}
             />
-             <FormField
-              control={form.control}
-              name="planDetails"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plan Details / Code</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <div className="grid grid-cols-2 gap-4">
+               <FormField
+                control={form.control}
+                name="planCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plan Code</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="planType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plan Type</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
