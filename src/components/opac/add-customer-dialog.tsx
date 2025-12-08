@@ -26,6 +26,7 @@ import {
 import { useEffect } from 'react';
 import type { OpaCustomer } from '@/types/client';
 import { Textarea } from '../ui/textarea';
+import { serverTimestamp } from 'firebase/firestore';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -45,7 +46,7 @@ type FormValues = z.infer<typeof formSchema>;
 type AddOpaCustomerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddCustomer: (customer: Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>) => void;
+  onAddCustomer: (customer: Omit<OpaCustomer, 'id' | 'notes' | 'activityLog' | 'createdAt'>) => void;
 };
 
 export function AddOpaCustomerDialog({
@@ -76,7 +77,7 @@ export function AddOpaCustomerDialog({
   }, [open, form]);
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    onAddCustomer(data as Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>);
+    onAddCustomer(data as Omit<OpaCustomer, 'id' | 'notes' | 'activityLog' | 'createdAt'>);
     onOpenChange(false);
   };
 

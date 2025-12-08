@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Database, Activity, Edit, Upload } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Database, Activity, Edit, Upload, ArrowUpDown } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -26,7 +26,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { AddOpaCustomerDialog } from '@/components/opac/add-customer-dialog';
 import type { Client, OpaCustomer, ActivityLogEntry } from '@/types/client';
 import { NotesDialog } from '@/components/opac/notes-dialog';
@@ -50,6 +50,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { EditOpaCustomerDialog } from './edit-customer-dialog';
 import type { AccessKey } from '@/types/session';
 import { BulkAddCustomersDialog } from './bulk-add-customers-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -57,6 +58,9 @@ type OpacTrackerDialogProps = {
     client: Client;
     activeUser: AccessKey | null;
 };
+
+type SortKey = keyof OpaCustomer | 'createdAt' | 'lastActivity';
+type SortDirection = 'asc' | 'desc';
 
 const ActivityLogTooltip = ({ customer }: { customer: OpaCustomer }) => {
     if (!customer.activityLog || customer.activityLog.length === 0) {
@@ -106,6 +110,9 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
   const [customerForText, setCustomerForText] = useState<OpaCustomer | null>(null);
   const [customerToEdit, setCustomerToEdit] = useState<OpaCustomer | null>(null);
 
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
 
   const customersCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -114,9 +121,32 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
 
   const { data: customers, isLoading } = useCollection<OpaCustomer>(customersCollectionRef);
 
+  const sortedCustomers = useMemo(() => {
+    if (!customers) return [];
+    
+    return [...customers].sort((a, b) => {
+        let valA: any, valB: any;
+
+        if (sortKey === 'lastActivity') {
+            valA = a.activityLog?.[a.activityLog.length - 1]?.timestamp?.toDate() || new Date(0);
+            valB = b.activityLog?.[b.activityLog.length - 1]?.timestamp?.toDate() || new Date(0);
+        } else if (sortKey === 'createdAt') {
+            valA = a.createdAt?.toDate() || new Date(0);
+            valB = b.createdAt?.toDate() || new Date(0);
+        } else {
+            valA = a[sortKey as keyof OpaCustomer] || '';
+            valB = b[sortKey as keyof OpaCustomer] || '';
+        }
+
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+  }, [customers, sortKey, sortDirection]);
+
   const handleAddCustomer = (customer: Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>) => {
     if (!customersCollectionRef) return;
-    addDocumentNonBlocking(customersCollectionRef, {...customer, activityLog: []});
+    addDocumentNonBlocking(customersCollectionRef, {...customer, activityLog: [], createdAt: serverTimestamp()});
     toast({ title: 'Customer Added', description: `${customer.firstName} ${customer.lastName} has been added.` });
   };
 
@@ -137,6 +167,10 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
     setCustomerToEdit(customer);
   }
 
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  }
+
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,9 +183,27 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                 A tool to keep track of certain customers for {client.firmName}.
             </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-8 pt-4 flex-grow min-h-0">
+        <div className="flex flex-col gap-4 pt-4 flex-grow min-h-0">
             <div className="flex justify-between items-center">
-                <div />
+                <div className='flex items-center gap-2'>
+                   <Select value={sortKey} onValueChange={(val) => setSortKey(val as SortKey)}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Sort by..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="createdAt">Date Added</SelectItem>
+                            <SelectItem value="lastActivity">Last Activity</SelectItem>
+                            <SelectItem value="lastName">Name</SelectItem>
+                            <SelectItem value="franchise">Franchise</SelectItem>
+                            <SelectItem value="writingAgent">Writing Agent</SelectItem>
+                            <SelectItem value="planCode">Plan Code</SelectItem>
+                            <SelectItem value="planType">Plan Type</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="icon" onClick={toggleSortDirection}>
+                        <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setIsBulkAddOpen(true)}>
                     <Upload className="mr-2"/>
@@ -177,7 +229,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                         <div className="flex justify-center items-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
-                    ) : !customers || customers.length === 0 ? (
+                    ) : !sortedCustomers || sortedCustomers.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                         <p>No customers found. Click "Add Customer" to get started.</p>
                         </div>
@@ -197,7 +249,7 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {customers.map(customer => (
+                            {sortedCustomers.map(customer => (
                                 <TableRow key={customer.id} onClick={() => setCustomerForNotes(customer)} className="cursor-pointer">
                                     <TableCell className="font-medium">{customer.firstName} {customer.lastName}</TableCell>
                                     <TableCell>{customer.franchise}</TableCell>

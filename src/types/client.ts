@@ -77,6 +77,7 @@ export type OpaCustomer = {
     extraInfo: string;
     notes?: string;
     activityLog?: ActivityLogEntry[];
+    createdAt: any;
 };
 
 export type TimePunch = {

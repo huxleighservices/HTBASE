@@ -24,19 +24,19 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Label } from '../ui/label';
-import { writeBatch, doc, CollectionReference } from 'firebase/firestore';
+import { writeBatch, doc, CollectionReference, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import type { OpaCustomer } from '@/types/client';
 
 type BulkAddCustomersDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  collectionRef: CollectionReference<OpaCustomer>;
+  collectionRef: CollectionReference;
 };
 
 type Stage = 'paste' | 'map' | 'confirm';
 
-const customerFields: (keyof Omit<OpaCustomer, 'id' | 'notes' | 'activityLog'>)[] = [
+const customerFields: (keyof Omit<OpaCustomer, 'id' | 'notes' | 'activityLog' | 'createdAt'>)[] = [
   'firstName',
   'lastName',
   'franchise',
@@ -144,7 +144,7 @@ export function BulkAddCustomersDialog({
     const batch = writeBatch(firestore);
     customersToAdd.forEach(customerData => {
         const newDocRef = doc(collectionRef); // Creates a new doc with a random ID
-        batch.set(newDocRef, customerData);
+        batch.set(newDocRef, {...customerData, createdAt: serverTimestamp()});
     });
 
     try {
