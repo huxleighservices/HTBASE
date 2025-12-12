@@ -113,7 +113,7 @@ export function BuildNotesDialog({
                     <BuildDetail label="Email" value={build.email} />
                 </div>
                 <BuildDetail label="Project Address" value={build.address} />
-                <BuildDetail label="Budget" value={build.budget} />
+                <BuildDetail label="Projected Revenue" value={build.projectedRevenue} />
                  <div className="grid grid-cols-3 gap-4">
                     <BuildDetail label="Contract Date" value={build.contractDate} />
                     <BuildDetail label="Build Date" value={build.buildDate} />

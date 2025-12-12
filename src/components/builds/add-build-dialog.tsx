@@ -42,7 +42,7 @@ const formSchema = z.object({
   phoneNumber: z.string().optional(),
   email: z.string().optional(),
   address: z.string().optional(),
-  budget: z.string().optional(),
+  projectedRevenue: z.string().optional(),
   companyCam: z.boolean().default(false),
   pendingNotes: z.string().optional(),
   cityPermitRegistration: z.boolean().default(false),
@@ -56,7 +56,7 @@ type FormValues = z.infer<typeof formSchema>;
 type AddBuildDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddBuild: (build: Omit<Build, 'id' | 'notes' | 'activityLog' | 'createdAt'>) => void;
+  onAddBuild: (build: Omit<Build, 'id' | 'notes' | 'createdAt'>) => void;
   clientPath: string | null;
 };
 
@@ -103,7 +103,7 @@ export function AddBuildDialog({
       phoneNumber: '',
       email: '',
       address: '',
-      budget: '',
+      projectedRevenue: '',
       companyCam: false,
       pendingNotes: '',
       cityPermitRegistration: false,
@@ -129,7 +129,7 @@ export function AddBuildDialog({
       phoneNumber: lead.phoneNumber || '',
       email: lead.email || '',
       address: lead.homeAddress || '',
-      budget: lead.projectedRevenue || '',
+      projectedRevenue: lead.projectedRevenue || '',
       buildStage: lead.currentStep || '',
       companyCam: lead.companyCam || false,
       pendingNotes: lead.pendingNotes || '',
@@ -146,7 +146,7 @@ export function AddBuildDialog({
   };
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    onAddBuild(data as Omit<Build, 'id' | 'notes' | 'activityLog' | 'createdAt'>);
+    onAddBuild(data as Omit<Build, 'id' | 'notes' | 'createdAt'>);
     handleOpenChange(false);
   };
 
@@ -303,9 +303,9 @@ export function AddBuildDialog({
                             </FormItem>
                         )}/>
                     </div>
-                    <FormField control={form.control} name="budget" render={({ field }) => (
+                    <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Budget</FormLabel>
+                        <FormLabel>Projected Revenue</FormLabel>
                         <FormControl><Input {...field} /></FormControl>
                         <FormMessage />
                         </FormItem>

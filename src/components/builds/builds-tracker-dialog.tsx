@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Wrench, Activity, Edit, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Wrench, Edit, ArrowUpDown } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -28,7 +28,7 @@ import {
 } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { AddBuildDialog } from '@/components/builds/add-build-dialog';
-import type { Client, Build, ActivityLogEntry } from '@/types/client';
+import type { Client, Build } from '@/types/client';
 import { BuildNotesDialog } from '@/components/builds/build-notes-dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -43,8 +43,6 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle as BuildsDialogTitle, DialogDescription } from '../ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { formatDistanceToNow } from 'date-fns';
 import { EditBuildDialog } from './edit-build-dialog';
 import type { AccessKey } from '@/types/session';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -58,47 +56,9 @@ type BuildsTrackerDialogProps = {
     activeUser: AccessKey | null;
 };
 
-type SortKey = keyof Build | 'createdAt' | 'lastActivity';
+type SortKey = keyof Build | 'createdAt';
 type SortDirection = 'asc' | 'desc';
 
-const ActivityLogTooltip = ({ build }: { build: Build }) => {
-    if (!build.activityLog || build.activityLog.length === 0) {
-        return null;
-    }
-    const sortedLog = [...build.activityLog].sort((a, b) => {
-        const dateA = (a.timestamp as any)?.toDate ? (a.timestamp as any).toDate() : new Date(a.timestamp);
-        const dateB = (b.timestamp as any)?.toDate ? (b.timestamp as any).toDate() : new Date(b.timestamp);
-        return dateB.getTime() - dateA.getTime();
-    });
-
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Activity className="h-4 w-4 text-blue-500 cursor-pointer" />
-                </TooltipTrigger>
-                <TooltipContent className='max-w-xs'>
-                    <p className="font-bold mb-2">Activity Log</p>
-                    <ul className='space-y-2'>
-                        {sortedLog.map((log, index) => {
-                             const date = (log.timestamp as any)?.toDate ? (log.timestamp as any).toDate() : new Date(log.timestamp);
-                             return (
-                                <li key={index} className='text-xs'>
-                                    <p className='font-medium'>
-                                        <span className="font-bold">{log.user || 'System'}:</span> {log.activity}
-                                    </p>
-                                    <p className='text-muted-foreground'>
-                                        {formatDistanceToNow(date, { addSuffix: true })}
-                                    </p>
-                                </li>
-                             )
-                        })}
-                    </ul>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
-};
 
 export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: BuildsTrackerDialogProps) {
   const firestore = useFirestore();
@@ -124,10 +84,7 @@ export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: 
     return [...builds].sort((a, b) => {
         let valA: any, valB: any;
 
-        if (sortKey === 'lastActivity') {
-            valA = a.activityLog?.[a.activityLog.length - 1]?.timestamp?.toDate() || new Date(0);
-            valB = b.activityLog?.[b.activityLog.length - 1]?.timestamp?.toDate() || new Date(0);
-        } else if (sortKey === 'createdAt') {
+        if (sortKey === 'createdAt') {
             valA = a.createdAt?.toDate() || new Date(0);
             valB = b.createdAt?.toDate() || new Date(0);
         } else {
@@ -141,9 +98,9 @@ export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: 
     });
   }, [builds, sortKey, sortDirection]);
 
-  const handleAddBuild = (build: Omit<Build, 'id' | 'notes' | 'activityLog'>) => {
+  const handleAddBuild = (build: Omit<Build, 'id' | 'notes' | 'createdAt'>) => {
     if (!buildsCollectionRef) return;
-    addDocumentNonBlocking(buildsCollectionRef, {...build, activityLog: [], createdAt: serverTimestamp()});
+    addDocumentNonBlocking(buildsCollectionRef, {...build, createdAt: serverTimestamp()});
     toast({ title: 'Build Added', description: `${build.buildName} has been added.` });
   };
 
@@ -184,10 +141,9 @@ export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: 
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="createdAt">Date Added</SelectItem>
-                            <SelectItem value="lastActivity">Last Activity</SelectItem>
                             <SelectItem value="buildName">Build Name</SelectItem>
                             <SelectItem value="clientName">Client Name</SelectItem>
-                            <SelectItem value="budget">Budget</SelectItem>
+                            <SelectItem value="projectedRevenue">Projected Revenue</SelectItem>
                         </SelectContent>
                     </Select>
                     <Button variant="outline" size="icon" onClick={toggleSortDirection}>
@@ -230,14 +186,13 @@ export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: 
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Email</TableHead>
                                 <TableHead>Address</TableHead>
-                                <TableHead>Budget</TableHead>
+                                <TableHead>Projected Revenue</TableHead>
                                 <TableHead>Permit?</TableHead>
                                 <TableHead>Insp. Date</TableHead>
                                 <TableHead>Cont. Date</TableHead>
                                 <TableHead>Build Date</TableHead>
                                 <TableHead>CompanyCam</TableHead>
                                 <TableHead>Pending Notes</TableHead>
-                                <TableHead>Activity</TableHead>
                                 <TableHead className="text-right sticky right-0 bg-card">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -251,16 +206,13 @@ export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: 
                                     <TableCell>{build.phoneNumber}</TableCell>
                                     <TableCell>{build.email}</TableCell>
                                     <TableCell className="max-w-[200px] truncate">{build.address}</TableCell>
-                                    <TableCell>{build.budget}</TableCell>
+                                    <TableCell>{build.projectedRevenue}</TableCell>
                                     <TableCell><Checkbox checked={build.cityPermitRegistration} disabled /></TableCell>
                                     <TableCell>{build.inspectionDate}</TableCell>
                                     <TableCell>{build.contractDate}</TableCell>
                                     <TableCell>{build.buildDate}</TableCell>
                                     <TableCell><Checkbox checked={build.companyCam} disabled /></TableCell>
                                     <TableCell className="max-w-[200px] truncate">{build.pendingNotes}</TableCell>
-                                    <TableCell>
-                                        <ActivityLogTooltip build={build} />
-                                    </TableCell>
                                     <TableCell className="text-right space-x-1 sticky right-0 bg-card">
                                         <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, build)}>
                                             <Edit className="h-4 w-4" />

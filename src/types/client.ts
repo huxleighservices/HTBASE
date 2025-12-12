@@ -108,7 +108,7 @@ export type Build = {
     phoneNumber?: string;
     email?: string;
     address?: string;
-    budget?: string;
+    projectedRevenue?: string;
     companyCam?: boolean;
     pendingNotes?: string;
     cityPermitRegistration?: boolean;
@@ -116,7 +116,6 @@ export type Build = {
     contractDate?: string;
     buildDate?: string;
     notes?: string;
-    activityLog?: ActivityLogEntry[];
     createdAt: any;
 };
 

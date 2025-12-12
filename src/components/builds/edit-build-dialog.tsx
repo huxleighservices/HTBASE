@@ -41,7 +41,7 @@ const formSchema = z.object({
   phoneNumber: z.string().optional(),
   email: z.string().optional(),
   address: z.string().optional(),
-  budget: z.string().optional(),
+  projectedRevenue: z.string().optional(),
   companyCam: z.boolean().default(false),
   pendingNotes: z.string().optional(),
   cityPermitRegistration: z.boolean().default(false),
@@ -99,7 +99,7 @@ export function EditBuildDialog({
         phoneNumber: build.phoneNumber || '',
         email: build.email || '',
         address: build.address || '',
-        budget: build.budget || '',
+        projectedRevenue: build.projectedRevenue || '',
         companyCam: build.companyCam || false,
         pendingNotes: build.pendingNotes || '',
         cityPermitRegistration: build.cityPermitRegistration || false,
@@ -240,9 +240,9 @@ export function EditBuildDialog({
                             </FormItem>
                         )}/>
                     </div>
-                    <FormField control={form.control} name="budget" render={({ field }) => (
+                    <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Budget</FormLabel>
+                            <FormLabel>Projected Revenue</FormLabel>
                             <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                             <FormMessage />
                         </FormItem>
