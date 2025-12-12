@@ -100,7 +100,7 @@ const ActivityLogTooltip = ({ build }: { build: Build }) => {
     );
 };
 
-export function BuildsTrackerDialog({ open, onOpenChange, client }: BuildsTrackerDialogProps) {
+export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: BuildsTrackerDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddBuildOpen, setIsAddBuildOpen] = useState(false);
@@ -187,7 +187,6 @@ export function BuildsTrackerDialog({ open, onOpenChange, client }: BuildsTracke
                             <SelectItem value="lastActivity">Last Activity</SelectItem>
                             <SelectItem value="buildName">Build Name</SelectItem>
                             <SelectItem value="clientName">Client Name</SelectItem>
-                            <SelectItem value="startDate">Start Date</SelectItem>
                             <SelectItem value="budget">Budget</SelectItem>
                         </SelectContent>
                     </Select>
@@ -226,13 +225,16 @@ export function BuildsTrackerDialog({ open, onOpenChange, client }: BuildsTracke
                             <TableRow>
                                 <TableHead>Build Name</TableHead>
                                 <TableHead>Client Name</TableHead>
-                                <TableHead>Start Date</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>Build Stage</TableHead>
                                 <TableHead>Project Manager</TableHead>
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Email</TableHead>
                                 <TableHead>Address</TableHead>
                                 <TableHead>Budget</TableHead>
+                                <TableHead>Permit?</TableHead>
+                                <TableHead>Insp. Date</TableHead>
+                                <TableHead>Cont. Date</TableHead>
+                                <TableHead>Build Date</TableHead>
                                 <TableHead>CompanyCam</TableHead>
                                 <TableHead>Pending Notes</TableHead>
                                 <TableHead>Activity</TableHead>
@@ -244,13 +246,16 @@ export function BuildsTrackerDialog({ open, onOpenChange, client }: BuildsTracke
                                 <TableRow key={build.id} onClick={() => setBuildForNotes(build)} className="cursor-pointer">
                                     <TableCell className="font-medium">{build.buildName}</TableCell>
                                     <TableCell>{build.clientName}</TableCell>
-                                    <TableCell>{build.startDate}</TableCell>
-                                    <TableCell><Badge variant="secondary">{build.status}</Badge></TableCell>
+                                    <TableCell><Badge variant="secondary">{build.buildStage}</Badge></TableCell>
                                     <TableCell>{build.projectManager}</TableCell>
                                     <TableCell>{build.phoneNumber}</TableCell>
                                     <TableCell>{build.email}</TableCell>
                                     <TableCell className="max-w-[200px] truncate">{build.address}</TableCell>
                                     <TableCell>{build.budget}</TableCell>
+                                    <TableCell><Checkbox checked={build.cityPermitRegistration} disabled /></TableCell>
+                                    <TableCell>{build.inspectionDate}</TableCell>
+                                    <TableCell>{build.contractDate}</TableCell>
+                                    <TableCell>{build.buildDate}</TableCell>
                                     <TableCell><Checkbox checked={build.companyCam} disabled /></TableCell>
                                     <TableCell className="max-w-[200px] truncate">{build.pendingNotes}</TableCell>
                                     <TableCell>
@@ -301,6 +306,7 @@ export function BuildsTrackerDialog({ open, onOpenChange, client }: BuildsTracke
         open={isAddBuildOpen}
         onOpenChange={setIsAddBuildOpen}
         onAddBuild={handleAddBuild}
+        clientPath={client.path || null}
     />
 
     {buildForNotes && (

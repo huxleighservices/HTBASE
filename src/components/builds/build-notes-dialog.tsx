@@ -104,9 +104,8 @@ export function BuildNotesDialog({
                     <BuildDetail label="Build Name" value={build.buildName} />
                     <BuildDetail label="Client Name" value={build.clientName} />
                 </div>
-                <BuildDetail label="Start Date" value={build.startDate} />
                  <div className="grid grid-cols-2 gap-4">
-                    <BuildDetail label="Status" value={build.status} />
+                    <BuildDetail label="Build Stage" value={build.buildStage} />
                     <BuildDetail label="Project Manager" value={build.projectManager} />
                 </div>
                  <div className="grid grid-cols-2 gap-4">
@@ -115,7 +114,15 @@ export function BuildNotesDialog({
                 </div>
                 <BuildDetail label="Project Address" value={build.address} />
                 <BuildDetail label="Budget" value={build.budget} />
-                <BuildDetail label="CompanyCam?" value={build.companyCam} />
+                 <div className="grid grid-cols-3 gap-4">
+                    <BuildDetail label="Contract Date" value={build.contractDate} />
+                    <BuildDetail label="Build Date" value={build.buildDate} />
+                    <BuildDetail label="Inspection Date" value={build.inspectionDate} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <BuildDetail label="CompanyCam?" value={build.companyCam} />
+                    <BuildDetail label="City Permit/Reg?" value={build.cityPermitRegistration} />
+                </div>
                 <div>
                      <p className="text-sm font-medium text-muted-foreground">Pending Notes</p>
                      <div className="text-base p-2 border rounded-md min-h-20 bg-muted/50 whitespace-pre-wrap">{build.pendingNotes || 'N/A'}</div>

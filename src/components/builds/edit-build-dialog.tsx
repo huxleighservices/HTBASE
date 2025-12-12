@@ -36,8 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const formSchema = z.object({
   buildName: z.string().min(1, 'Build name is required'),
   clientName: z.string().min(1, 'Client name is required'),
-  startDate: z.string().optional(),
-  status: z.string().optional(),
+  buildStage: z.string().optional(),
   projectManager: z.string().optional(),
   phoneNumber: z.string().optional(),
   email: z.string().optional(),
@@ -45,6 +44,10 @@ const formSchema = z.object({
   budget: z.string().optional(),
   companyCam: z.boolean().default(false),
   pendingNotes: z.string().optional(),
+  cityPermitRegistration: z.boolean().default(false),
+  inspectionDate: z.string().optional(),
+  contractDate: z.string().optional(),
+  buildDate: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -55,7 +58,7 @@ type EditBuildDialogProps = {
   clientPath: string;
 };
 
-const statusOptions = [
+const buildStageOptions = [
     'Planning',
     'In Progress',
     'On Hold',
@@ -91,8 +94,7 @@ export function EditBuildDialog({
       form.reset({
         buildName: build.buildName || '',
         clientName: build.clientName || '',
-        startDate: build.startDate || '',
-        status: build.status || '',
+        buildStage: build.buildStage || '',
         projectManager: build.projectManager || '',
         phoneNumber: build.phoneNumber || '',
         email: build.email || '',
@@ -100,12 +102,16 @@ export function EditBuildDialog({
         budget: build.budget || '',
         companyCam: build.companyCam || false,
         pendingNotes: build.pendingNotes || '',
+        cityPermitRegistration: build.cityPermitRegistration || false,
+        inspectionDate: build.inspectionDate || '',
+        contractDate: build.contractDate || '',
+        buildDate: build.buildDate || '',
       });
     }
   }, [open, build, form]);
   
   const handleNext = async () => {
-    const fieldsToValidate: (keyof FormValues)[] = ['buildName', 'clientName', 'startDate', 'phoneNumber', 'email'];
+    const fieldsToValidate: (keyof FormValues)[] = ['buildName', 'clientName', 'phoneNumber', 'email', 'address'];
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
       setStep(2);
@@ -126,7 +132,7 @@ export function EditBuildDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit Build: {build.buildName}</DialogTitle>
           <DialogDescription>
@@ -153,13 +159,6 @@ export function EditBuildDialog({
                             </FormItem>
                         )}/>
                     </div>
-                    <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Start Date</FormLabel>
-                            <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="phoneNumber" render={({ field }) => (
                             <FormItem>
@@ -176,6 +175,13 @@ export function EditBuildDialog({
                             </FormItem>
                         )}/>
                     </div>
+                    <FormField control={form.control} name="address" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Project Address</FormLabel>
+                            <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}/>
                 </>
              )}
              {step === 2 && (
@@ -183,18 +189,18 @@ export function EditBuildDialog({
                      <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
-                            name="status"
+                            name="buildStage"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Status</FormLabel>
+                                    <FormLabel>Build Stage</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSaving}>
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select a status..." />
+                                                <SelectValue placeholder="Select a stage..." />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {statusOptions.map(option => (
+                                            {buildStageOptions.map(option => (
                                                 <SelectItem key={option} value={option}>{option}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -211,13 +217,29 @@ export function EditBuildDialog({
                             </FormItem>
                         )}/>
                     </div>
-                    <FormField control={form.control} name="address" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Project Address</FormLabel>
-                            <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
+                    <div className="grid grid-cols-3 gap-4">
+                        <FormField control={form.control} name="contractDate" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Contract Date</FormLabel>
+                                <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                         <FormField control={form.control} name="buildDate" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Build Date</FormLabel>
+                                <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="inspectionDate" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Inspection Date</FormLabel>
+                                <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}/>
+                    </div>
                     <FormField control={form.control} name="budget" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Budget</FormLabel>
@@ -232,16 +254,28 @@ export function EditBuildDialog({
                             <FormMessage />
                         </FormItem>
                     )}/>
-                    <FormField control={form.control} name="companyCam" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/>
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel>CompanyCam?</FormLabel>
-                            </div>
-                        </FormItem>
-                    )}/>
+                    <div className="flex gap-4">
+                        <FormField control={form.control} name="companyCam" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/>
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel>CompanyCam?</FormLabel>
+                                </div>
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="cityPermitRegistration" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/>
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                    <FormLabel>City Permit & Registration</FormLabel>
+                                </div>
+                            </FormItem>
+                        )}/>
+                    </div>
                 </>
              )}
             <DialogFooter>
