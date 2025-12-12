@@ -22,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -49,7 +49,8 @@ import { TimePunchDialog } from '@/components/time-punch/time-punch-dialog';
 import { SopBotDialog } from '@/components/sop-bot/sop-bot-dialog';
 import { LeadsTrackerDialog } from '@/components/leads/leads-tracker-dialog';
 import { BuildsTrackerDialog } from '@/components/builds/builds-tracker-dialog';
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 
 type Stage = 'login' | 'trainer';
 
@@ -84,8 +85,6 @@ export default function ClientLaunchPage() {
   const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
   const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
 
-
-  
   // If a regular user is already logged in, redirect them away.
   useEffect(() => {
     // If a non-anonymous user is logged in, they should not be on a launch page.
@@ -245,17 +244,24 @@ export default function ClientLaunchPage() {
     }
   };
 
-  const handleScenarioClick = (scenario: 'messenger' | 'coldcall') => {
-    if (scenario === 'messenger') setIsMessengerScenarioOpen(true);
-    if (scenario === 'coldcall') setIsColdCallOpen(true);
-  };
-
   const renderContent = () => {
     const commonCardClass = 'w-full max-w-sm';
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.isEdu !== true;
     const hasAssets = assets && assets.length > 0;
     const is4WK21Y = clientId === '4WK21Y';
+    
+    const [cardVisibility, setCardVisibility] = useLocalStorage('cardVisibility-4WK21Y', {
+        messenger: true,
+        coldCall: true,
+        builds: true,
+        leads: true,
+        trainingResults: true,
+    });
+    
+    const handleVisibilityChange = (card: keyof typeof cardVisibility, checked: boolean) => {
+        setCardVisibility(prev => ({ ...prev, [card]: checked }));
+    };
 
 
     const getAssetIcon = (title: string) => {
@@ -263,7 +269,6 @@ export default function ClientLaunchPage() {
         if (title.includes('Time Punch')) return <Timer className="size-6" />;
         if (title.includes('Project Hub')) return <GanttChartSquare className="size-6" />;
         if (title.includes('SOP Bot')) return <Bot className="size-6" />;
-        if (title.includes('Builds')) return <Wrench className="size-6" />;
         return <Code className="size-6" />;
     };
     
@@ -272,7 +277,6 @@ export default function ClientLaunchPage() {
         if (asset.title.includes('Time Punch')) return () => setIsTimePunchOpen(true);
         if (asset.title.includes('Project Hub')) return () => setIsProjectHubOpen(true);
         if (asset.title.includes('SOP Bot')) return () => setIsSopBotOpen(true);
-        if (asset.title.includes('Builds')) return () => setIsBuildsTrackerOpen(true);
         return () => {};
     };
 
@@ -281,7 +285,6 @@ export default function ClientLaunchPage() {
         if (title.includes('Time Punch')) return 'Open Time Punch';
         if (title.includes('Project Hub')) return 'Open Hub';
         if (title.includes('SOP Bot')) return 'Open SOP Bot';
-        if (title.includes('Builds')) return 'Open Builds';
         return 'Open';
     }
 
@@ -342,8 +345,26 @@ export default function ClientLaunchPage() {
       return (
         <>
           <div className="mx-auto max-w-4xl w-full">
-            <Card>
+            <Card className="relative">
               <CardHeader className="items-center text-center">
+                {is4WK21Y && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="absolute top-2 right-2">
+                        <Settings className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Visible Modules</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuCheckboxItem checked={cardVisibility.messenger} onCheckedChange={(c) => handleVisibilityChange('messenger', !!c)}>Messenger Scenario</DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={cardVisibility.coldCall} onCheckedChange={(c) => handleVisibilityChange('coldCall', !!c)}>Cold Call Simulator</DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={cardVisibility.trainingResults} onCheckedChange={(c) => handleVisibilityChange('trainingResults', !!c)}>Training Results</DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={cardVisibility.builds} onCheckedChange={(c) => handleVisibilityChange('builds', !!c)}>Builds Tracker</DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={cardVisibility.leads} onCheckedChange={(c) => handleVisibilityChange('leads', !!c)}>Leads Tracker</DropdownMenuCheckboxItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
                 <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
                 <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>
@@ -355,41 +376,50 @@ export default function ClientLaunchPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 
-                {isSalesClient && (
+                {(isSalesClient || is4WK21Y) && (
                     <div className="space-y-4">
-                        {is4WK21Y && <h3 className="font-headline text-xl font-semibold">Sales Training</h3>}
+                        <h3 className="font-headline text-xl font-semibold">Sales Training</h3>
                         <div className="grid gap-6 md:grid-cols-2">
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
-                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
-                                    </div>
-                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
-                                </CardFooter>
-                            </Card>
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
-                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
-                                    </div>
-                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
-                                </CardFooter>
-                            </Card>
+                            {cardVisibility.messenger && (
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
+                                        </div>
+                                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
+                                    </CardHeader>
+                                    <CardFooter>
+                                        <Button onClick={() => setIsMessengerScenarioOpen(true)}>Start Scenario</Button>
+                                    </CardFooter>
+                                </Card>
+                            )}
+                            {cardVisibility.coldCall && (
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
+                                        </div>
+                                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
+                                    </CardHeader>
+                                    <CardFooter>
+                                        <Button onClick={() => setIsColdCallOpen(true)}>Start Simulation</Button>
+                                    </CardFooter>
+                                </Card>
+                            )}
                         </div>
+                        {cardVisibility.trainingResults && (
+                            <div className="pt-6">
+                                <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
+                            </div>
+                        )}
                     </div>
                 )}
                 
                 {(hasAssets || is4WK21Y) && (
                     <div className="space-y-4">
-                        {(is4WK21Y) && <h3 className="font-headline text-xl font-semibold">Operations</h3>}
+                        <h3 className="font-headline text-xl font-semibold">Operations</h3>
                         <div className="grid gap-6 md:grid-cols-2">
                         {assets?.map(asset => (
                             <Card key={asset.id}>
@@ -409,7 +439,7 @@ export default function ClientLaunchPage() {
                                 </CardFooter>
                             </Card>
                         ))}
-                         {is4WK21Y && (
+                         {is4WK21Y && cardVisibility.builds && (
                             <Card>
                                 <CardHeader>
                                     <div className="flex items-center gap-3">
@@ -427,31 +457,24 @@ export default function ClientLaunchPage() {
                     </div>
                 )}
 
-                {is4WK21Y && (
-                    <>
-                        <div className="space-y-4">
-                            <h3 className="font-headline text-xl font-semibold">Leads</h3>
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
-                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
-                                    </div>
-                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
-                                </CardFooter>
-                            </Card>
-                        </div>
-                    </>
-                )}
-                
-                {isSalesClient && (
-                    <div className="pt-6">
-                    <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
+                {is4WK21Y && cardVisibility.leads && (
+                    <div className="space-y-4">
+                        <h3 className="font-headline text-xl font-semibold">Leads</h3>
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
+                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
+                                </div>
+                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
+                            </CardFooter>
+                        </Card>
                     </div>
                 )}
+                
               </CardContent>
               <CardFooter className="justify-center">
                  <Button variant="link" onClick={handleLogout} className={cn(customization?.foregroundColor && 'text-foreground')}>
