@@ -158,6 +158,28 @@
         "punchInTime"
       ]
     },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a lead for a client.",
+      "properties": {
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "franchise": { "type": "string" },
+        "writingAgent": { "type": "string" },
+        "policyFaceAmount": { "type": "string" },
+        "planCode": { "type": "string" },
+        "planType": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "extraInfo": { "type": "string" },
+        "notes": { "type": "string" },
+        "activityLog": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "firstName", "lastName", "createdAt"]
+    },
     "Project": {
       "title": "Project",
       "type": "object",
@@ -231,6 +253,14 @@
                           }
                         }
                       ]
+                    }
+                  },
+                  {
+                    "path": "/leads/{leadId}",
+                    "definition": {
+                      "entityName": "Lead",
+                      "schema": { "$ref": "#/backend/entities/Lead" },
+                      "description": "Stores leads for a specific client."
                     }
                   },
                   {

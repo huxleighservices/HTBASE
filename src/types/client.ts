@@ -80,6 +80,22 @@ export type OpaCustomer = {
     createdAt: any;
 };
 
+export type Lead = {
+    id: string;
+    firstName: string;
+    lastName: string;
+    franchise: string;
+    writingAgent: string;
+    policyFaceAmount: string;
+    planCode: string;
+    planType: string;
+    phoneNumber: string;
+    extraInfo: string;
+    notes?: string;
+    activityLog?: ActivityLogEntry[];
+    createdAt: any;
+};
+
 export type TimePunch = {
     id: string;
     accessKeyUsername: string;

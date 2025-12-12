@@ -22,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -47,6 +47,7 @@ import type { AccessKey } from '@/types/session';
 import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
 import { TimePunchDialog } from '@/components/time-punch/time-punch-dialog';
 import { SopBotDialog } from '@/components/sop-bot/sop-bot-dialog';
+import { LeadsTrackerDialog } from '@/components/leads/leads-tracker-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -79,6 +80,7 @@ export default function ClientLaunchPage() {
   const [isTimePunchOpen, setIsTimePunchOpen] = useState(false);
   const [isProjectHubOpen, setIsProjectHubOpen] = useState(false);
   const [isSopBotOpen, setIsSopBotOpen] = useState(false);
+  const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
 
 
   
@@ -380,11 +382,11 @@ export default function ClientLaunchPage() {
                     </div>
                 )}
                 
-                {hasAssets && (
+                {(hasAssets || is4WK21Y) && (
                     <div className="space-y-4">
-                        {is4WK21Y && <h3 className="font-headline text-xl font-semibold">Operations</h3>}
+                        {(is4WK21Y) && <h3 className="font-headline text-xl font-semibold">Operations</h3>}
                         <div className="grid gap-6 md:grid-cols-2">
-                        {assets.map(asset => (
+                        {assets?.map(asset => (
                             <Card key={asset.id}>
                                 <CardHeader>
                                 <div className="flex items-center gap-3">
@@ -402,6 +404,23 @@ export default function ClientLaunchPage() {
                                 </CardFooter>
                             </Card>
                         ))}
+                        {is4WK21Y && (
+                             <div className="space-y-4">
+                                <h3 className="font-headline text-xl font-semibold">Leads</h3>
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
+                                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
+                                        </div>
+                                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
+                                    </CardHeader>
+                                    <CardFooter>
+                                        <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
+                                    </CardFooter>
+                                </Card>
+                            </div>
+                        )}
                         </div>
                     </div>
                 )}
@@ -426,6 +445,7 @@ export default function ClientLaunchPage() {
           {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
           {client && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
+          {client && <LeadsTrackerDialog open={isLeadsTrackerOpen} onOpenChange={setIsLeadsTrackerOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
