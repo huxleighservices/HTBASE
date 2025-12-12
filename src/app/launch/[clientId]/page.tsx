@@ -85,6 +85,16 @@ export default function ClientLaunchPage() {
   const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
   const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
 
+  // Moved useLocalStorage to the top level of the component
+  const [cardVisibility, setCardVisibility] = useLocalStorage('cardVisibility-4WK21Y', {
+    messenger: true,
+    coldCall: true,
+    builds: true,
+    leads: true,
+    trainingResults: true,
+  });
+
+
   // If a regular user is already logged in, redirect them away.
   useEffect(() => {
     // If a non-anonymous user is logged in, they should not be on a launch page.
@@ -250,14 +260,6 @@ export default function ClientLaunchPage() {
     const isSalesClient = client?.isEdu !== true;
     const hasAssets = assets && assets.length > 0;
     const is4WK21Y = clientId === '4WK21Y';
-    
-    const [cardVisibility, setCardVisibility] = useLocalStorage('cardVisibility-4WK21Y', {
-        messenger: true,
-        coldCall: true,
-        builds: true,
-        leads: true,
-        trainingResults: true,
-    });
     
     const handleVisibilityChange = (card: keyof typeof cardVisibility, checked: boolean) => {
         setCardVisibility(prev => ({ ...prev, [card]: checked }));
