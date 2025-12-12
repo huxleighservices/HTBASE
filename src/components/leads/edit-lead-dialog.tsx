@@ -30,19 +30,21 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
+import { Checkbox } from '../ui/checkbox';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  franchise: z.string().optional(),
-  writingAgent: z.string().optional(),
-  planCode: z.string().optional(),
-  planType: z.string().optional(),
-  phoneNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), {
-    message: "Phone number must be exactly 10 digits.",
-  }),
-  policyFaceAmount: z.string().optional(),
-  extraInfo: z.string().optional(),
+  source: z.string().optional(),
+  contactDate: z.string().optional(),
+  currentStep: z.string().optional(),
+  jobType: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  email: z.string().optional(),
+  homeAddress: z.string().optional(),
+  projectedRevenue: z.string().optional(),
+  companyCam: z.boolean().default(false),
+  pendingNotes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -79,13 +81,16 @@ export function EditLeadDialog({
       form.reset({
         firstName: lead.firstName || '',
         lastName: lead.lastName || '',
-        franchise: lead.franchise || '',
-        writingAgent: lead.writingAgent || '',
-        planCode: lead.planCode || '',
-        planType: lead.planType || '',
+        source: lead.source || '',
+        contactDate: lead.contactDate || '',
+        currentStep: lead.currentStep || '',
+        jobType: lead.jobType || '',
         phoneNumber: lead.phoneNumber || '',
-        policyFaceAmount: lead.policyFaceAmount || '',
-        extraInfo: lead.extraInfo || '',
+        email: lead.email || '',
+        homeAddress: lead.homeAddress || '',
+        projectedRevenue: lead.projectedRevenue || '',
+        companyCam: lead.companyCam || false,
+        pendingNotes: lead.pendingNotes || '',
       });
     }
   }, [open, lead, form]);
@@ -114,110 +119,98 @@ export function EditLeadDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-                <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>First Name</FormLabel>
+              <FormField control={form.control} name="firstName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>F. Name</FormLabel>
                     <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                     <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                  </FormItem>
+              )}/>
+              <FormField control={form.control} name="lastName" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>L. Name</FormLabel>
                     <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                     <FormMessage />
-                    </FormItem>
-                )}
-                />
+                  </FormItem>
+              )}/>
             </div>
-             <FormField
-              control={form.control}
-              name="franchise"
-              render={({ field }) => (
+            <FormField control={form.control} name="source" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Source</FormLabel>
+                <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}/>
+            <FormField control={form.control} name="contactDate" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Date</FormLabel>
+                <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}/>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField control={form.control} name="currentStep" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Franchise</FormLabel>
+                  <FormLabel>Current Step</FormLabel>
+                  <FormControl><Input {...field} placeholder="Dropdown later..." disabled={isSaving}/></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+              <FormField control={form.control} name="jobType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Job Type</FormLabel>
+                  <FormControl><Input {...field} placeholder="Dropdown later..." disabled={isSaving}/></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl><Input type="tel" {...field} disabled={isSaving}/></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                )}/>
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl><Input type="email" {...field} disabled={isSaving}/></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                )}/>
+            </div>
+             <FormField control={form.control} name="homeAddress" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Home Address</FormLabel>
                   <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="writingAgent"
-              render={({ field }) => (
+              )}/>
+            <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Writing Agent</FormLabel>
+                  <FormLabel>Projected Revenue</FormLabel>
                   <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                    control={form.control}
-                    name="planCode"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Plan Code</FormLabel>
-                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="planType"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Plan Type</FormLabel>
-                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl><Input type="tel" {...field} placeholder="10 digits only" disabled={isSaving}/></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="policyFaceAmount"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Policy Face $</FormLabel>
-                    <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </div>
-             <FormField
-              control={form.control}
-              name="extraInfo"
-              render={({ field }) => (
+            )}/>
+             <FormField control={form.control} name="pendingNotes" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Extra Info</FormLabel>
+                  <FormLabel>Pending Notes</FormLabel>
                   <FormControl><Textarea {...field} disabled={isSaving}/></FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+            )}/>
+             <FormField control={form.control} name="companyCam" render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/>
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                        <FormLabel>CompanyCam?</FormLabel>
+                    </div>
+                </FormItem>
+              )}/>
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="ghost" disabled={isSaving}>Cancel</Button>

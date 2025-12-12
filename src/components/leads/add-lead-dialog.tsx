@@ -26,20 +26,23 @@ import {
 import { useEffect } from 'react';
 import type { Lead } from '@/types/client';
 import { Textarea } from '../ui/textarea';
+import { Checkbox } from '../ui/checkbox';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  franchise: z.string().optional(),
-  writingAgent: z.string().optional(),
-  planCode: z.string().optional(),
-  planType: z.string().optional(),
-  phoneNumber: z.string().optional().refine(val => !val || /^\d{10}$/.test(val), {
-    message: "Phone number must be exactly 10 digits.",
-  }),
-  policyFaceAmount: z.string().optional(),
-  extraInfo: z.string().optional(),
+  source: z.string().optional(),
+  contactDate: z.string().optional(),
+  currentStep: z.string().optional(),
+  jobType: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  email: z.string().optional(),
+  homeAddress: z.string().optional(),
+  projectedRevenue: z.string().optional(),
+  companyCam: z.boolean().default(false),
+  pendingNotes: z.string().optional(),
 });
+
 
 type FormValues = z.infer<typeof formSchema>;
 type AddLeadDialogProps = {
@@ -59,13 +62,16 @@ export function AddLeadDialog({
     defaultValues: {
       firstName: '',
       lastName: '',
-      franchise: '',
-      writingAgent: '',
-      planCode: '',
-      planType: '',
+      source: '',
+      contactDate: '',
+      currentStep: '',
+      jobType: '',
       phoneNumber: '',
-      policyFaceAmount: '',
-      extraInfo: '',
+      email: '',
+      homeAddress: '',
+      projectedRevenue: '',
+      companyCam: false,
+      pendingNotes: '',
     },
   });
 
@@ -92,110 +98,98 @@ export function AddLeadDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-                <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </div>
-             <FormField
-              control={form.control}
-              name="franchise"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Franchise</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="writingAgent"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Writing Agent</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <div className="grid grid-cols-2 gap-4">
-               <FormField
-                control={form.control}
-                name="planCode"
-                render={({ field }) => (
+              <FormField control={form.control} name="firstName" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Plan Code</FormLabel>
+                    <FormLabel>F. Name</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-               <FormField
-                control={form.control}
-                name="planType"
-                render={({ field }) => (
+              )}/>
+              <FormField control={form.control} name="lastName" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Plan Type</FormLabel>
+                    <FormLabel>L. Name</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
+              )}/>
             </div>
+            <FormField control={form.control} name="source" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Source</FormLabel>
+                <FormControl><Input {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}/>
+            <FormField control={form.control} name="contactDate" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contact Date</FormLabel>
+                <FormControl><Input type="date" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}/>
             <div className="grid grid-cols-2 gap-4">
-                <FormField
-                control={form.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl><Input type="tel" {...field} placeholder="10 digits only" /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                control={form.control}
-                name="policyFaceAmount"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Policy Face $</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </div>
-             <FormField
-              control={form.control}
-              name="extraInfo"
-              render={({ field }) => (
+              <FormField control={form.control} name="currentStep" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Extra Info</FormLabel>
+                  <FormLabel>Current Step</FormLabel>
+                  <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+              <FormField control={form.control} name="jobType" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Job Type</FormLabel>
+                  <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+            </div>
+             <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl><Input type="tel" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                )}/>
+                <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl><Input type="email" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                )}/>
+            </div>
+             <FormField control={form.control} name="homeAddress" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Home Address</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}/>
+            <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Projected Revenue</FormLabel>
+                  <FormControl><Input {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+            )}/>
+             <FormField control={form.control} name="pendingNotes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pending Notes</FormLabel>
                   <FormControl><Textarea {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+            )}/>
+             <FormField control={form.control} name="companyCam" render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                        <FormLabel>CompanyCam?</FormLabel>
+                    </div>
+                </FormItem>
+              )}/>
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Cancel</Button>

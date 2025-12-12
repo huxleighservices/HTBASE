@@ -81,16 +81,16 @@ export function LeadNotesDialog({
     }, 500);
   };
   
-  const LeadDetail = ({ label, value }: { label: string; value?: string }) => (
+  const LeadDetail = ({ label, value }: { label: string; value?: string | boolean }) => (
     <div>
         <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <p className="text-base">{value || 'N/A'}</p>
+        <p className="text-base">{value === true ? 'Yes' : value === false ? 'No' : value || 'N/A'}</p>
     </div>
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Details for {lead.firstName} {lead.lastName}</DialogTitle>
           <DialogDescription>
@@ -98,19 +98,28 @@ export function LeadNotesDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid md:grid-cols-2 gap-6 py-4">
+        <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 py-4">
             <div className="space-y-4">
-                <LeadDetail label="First Name" value={lead.firstName} />
-                <LeadDetail label="Last Name" value={lead.lastName} />
-                <LeadDetail label="Franchise" value={lead.franchise} />
-                <LeadDetail label="Writing Agent" value={lead.writingAgent} />
-                <LeadDetail label="Plan Code" value={lead.planCode} />
-                <LeadDetail label="Plan Type" value={lead.planType} />
-                <LeadDetail label="Phone Number" value={lead.phoneNumber} />
-                <LeadDetail label="Policy Face $" value={lead.policyFaceAmount} />
+                <div className="grid grid-cols-2 gap-4">
+                    <LeadDetail label="F. Name" value={lead.firstName} />
+                    <LeadDetail label="L. Name" value={lead.lastName} />
+                </div>
+                <LeadDetail label="Source" value={lead.source} />
+                <LeadDetail label="Contact Date" value={lead.contactDate} />
+                 <div className="grid grid-cols-2 gap-4">
+                    <LeadDetail label="Current Step" value={lead.currentStep} />
+                    <LeadDetail label="Job Type" value={lead.jobType} />
+                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <LeadDetail label="Phone Number" value={lead.phoneNumber} />
+                    <LeadDetail label="Email" value={lead.email} />
+                </div>
+                <LeadDetail label="Home Address" value={lead.homeAddress} />
+                <LeadDetail label="Projected Revenue" value={lead.projectedRevenue} />
+                <LeadDetail label="CompanyCam?" value={lead.companyCam} />
                 <div>
-                     <p className="text-sm font-medium text-muted-foreground">Extra Info</p>
-                     <div className="text-base p-2 border rounded-md min-h-20 bg-muted/50 whitespace-pre-wrap">{lead.extraInfo || 'N/A'}</div>
+                     <p className="text-sm font-medium text-muted-foreground">Pending Notes</p>
+                     <div className="text-base p-2 border rounded-md min-h-20 bg-muted/50 whitespace-pre-wrap">{lead.pendingNotes || 'N/A'}</div>
                 </div>
             </div>
             <div>

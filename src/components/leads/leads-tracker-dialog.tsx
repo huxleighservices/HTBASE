@@ -184,10 +184,9 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                             <SelectItem value="createdAt">Date Added</SelectItem>
                             <SelectItem value="lastActivity">Last Activity</SelectItem>
                             <SelectItem value="lastName">Name</SelectItem>
-                            <SelectItem value="franchise">Franchise</SelectItem>
-                            <SelectItem value="writingAgent">Writing Agent</SelectItem>
-                            <SelectItem value="planCode">Plan Code</SelectItem>
-                            <SelectItem value="planType">Plan Type</SelectItem>
+                            <SelectItem value="source">Source</SelectItem>
+                            <SelectItem value="contactDate">Contact Date</SelectItem>
+                            <SelectItem value="projectedRevenue">Projected Revenue</SelectItem>
                         </SelectContent>
                     </Select>
                     <Button variant="outline" size="icon" onClick={toggleSortDirection}>
@@ -224,12 +223,11 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         <TableHeader>
                             <TableRow>
                             <TableHead>Name</TableHead>
-                            <TableHead>Franchise</TableHead>
-                            <TableHead>Writing Agent</TableHead>
-                            <TableHead>Plan Code</TableHead>
-                            <TableHead>Plan Type</TableHead>
+                            <TableHead>Source</TableHead>
+                            <TableHead>Contact Date</TableHead>
                             <TableHead>Phone Number</TableHead>
-                            <TableHead>Policy Face $</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Projected Revenue</TableHead>
                             <TableHead>Activity</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -238,12 +236,11 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                             {sortedLeads.map(lead => (
                                 <TableRow key={lead.id} onClick={() => setLeadForNotes(lead)} className="cursor-pointer">
                                     <TableCell className="font-medium">{lead.firstName} {lead.lastName}</TableCell>
-                                    <TableCell>{lead.franchise}</TableCell>
-                                    <TableCell>{lead.writingAgent}</TableCell>
-                                    <TableCell>{lead.planCode}</TableCell>
-                                    <TableCell>{lead.planType}</TableCell>
+                                    <TableCell>{lead.source}</TableCell>
+                                    <TableCell>{lead.contactDate}</TableCell>
                                     <TableCell>{lead.phoneNumber}</TableCell>
-                                    <TableCell>{lead.policyFaceAmount}</TableCell>
+                                    <TableCell>{lead.email}</TableCell>
+                                    <TableCell>{lead.projectedRevenue}</TableCell>
                                     <TableCell>
                                         <ActivityLogTooltip lead={lead} />
                                     </TableCell>
