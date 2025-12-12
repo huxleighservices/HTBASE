@@ -99,6 +99,24 @@ export type Lead = {
     createdAt: any;
 };
 
+export type Build = {
+    id: string;
+    buildName: string;
+    clientName: string;
+    startDate?: string;
+    status?: string;
+    projectManager?: string;
+    phoneNumber?: string;
+    email?: string;
+    address?: string;
+    budget?: string;
+    companyCam?: boolean;
+    pendingNotes?: string;
+    notes?: string;
+    activityLog?: ActivityLogEntry[];
+    createdAt: any;
+};
+
 export type TimePunch = {
     id: string;
     accessKeyUsername: string;

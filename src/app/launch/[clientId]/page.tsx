@@ -22,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -48,6 +48,7 @@ import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
 import { TimePunchDialog } from '@/components/time-punch/time-punch-dialog';
 import { SopBotDialog } from '@/components/sop-bot/sop-bot-dialog';
 import { LeadsTrackerDialog } from '@/components/leads/leads-tracker-dialog';
+import { BuildsTrackerDialog } from '@/components/builds/builds-tracker-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -81,6 +82,7 @@ export default function ClientLaunchPage() {
   const [isProjectHubOpen, setIsProjectHubOpen] = useState(false);
   const [isSopBotOpen, setIsSopBotOpen] = useState(false);
   const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
+  const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
 
 
   
@@ -261,6 +263,7 @@ export default function ClientLaunchPage() {
         if (title.includes('Time Punch')) return <Timer className="size-6" />;
         if (title.includes('Project Hub')) return <GanttChartSquare className="size-6" />;
         if (title.includes('SOP Bot')) return <Bot className="size-6" />;
+        if (title.includes('Builds')) return <Wrench className="size-6" />;
         return <Code className="size-6" />;
     };
     
@@ -269,6 +272,7 @@ export default function ClientLaunchPage() {
         if (asset.title.includes('Time Punch')) return () => setIsTimePunchOpen(true);
         if (asset.title.includes('Project Hub')) return () => setIsProjectHubOpen(true);
         if (asset.title.includes('SOP Bot')) return () => setIsSopBotOpen(true);
+        if (asset.title.includes('Builds')) return () => setIsBuildsTrackerOpen(true);
         return () => {};
     };
 
@@ -277,6 +281,7 @@ export default function ClientLaunchPage() {
         if (title.includes('Time Punch')) return 'Open Time Punch';
         if (title.includes('Project Hub')) return 'Open Hub';
         if (title.includes('SOP Bot')) return 'Open SOP Bot';
+        if (title.includes('Builds')) return 'Open Builds';
         return 'Open';
     }
 
@@ -404,25 +409,28 @@ export default function ClientLaunchPage() {
                                 </CardFooter>
                             </Card>
                         ))}
-                        {is4WK21Y && (
-                             <div className="space-y-4">
-                                <h3 className="font-headline text-xl font-semibold">Leads</h3>
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
-                                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
-                                        </div>
-                                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
-                                    </CardFooter>
-                                </Card>
-                            </div>
-                        )}
                         </div>
                     </div>
+                )}
+
+                {is4WK21Y && (
+                    <>
+                        <div className="space-y-4">
+                            <h3 className="font-headline text-xl font-semibold">Leads</h3>
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
+                                    </div>
+                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
+                                </CardFooter>
+                            </Card>
+                        </div>
+                    </>
                 )}
                 
                 {isSalesClient && (
@@ -446,6 +454,7 @@ export default function ClientLaunchPage() {
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
           {client && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
           {client && <LeadsTrackerDialog open={isLeadsTrackerOpen} onOpenChange={setIsLeadsTrackerOpen} client={client} activeUser={activeUser} />}
+          {client && <BuildsTrackerDialog open={isBuildsTrackerOpen} onOpenChange={setIsBuildsTrackerOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
