@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react';
 import type { Lead } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -50,6 +51,17 @@ type AddLeadDialogProps = {
   onOpenChange: (open: boolean) => void;
   onAddLead: (lead: Omit<Lead, 'id' | 'notes' | 'activityLog' | 'createdAt'>) => void;
 };
+
+const currentStepOptions = [
+    'Initial Contact',
+    'Inspection Scheduled',
+    'Build Date Confirmed',
+    'Permit/Logistics Confirmed',
+    'Build in Progress',
+    'Build Done | Collections in Progress',
+    'Signed, Paid, Done',
+    'Archived',
+];
 
 export function AddLeadDialog({
   open,
@@ -164,17 +176,32 @@ export function AddLeadDialog({
             {step === 2 && (
               <>
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField control={form.control} name="currentStep" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Current Step</FormLabel>
-                      <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}/>
+                  <FormField
+                    control={form.control}
+                    name="currentStep"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Step</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a step..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {currentStepOptions.map(option => (
+                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField control={form.control} name="jobType" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Job Type</FormLabel>
-                      <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
+                      <FormControl><Input {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}/>

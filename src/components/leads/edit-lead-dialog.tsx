@@ -31,6 +31,7 @@ import { useFirestore, updateDocumentNonBlocking, useMemoFirebase } from '@/fire
 import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -54,6 +55,17 @@ type EditLeadDialogProps = {
   lead: Lead;
   clientPath: string;
 };
+
+const currentStepOptions = [
+    'Initial Contact',
+    'Inspection Scheduled',
+    'Build Date Confirmed',
+    'Permit/Logistics Confirmed',
+    'Build in Progress',
+    'Build Done | Collections in Progress',
+    'Signed, Paid, Done',
+    'Archived',
+];
 
 export function EditLeadDialog({
   open,
@@ -149,17 +161,32 @@ export function EditLeadDialog({
               </FormItem>
             )}/>
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="currentStep" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Step</FormLabel>
-                  <FormControl><Input {...field} placeholder="Dropdown later..." disabled={isSaving}/></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}/>
+                <FormField
+                  control={form.control}
+                  name="currentStep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Step</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSaving}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a step..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {currentStepOptions.map(option => (
+                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               <FormField control={form.control} name="jobType" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Job Type</FormLabel>
-                  <FormControl><Input {...field} placeholder="Dropdown later..." disabled={isSaving}/></FormControl>
+                  <FormControl><Input {...field} disabled={isSaving}/></FormControl>
                   <FormMessage />
                 </FormItem>
               )}/>
