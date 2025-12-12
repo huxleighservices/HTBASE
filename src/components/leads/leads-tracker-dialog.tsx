@@ -48,6 +48,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { EditLeadDialog } from './edit-lead-dialog';
 import type { AccessKey } from '@/types/session';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
+import { Badge } from '../ui/badge';
 
 type LeadsTrackerDialogProps = {
     open: boolean;
@@ -164,7 +166,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
         <DialogHeader>
             <LeadsDialogTitle className="text-3xl font-bold font-headline tracking-tight flex items-center gap-3">
                 <Users /> Leads Tracker
@@ -222,14 +224,19 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         <Table>
                         <TableHeader>
                             <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Source</TableHead>
-                            <TableHead>Contact Date</TableHead>
-                            <TableHead>Phone Number</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Projected Revenue</TableHead>
-                            <TableHead>Activity</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Source</TableHead>
+                                <TableHead>Contact Date</TableHead>
+                                <TableHead>Current Step</TableHead>
+                                <TableHead>Job Type</TableHead>
+                                <TableHead>Phone</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Address</TableHead>
+                                <TableHead>Revenue</TableHead>
+                                <TableHead>CompanyCam</TableHead>
+                                <TableHead>Pending Notes</TableHead>
+                                <TableHead>Activity</TableHead>
+                                <TableHead className="text-right sticky right-0 bg-card">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -238,13 +245,18 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                     <TableCell className="font-medium">{lead.firstName} {lead.lastName}</TableCell>
                                     <TableCell>{lead.source}</TableCell>
                                     <TableCell>{lead.contactDate}</TableCell>
+                                    <TableCell><Badge variant="secondary">{lead.currentStep}</Badge></TableCell>
+                                    <TableCell>{lead.jobType}</TableCell>
                                     <TableCell>{lead.phoneNumber}</TableCell>
                                     <TableCell>{lead.email}</TableCell>
+                                    <TableCell className="max-w-[200px] truncate">{lead.homeAddress}</TableCell>
                                     <TableCell>{lead.projectedRevenue}</TableCell>
+                                    <TableCell><Checkbox checked={lead.companyCam} disabled /></TableCell>
+                                    <TableCell className="max-w-[200px] truncate">{lead.pendingNotes}</TableCell>
                                     <TableCell>
                                         <ActivityLogTooltip lead={lead} />
                                     </TableCell>
-                                    <TableCell className="text-right space-x-1">
+                                    <TableCell className="text-right space-x-1 sticky right-0 bg-card">
                                         <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, lead)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
