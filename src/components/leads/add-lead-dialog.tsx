@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Lead } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
@@ -56,6 +56,7 @@ export function AddLeadDialog({
   onOpenChange,
   onAddLead,
 }: AddLeadDialogProps) {
+  const [step, setStep] = useState(1);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -75,126 +76,155 @@ export function AddLeadDialog({
     },
   });
 
-  useEffect(() => {
-    if (!open) {
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
       form.reset();
+      setStep(1);
     }
-  }, [open, form]);
+    onOpenChange(isOpen);
+  };
+
+  const handleNext = async () => {
+    const fieldsToValidate: (keyof FormValues)[] = ['firstName', 'lastName', 'source', 'contactDate', 'phoneNumber', 'email'];
+    const isValid = await form.trigger(fieldsToValidate);
+    if (isValid) {
+      setStep(2);
+    }
+  };
+
 
   const onSubmit: SubmitHandler<FormValues> = data => {
     onAddLead(data as Omit<Lead, 'id' | 'notes' | 'activityLog' | 'createdAt'>);
-    onOpenChange(false);
+    handleOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Add New Lead</DialogTitle>
           <DialogDescription>
-            Enter the lead's details below to add them to the tracker.
+            Step {step} of 2: Enter the lead's details below.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="firstName" render={({ field }) => (
+            
+            {step === 1 && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="firstName" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>F. Name</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                  )}/>
+                  <FormField control={form.control} name="lastName" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>L. Name</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                  )}/>
+                </div>
+                <FormField control={form.control} name="source" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>F. Name</FormLabel>
+                    <FormLabel>Source</FormLabel>
                     <FormControl><Input {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
-              )}/>
-              <FormField control={form.control} name="lastName" render={({ field }) => (
+                )}/>
+                <FormField control={form.control} name="contactDate" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>L. Name</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
+                    <FormLabel>Contact Date</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
-              )}/>
-            </div>
-            <FormField control={form.control} name="source" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Source</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}/>
-            <FormField control={form.control} name="contactDate" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Contact Date</FormLabel>
-                <FormControl><Input type="date" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}/>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="currentStep" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Step</FormLabel>
-                  <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}/>
-              <FormField control={form.control} name="jobType" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Job Type</FormLabel>
-                  <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}/>
-            </div>
-             <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                )}/>
+                 <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="phoneNumber" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl><Input type="tel" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={form.control} name="email" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl><Input type="email" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                    )}/>
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={form.control} name="currentStep" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number</FormLabel>
-                      <FormControl><Input type="tel" {...field} /></FormControl>
+                      <FormLabel>Current Step</FormLabel>
+                      <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                  <FormField control={form.control} name="jobType" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Type</FormLabel>
+                      <FormControl><Input {...field} placeholder="Dropdown later..." /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                </div>
+                <FormField control={form.control} name="homeAddress" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Home Address</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Projected Revenue</FormLabel>
+                      <FormControl><Input {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                 )}/>
-                <FormField control={form.control} name="email" render={({ field }) => (
+                <FormField control={form.control} name="pendingNotes" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl><Input type="email" {...field} /></FormControl>
+                      <FormLabel>Pending Notes</FormLabel>
+                      <FormControl><Textarea {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                 )}/>
-            </div>
-             <FormField control={form.control} name="homeAddress" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Home Address</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}/>
-            <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Projected Revenue</FormLabel>
-                  <FormControl><Input {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-            )}/>
-             <FormField control={form.control} name="pendingNotes" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pending Notes</FormLabel>
-                  <FormControl><Textarea {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-            )}/>
-             <FormField control={form.control} name="companyCam" render={({ field }) => (
-                <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                        <FormLabel>CompanyCam?</FormLabel>
-                    </div>
-                </FormItem>
-              )}/>
+                <FormField control={form.control} name="companyCam" render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                            <FormLabel>CompanyCam?</FormLabel>
+                        </div>
+                    </FormItem>
+                )}/>
+              </>
+            )}
+
             <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="ghost">Cancel</Button>
               </DialogClose>
-              <Button type="submit">Add Lead</Button>
+              {step === 1 ? (
+                <Button type="button" onClick={handleNext}>Next</Button>
+              ) : (
+                <>
+                  <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
+                  <Button type="submit">Add Lead</Button>
+                </>
+              )}
             </DialogFooter>
           </form>
         </Form>
