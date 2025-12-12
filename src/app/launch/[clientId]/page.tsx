@@ -251,6 +251,8 @@ export default function ClientLaunchPage() {
     const logoSrc = customization?.logoUrl || '/logo.png';
     const isSalesClient = client?.isEdu !== true;
     const hasAssets = assets && assets.length > 0;
+    const is4WK21Y = clientId === '4WK21Y';
+
 
     const getAssetIcon = (title: string) => {
         if (title.includes('OPAC')) return <Database className="size-6" />;
@@ -338,7 +340,7 @@ export default function ClientLaunchPage() {
                 <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
                 <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
                 <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>
-                   {isSalesClient ? 'Select a training module to begin.' : 'Welcome to your portal.'}
+                   {is4WK21Y ? 'Welcome to your portal.' : (isSalesClient ? 'Select a training module to begin.' : 'Welcome to your portal.')}
                 </CardDescription>
                 {activeUser?.displayName && (
                     <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUser.displayName}!</p>
@@ -346,55 +348,63 @@ export default function ClientLaunchPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 
-                <div className="grid gap-6 md:grid-cols-2">
-                    {isSalesClient && (
-                    <>
-                        <Card>
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
-                            </div>
-                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                            <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
-                        </CardFooter>
-                        </Card>
-                        <Card>
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
-                            </div>
-                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                            <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
-                        </CardFooter>
-                        </Card>
-                    </>
-                    )}
-
-                    {hasAssets && assets.map(asset => (
-                        <Card key={asset.id}>
-                            <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                    {getAssetIcon(asset.title)}
+                {isSalesClient && (
+                    <div className="space-y-4">
+                        {is4WK21Y && <h3 className="font-headline text-xl font-semibold">Sales Training</h3>}
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
+                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
+                                    </div>
+                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={() => handleScenarioClick('messenger')}>Start Scenario</Button>
+                                </CardFooter>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
+                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
+                                    </div>
+                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={() => handleScenarioClick('coldcall')}>Start Simulation</Button>
+                                </CardFooter>
+                            </Card>
+                        </div>
+                    </div>
+                )}
+                
+                {hasAssets && (
+                    <div className="space-y-4">
+                        {is4WK21Y && <h3 className="font-headline text-xl font-semibold">Operations</h3>}
+                        <div className="grid gap-6 md:grid-cols-2">
+                        {assets.map(asset => (
+                            <Card key={asset.id}>
+                                <CardHeader>
+                                <div className="flex items-center gap-3">
+                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                        {getAssetIcon(asset.title)}
+                                    </div>
+                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
                                 </div>
-                                <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
-                            </div>
-                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button onClick={getAssetAction(asset)}>
-                                    {getAssetButtonText(asset.title)}
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
+                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={getAssetAction(asset)}>
+                                        {getAssetButtonText(asset.title)}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                        </div>
+                    </div>
+                )}
                 
                 {isSalesClient && (
                     <div className="pt-6">
