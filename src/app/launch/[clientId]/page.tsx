@@ -409,6 +409,20 @@ export default function ClientLaunchPage() {
                                 </CardFooter>
                             </Card>
                         ))}
+                         {is4WK21Y && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wrench className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Builds Tracker</CardTitle>
+                                    </div>
+                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your build projects.</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={() => setIsBuildsTrackerOpen(true)}>Open Builds</Button>
+                                </CardFooter>
+                            </Card>
+                         )}
                         </div>
                     </div>
                 )}
