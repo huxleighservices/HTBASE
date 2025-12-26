@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -43,6 +42,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle as HubDialogTitle, DialogDescription } from '../ui/dialog';
 import { format } from 'date-fns';
 import type { AccessKey } from '@/types/session';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { ViewSubmissionsDialog } from './view-submissions-dialog';
 
 type FormManagementDialogProps = {
     open: boolean;
@@ -78,6 +79,7 @@ export function FormManagementDialog({ open, onOpenChange, client }: FormManagem
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [selectedForm, setSelectedForm] = useState<Form | null>(null);
 
   const formsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -110,15 +112,19 @@ export function FormManagementDialog({ open, onOpenChange, client }: FormManagem
                 Create and manage public-facing forms for {client.firmName}.
             </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-8 pt-4 flex-grow min-h-0">
-            <div className="flex justify-end items-center">
-                <Button onClick={() => setIsCreateFormOpen(true)}>
-                    <PlusCircle className="mr-2"/>
-                    New Form
-                </Button>
-            </div>
-
-            <Card className='flex-grow flex flex-col min-h-0'>
+        <Tabs defaultValue="manager" className="flex-grow flex flex-col min-h-0">
+          <div className="flex justify-between items-center pb-4">
+              <TabsList>
+                  <TabsTrigger value="manager">Form Manager</TabsTrigger>
+                  <TabsTrigger value="viewer">Entry Viewer</TabsTrigger>
+              </TabsList>
+              <Button onClick={() => setIsCreateFormOpen(true)}>
+                  <PlusCircle className="mr-2"/>
+                  New Form
+              </Button>
+          </div>
+          <TabsContent value="manager" className="flex-grow m-0">
+            <Card className='h-full flex flex-col min-h-0'>
                 <CardHeader>
                     <CardTitle>Your Forms</CardTitle>
                     <CardDescription>
@@ -152,7 +158,7 @@ export function FormManagementDialog({ open, onOpenChange, client }: FormManagem
                                         <TableCell>
                                             {form.createdAt?.toDate ? format(form.createdAt.toDate(), 'PPP') : 'N/A'}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground">{form.fields.join(', ')}</TableCell>
+                                        <TableCell className="text-muted-foreground max-w-xs truncate">{form.fields.join(', ')}</TableCell>
                                         <TableCell className="text-right space-x-2">
                                             <FormLink formId={form.id} />
                                             <AlertDialog>
@@ -188,7 +194,11 @@ export function FormManagementDialog({ open, onOpenChange, client }: FormManagem
                   </div>
                 </CardContent>
             </Card>
-        </div>
+          </TabsContent>
+          <TabsContent value="viewer" className="flex-grow m-0">
+            <ViewSubmissionsDialog clientPath={client.path || null} forms={forms || []} isLoading={isLoading} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
     
