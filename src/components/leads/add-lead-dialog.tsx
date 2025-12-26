@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Lead } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
@@ -81,7 +81,7 @@ export function AddLeadDialog({
       lastName: '',
       source: '',
       contactDate: '',
-      currentStep: '',
+      currentStep: 'Initial Contact',
       jobType: '',
       phoneNumber: '',
       email: '',

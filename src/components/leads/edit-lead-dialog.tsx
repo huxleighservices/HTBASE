@@ -24,10 +24,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { Lead } from '@/types/client';
+import type { Lead, SyncedLead } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
@@ -101,7 +101,7 @@ export function EditLeadDialog({
         lastName: lead.lastName || '',
         source: lead.source || '',
         contactDate: lead.contactDate || '',
-        currentStep: lead.currentStep || '',
+        currentStep: lead.currentStep || 'Initial Contact',
         jobType: lead.jobType || '',
         phoneNumber: lead.phoneNumber || '',
         email: lead.email || '',
@@ -124,9 +124,32 @@ export function EditLeadDialog({
   };
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    if (!leadDocRef) return;
+    if (!leadDocRef || !firestore) return;
     setIsSaving(true);
-    updateDocumentNonBlocking(leadDocRef, data);
+    
+    const leadUpdateData = {
+        ...data,
+        agent: lead.agent // Keep the original agent
+    };
+    
+    // 1. Update the primary lead document
+    updateDocumentNonBlocking(leadDocRef, leadUpdateData);
+    
+    // 2. Update the synced lead document
+    const syncedLeadData: SyncedLead = {
+        agent: lead.agent,
+        name: `${data.firstName} ${data.lastName}`,
+        source: data.source || '',
+        contactDate: data.contactDate || '',
+        currentStep: data.currentStep || '',
+        contractPres: data.contractPresentationDate || '',
+        nextStepDue: data.nextStepDueDate || '',
+        jobType: data.jobType || '',
+        phone: data.phoneNumber || ''
+    };
+    const syncedLeadRef = doc(firestore, 'syncedLeads', lead.id);
+    setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
+
     
     setTimeout(() => {
         toast({ title: 'Lead Updated', description: `${data.firstName} ${data.lastName}'s record has been updated.` });

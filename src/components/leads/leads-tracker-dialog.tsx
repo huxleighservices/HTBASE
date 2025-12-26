@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -17,15 +18,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown, Send } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  setDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { AddLeadDialog } from '@/components/leads/add-lead-dialog';
 import type { Client, Lead, SyncedLead } from '@/types/client';
 import { LeadNotesDialog } from '@/components/leads/lead-notes-dialog';
@@ -104,7 +106,6 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [leadForNotes, setLeadForNotes] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
-  const [syncingLeadId, setSyncingLeadId] = useState<string | null>(null);
 
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -137,20 +138,43 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   }, [leads, sortKey, sortDirection]);
 
   const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'agent'>) => {
-    if (!leadsCollectionRef || !activeUser) return;
+    if (!leadsCollectionRef || !activeUser || !firestore) return;
     const leadData = {
         ...lead,
         agent: activeUser.username,
         createdAt: serverTimestamp()
     };
-    addDocumentNonBlocking(leadsCollectionRef, leadData);
+    const promise = addDocumentNonBlocking(leadsCollectionRef, leadData);
+    promise.then(docRef => {
+        if(docRef) {
+            const syncedLeadData: SyncedLead = {
+                agent: leadData.agent,
+                name: `${leadData.firstName} ${leadData.lastName}`,
+                source: leadData.source || '',
+                contactDate: leadData.contactDate || '',
+                currentStep: leadData.currentStep || '',
+                contractPres: leadData.contractPresentationDate || '',
+                nextStepDue: leadData.nextStepDueDate || '',
+                jobType: leadData.jobType || '',
+                phone: leadData.phoneNumber || ''
+            };
+            const syncedLeadRef = doc(firestore, 'syncedLeads', docRef.id);
+            setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
+        }
+    });
+
     toast({ title: 'Lead Added', description: `${lead.firstName} ${lead.lastName} has been added.` });
   };
 
-  const handleDeleteLead = (leadId: string) => {
-    if (!leadsCollectionRef) return;
-    const leadDocRef = doc(leadsCollectionRef, leadId);
+  const handleDeleteLead = (lead: Lead) => {
+    if (!leadsCollectionRef || !firestore) return;
+    const leadDocRef = doc(leadsCollectionRef, lead.id);
     deleteDocumentNonBlocking(leadDocRef);
+
+    // Also delete from syncedLeads
+    const syncedLeadRef = doc(firestore, 'syncedLeads', lead.id);
+    deleteDocumentNonBlocking(syncedLeadRef);
+
     toast({ title: 'Lead Deleted', variant: 'destructive' });
   };
   
@@ -158,41 +182,6 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     e.stopPropagation();
     setLeadToEdit(lead);
   }
-
-  const handleSyncLead = async (lead: Lead) => {
-    if (!firestore) return;
-    setSyncingLeadId(lead.id);
-
-    const syncedLead: SyncedLead = {
-        agent: lead.agent,
-        name: `${lead.firstName} ${lead.lastName}`,
-        source: lead.source || '',
-        contactDate: lead.contactDate || '',
-        currentStep: lead.currentStep || '',
-        contractPres: lead.contractPresentationDate || '',
-        nextStepDue: lead.nextStepDueDate || '',
-        jobType: lead.jobType || '',
-        phone: lead.phoneNumber || ''
-    };
-    
-    const syncedLeadRef = doc(firestore, 'syncedLeads', lead.id);
-
-    try {
-        await setDoc(syncedLeadRef, syncedLead, { merge: true });
-        toast({
-            title: "Lead Synced!",
-            description: `${lead.firstName} ${lead.lastName} has been synced.`
-        });
-    } catch (error: any) {
-        toast({
-            title: "Sync Failed",
-            description: error.message || 'Could not sync the lead.',
-            variant: "destructive"
-        });
-    } finally {
-        setSyncingLeadId(null);
-    }
-  };
 
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -298,17 +287,6 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                     <TableCell><Checkbox checked={lead.companyCam} disabled /></TableCell>
                                     <TableCell className="max-w-[200px] truncate">{lead.pendingNotes}</TableCell>
                                     <TableCell className="text-right space-x-1 sticky right-0 bg-card z-10">
-                                        <Button 
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSyncLead(lead);
-                                            }}
-                                            disabled={syncingLeadId === lead.id}
-                                        >
-                                            {syncingLeadId === lead.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
-                                        </Button>
                                         <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, lead)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -328,7 +306,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                                 <AlertDialogFooter>
                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                 <AlertDialogAction
-                                                    onClick={() => handleDeleteLead(lead.id)}
+                                                    onClick={() => handleDeleteLead(lead)}
                                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                                 >
                                                     Delete
