@@ -110,6 +110,10 @@ export function LeadNotesDialog({
                     <LeadDetail label="Current Step" value={lead.currentStep} />
                     <LeadDetail label="Job Type" value={lead.jobType} />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <LeadDetail label="Contract Presentation" value={lead.contractPresentationDate} />
+                    <LeadDetail label="Next Step Due" value={lead.nextStepDueDate} />
+                </div>
                  <div className="grid grid-cols-2 gap-4">
                     <LeadDetail label="Phone Number" value={lead.phoneNumber} />
                     <LeadDetail label="Email" value={lead.email} />

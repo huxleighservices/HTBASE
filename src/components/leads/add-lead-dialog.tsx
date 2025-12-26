@@ -42,6 +42,8 @@ const formSchema = z.object({
   projectedRevenue: z.string().optional(),
   companyCam: z.boolean().default(false),
   pendingNotes: z.string().optional(),
+  contractPresentationDate: z.string().optional(),
+  nextStepDueDate: z.string().optional(),
 });
 
 
@@ -87,6 +89,8 @@ export function AddLeadDialog({
       projectedRevenue: '',
       companyCam: false,
       pendingNotes: '',
+      contractPresentationDate: '',
+      nextStepDueDate: '',
     },
   });
 
@@ -207,6 +211,22 @@ export function AddLeadDialog({
                       <FormMessage />
                     </FormItem>
                   )}/>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Contract Presentation</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
+                    <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Next Step Due Date</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
                 </div>
                 <FormField control={form.control} name="homeAddress" render={({ field }) => (
                     <FormItem>

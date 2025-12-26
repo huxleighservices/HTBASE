@@ -269,6 +269,8 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                 <TableHead>Source</TableHead>
                                 <TableHead>Contact Date</TableHead>
                                 <TableHead>Current Step</TableHead>
+                                <TableHead>Contract Pres.</TableHead>
+                                <TableHead>Next Step Due</TableHead>
                                 <TableHead>Job Type</TableHead>
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Email</TableHead>
@@ -290,6 +292,8 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                     <TableCell>{lead.source}</TableCell>
                                     <TableCell>{lead.contactDate}</TableCell>
                                     <TableCell><Badge className={cn("transition-all", getStepColorClass(lead.currentStep))}>{lead.currentStep}</Badge></TableCell>
+                                    <TableCell>{lead.contractPresentationDate}</TableCell>
+                                    <TableCell>{lead.nextStepDueDate}</TableCell>
                                     <TableCell>{lead.jobType}</TableCell>
                                     <TableCell>{lead.phoneNumber}</TableCell>
                                     <TableCell>{lead.email}</TableCell>

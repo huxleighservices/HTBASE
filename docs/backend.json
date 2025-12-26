@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -144,6 +145,10 @@
           "type": "string",
           "description": "Time the time punch was ended.",
           "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of work completed during a punch-out event."
         }
       },
       "required": [
@@ -152,6 +157,87 @@
         "assetId",
         "punchInTime"
       ]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a lead for a client.",
+      "properties": {
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "franchise": { "type": "string" },
+        "writingAgent": { "type": "string" },
+        "policyFaceAmount": { "type": "string" },
+        "planCode": { "type": "string" },
+        "planType": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "extraInfo": { "type": "string" },
+        "notes": { "type": "string" },
+        "activityLog": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "contractPresentationDate": { "type": "string", "format": "date" },
+        "nextStepDueDate": { "type": "string", "format": "date" }
+      },
+      "required": ["id", "firstName", "lastName", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "type": "object",
+      "description": "Represents a data project for a client, containing multiple items.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "columns": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "name", "createdAt", "columns"]
+    },
+    "ProjectItem": {
+      "title": "Project Item",
+      "type": "object",
+      "description": "A single data entry within a project.",
+      "properties": {
+        "id": { "type": "string" },
+        "data": { "type": "object", "additionalProperties": { "type": "string" } }
+      },
+      "required": ["id", "data"]
+    },
+    "Sop": {
+      "title": "SOP",
+      "type": "object",
+      "description": "A Standard Operating Procedure document section.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "content", "createdAt"]
+    },
+    "Form": {
+        "title": "Form",
+        "type": "object",
+        "description": "Represents a configurable public form.",
+        "properties": {
+            "id": { "type": "string" },
+            "title": { "type": "string" },
+            "fields": { "type": "array", "items": { "type": "string" } },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "title", "fields", "createdAt"]
+    },
+    "FormSubmission": {
+        "title": "Form Submission",
+        "type": "object",
+        "description": "A single submission from a public form.",
+        "properties": {
+            "id": { "type": "string" },
+            "data": { "type": "object", "additionalProperties": { "type": "any" } },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "data", "createdAt"]
     }
   },
   "auth": {
@@ -166,37 +252,81 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
+          "schema": { "$ref": "#/backend/entities/User" },
           "description": "Stores user profiles.",
           "subcollections": [
             {
               "path": "/clients/{clientId}",
               "definition": {
                 "entityName": "Client",
-                "schema": {
-                  "$ref": "#/backend/entities/Client"
-                },
+                "schema": { "$ref": "#/backend/entities/Client" },
                 "description": "Stores client data for a specific user.",
                 "subcollections": [
                   {
                     "path": "/assets/{assetId}",
                     "definition": {
                       "entityName": "Asset",
-                      "schema": {
-                        "$ref": "#/backend/entities/Asset"
-                      },
+                      "schema": { "$ref": "#/backend/entities/Asset" },
                       "description": "Stores assets associated with a client.",
                       "subcollections": [
                         {
                           "path": "/timePunches/{timePunchId}",
                           "definition": {
                             "entityName": "TimePunch",
-                            "schema": {
-                              "$ref": "#/backend/entities/TimePunch"
-                            },
+                            "schema": { "$ref": "#/backend/entities/TimePunch" },
                             "description": "Stores time punch data associated with an asset."
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "path": "/leads/{leadId}",
+                    "definition": {
+                      "entityName": "Lead",
+                      "schema": { "$ref": "#/backend/entities/Lead" },
+                      "description": "Stores leads for a specific client."
+                    }
+                  },
+                  {
+                    "path": "/projects/{projectId}",
+                    "definition": {
+                      "entityName": "Project",
+                      "schema": { "$ref": "#/backend/entities/Project" },
+                      "description": "Data projects for a client.",
+                      "subcollections": [
+                        {
+                          "path": "/items/{itemId}",
+                          "definition": {
+                            "entityName": "ProjectItem",
+                            "schema": { "$ref": "#/backend/entities/ProjectItem" },
+                            "description": "Items within a project."
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "path": "/sops/{sopId}",
+                    "definition": {
+                      "entityName": "Sop",
+                      "schema": { "$ref": "#/backend/entities/Sop" },
+                      "description": "Standard Operating Procedures for a client."
+                    }
+                  },
+                   {
+                    "path": "/forms/{formId}",
+                    "definition": {
+                      "entityName": "Form",
+                      "schema": { "$ref": "#/backend/entities/Form" },
+                      "description": "Public data entry forms.",
+                      "subcollections": [
+                        {
+                          "path": "/submissions/{submissionId}",
+                          "definition": {
+                            "entityName": "FormSubmission",
+                            "schema": { "$ref": "#/backend/entities/FormSubmission" },
+                            "description": "Submissions for a form."
                           }
                         }
                       ]
@@ -212,3 +342,4 @@
     "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
+

@@ -46,6 +46,8 @@ const formSchema = z.object({
   projectedRevenue: z.string().optional(),
   companyCam: z.boolean().default(false),
   pendingNotes: z.string().optional(),
+  contractPresentationDate: z.string().optional(),
+  nextStepDueDate: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -107,6 +109,8 @@ export function EditLeadDialog({
         projectedRevenue: lead.projectedRevenue || '',
         companyCam: lead.companyCam || false,
         pendingNotes: lead.pendingNotes || '',
+        contractPresentationDate: lead.contractPresentationDate || '',
+        nextStepDueDate: lead.nextStepDueDate || '',
       });
     }
   }, [open, lead, form]);
@@ -224,6 +228,22 @@ export function EditLeadDialog({
                         <FormMessage />
                         </FormItem>
                     )}/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Contract Presentation</FormLabel>
+                            <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
+                        <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Next Step Due Date</FormLabel>
+                            <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
                     </div>
                     <FormField control={form.control} name="homeAddress" render={({ field }) => (
                         <FormItem>

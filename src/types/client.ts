@@ -97,6 +97,8 @@ export type Lead = {
     notes?: string;
     activityLog?: ActivityLogEntry[];
     createdAt: any;
+    contractPresentationDate?: string;
+    nextStepDueDate?: string;
 };
 
 export type Build = {
