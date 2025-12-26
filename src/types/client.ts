@@ -101,6 +101,18 @@ export type Lead = {
     nextStepDueDate?: string;
 };
 
+export type SyncedLead = {
+    agent: string;
+    name: string;
+    source: string;
+    contactDate: string;
+    currentStep: string;
+    contractPres: string;
+    nextStepDue: string;
+    jobType: string;
+    phone: string;
+}
+
 export type Build = {
     id: string;
     buildName: string;
