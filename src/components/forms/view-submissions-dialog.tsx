@@ -4,10 +4,10 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Loader2, Trash2 } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy } from 'firebase/firestore';
-import type { Form, FormSubmission } from '@/types/client';
+import { Loader2, Trash2, Send } from 'lucide-react';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import type { Form, FormSubmission, Lead } from '@/types/client';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import {
@@ -53,6 +53,36 @@ export function ViewSubmissionsDialog({ clientPath, forms, isLoading }: ViewSubm
     const submissionDocRef = doc(submissionsCollectionRef, submissionId);
     deleteDocumentNonBlocking(submissionDocRef);
     toast({ title: 'Submission Deleted', variant: 'destructive' });
+  };
+  
+  const handleSendToLeads = (submission: FormSubmission) => {
+    if (!firestore || !clientPath) return;
+
+    const leadsCollectionRef = collection(firestore, clientPath, 'leads');
+    
+    const newLead: Omit<Lead, 'id' | 'notes' | 'activityLog' | 'createdAt'> = {
+        firstName: submission.data['First Name'] || '',
+        lastName: submission.data['Last Name'] || '',
+        source: submission.data['How did you hear bout us?'] || '',
+        phoneNumber: submission.data['Phone number'] || '',
+        email: submission.data['Email'] || '',
+        jobType: submission.data['What are we fixing?'] || '',
+        homeAddress: submission.data['Address'] || '',
+        currentStep: 'Initial Contact', // Default value
+    };
+
+    addDocumentNonBlocking(leadsCollectionRef, {...newLead, activityLog: [], createdAt: serverTimestamp()});
+
+    // Mark the submission as sent
+    if (submissionsCollectionRef) {
+        const submissionDocRef = doc(submissionsCollectionRef, submission.id);
+        updateDocumentNonBlocking(submissionDocRef, { sentToLeads: true });
+    }
+
+    toast({
+        title: 'Lead Created',
+        description: `A new lead has been created for ${newLead.firstName} ${newLead.lastName}.`
+    });
   };
 
   return (
@@ -101,7 +131,16 @@ export function ViewSubmissionsDialog({ clientPath, forms, isLoading }: ViewSubm
                     {selectedForm?.fields.map(field => (
                       <TableCell key={field}>{submission.data[field] || 'N/A'}</TableCell>
                     ))}
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-1">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSendToLeads(submission)}
+                            disabled={submission.data.sentToLeads === true}
+                        >
+                           <Send className="mr-2 h-4 w-4"/>
+                           {submission.data.sentToLeads ? 'Sent' : 'Send to Leads'}
+                        </Button>
                        <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">

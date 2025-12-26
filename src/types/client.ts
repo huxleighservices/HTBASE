@@ -155,7 +155,7 @@ export type Form = {
 
 export type FormSubmission = {
     id: string;
-    data: Record<string, string>;
+    data: Record<string, any>;
     createdAt: any;
 };
     

@@ -232,7 +232,7 @@
         "description": "A single submission from a public form.",
         "properties": {
             "id": { "type": "string" },
-            "data": { "type": "object", "additionalProperties": { "type": "string" } },
+            "data": { "type": "object", "additionalProperties": { "type": "any" } },
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["id", "data", "createdAt"]
@@ -340,3 +340,4 @@
     "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
+
