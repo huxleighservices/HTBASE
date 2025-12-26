@@ -22,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -51,6 +51,7 @@ import { LeadsTrackerDialog } from '@/components/leads/leads-tracker-dialog';
 import { BuildsTrackerDialog } from '@/components/builds/builds-tracker-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { FormManagementDialog } from '@/components/forms/form-management-dialog';
 
 type Stage = 'login' | 'trainer';
 
@@ -66,6 +67,14 @@ export default function ClientLaunchPage() {
   const clientId = params.clientId as string;
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const [cardVisibility, setCardVisibility] = useLocalStorage('cardVisibility-4WK21Y', {
+    messenger: true,
+    coldCall: true,
+    builds: true,
+    leads: true,
+    trainingResults: true,
+    forms: true,
+  });
 
   const [stage, setStage] = useState<Stage>('login');
   const [client, setClient] = useState<Client | null>(null);
@@ -84,15 +93,7 @@ export default function ClientLaunchPage() {
   const [isSopBotOpen, setIsSopBotOpen] = useState(false);
   const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
   const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
-
-  // Moved useLocalStorage to the top level of the component
-  const [cardVisibility, setCardVisibility] = useLocalStorage('cardVisibility-4WK21Y', {
-    messenger: true,
-    coldCall: true,
-    builds: true,
-    leads: true,
-    trainingResults: true,
-  });
+  const [isFormManagementOpen, setIsFormManagementOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -364,6 +365,7 @@ export default function ClientLaunchPage() {
                       <DropdownMenuCheckboxItem checked={cardVisibility.trainingResults} onCheckedChange={(c) => handleVisibilityChange('trainingResults', !!c)}>Training Results</DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={cardVisibility.builds} onCheckedChange={(c) => handleVisibilityChange('builds', !!c)}>Builds Tracker</DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={cardVisibility.leads} onCheckedChange={(c) => handleVisibilityChange('leads', !!c)}>Leads Tracker</DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={cardVisibility.forms} onCheckedChange={(c) => handleVisibilityChange('forms', !!c)}>Forms</DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -455,6 +457,20 @@ export default function ClientLaunchPage() {
                                 </CardFooter>
                             </Card>
                          )}
+                         {is4WK21Y && cardVisibility.forms && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileSignature className="size-6" /></div>
+                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Forms</CardTitle>
+                                    </div>
+                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage public data entry forms.</CardDescription>
+                                </CardHeader>
+                                <CardFooter>
+                                    <Button onClick={() => setIsFormManagementOpen(true)}>Manage Forms</Button>
+                                </CardFooter>
+                            </Card>
+                         )}
                         </div>
                     </div>
                 )}
@@ -494,6 +510,7 @@ export default function ClientLaunchPage() {
           {client && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
           {client && <LeadsTrackerDialog open={isLeadsTrackerOpen} onOpenChange={setIsLeadsTrackerOpen} client={client} activeUser={activeUser} />}
           {client && <BuildsTrackerDialog open={isBuildsTrackerOpen} onOpenChange={setIsBuildsTrackerOpen} client={client} activeUser={activeUser} />}
+          {client && <FormManagementDialog open={isFormManagementOpen} onOpenChange={setIsFormManagementOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }

@@ -213,6 +213,29 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "title", "content", "createdAt"]
+    },
+    "Form": {
+        "title": "Form",
+        "type": "object",
+        "description": "Represents a configurable public form.",
+        "properties": {
+            "id": { "type": "string" },
+            "title": { "type": "string" },
+            "fields": { "type": "array", "items": { "type": "string" } },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "title", "fields", "createdAt"]
+    },
+    "FormSubmission": {
+        "title": "Form Submission",
+        "type": "object",
+        "description": "A single submission from a public form.",
+        "properties": {
+            "id": { "type": "string" },
+            "data": { "type": "object", "additionalProperties": { "type": "string" } },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "data", "createdAt"]
     }
   },
   "auth": {
@@ -287,6 +310,24 @@
                       "entityName": "Sop",
                       "schema": { "$ref": "#/backend/entities/Sop" },
                       "description": "Standard Operating Procedures for a client."
+                    }
+                  },
+                   {
+                    "path": "/forms/{formId}",
+                    "definition": {
+                      "entityName": "Form",
+                      "schema": { "$ref": "#/backend/entities/Form" },
+                      "description": "Public data entry forms.",
+                      "subcollections": [
+                        {
+                          "path": "/submissions/{submissionId}",
+                          "definition": {
+                            "entityName": "FormSubmission",
+                            "schema": { "$ref": "#/backend/entities/FormSubmission" },
+                            "description": "Submissions for a form."
+                          }
+                        }
+                      ]
                     }
                   }
                 ]

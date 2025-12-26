@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, FilePenLine } from 'lucide-react';
 import {
   useAuth,
   useUser,
@@ -171,6 +171,10 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
       <div className="flex w-full max-w-sm flex-col gap-8">
+        <Button variant="outline" size="lg" onClick={() => router.push('/forms/CUST01')}>
+            <FilePenLine className="mr-2"/>
+            New Customer Entry
+        </Button>
         <Card className="border-2 border-primary/20 shadow-lg shadow-primary/10">
           <CardHeader className="items-center text-center">
             <Image src="/logo.png" alt="HTBase Logo" width={48} height={48} className="text-primary" />

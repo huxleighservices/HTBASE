@@ -145,4 +145,17 @@ export type Sop = {
   content: string;
   createdAt: any;
 };
+
+export type Form = {
+  id: string;
+  title: string;
+  fields: string[];
+  createdAt: any;
+};
+
+export type FormSubmission = {
+    id: string;
+    data: Record<string, string>;
+    createdAt: any;
+};
     
