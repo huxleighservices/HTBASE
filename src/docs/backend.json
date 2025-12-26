@@ -165,6 +165,7 @@
       "description": "Represents a lead for a client.",
       "properties": {
         "id": { "type": "string" },
+        "agent": { "type": "string" },
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
         "franchise": { "type": "string" },
@@ -175,8 +176,9 @@
         "phoneNumber": { "type": "string" },
         "extraInfo": { "type": "string" },
         "notes": { "type": "string" },
-        "activityLog": { "type": "array", "items": { "type": "object" } },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "contractPresentationDate": { "type": "string", "format": "date" },
+        "nextStepDueDate": { "type": "string", "format": "date" }
       },
       "required": ["id", "firstName", "lastName", "createdAt"]
     },
@@ -340,4 +342,3 @@
     "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
-

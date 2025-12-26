@@ -86,7 +86,7 @@ const getIndicatorColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white';
     }
-    if (s.includes('archived')) {
+     if (s.includes('archived')) {
         return 'bg-red-500';
     }
     if (s.includes('paid & done')) {
@@ -99,7 +99,7 @@ const getIndicatorColorClass = (step?: string) => {
 };
 
 
-export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerDialogProps) {
+export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: LeadsTrackerDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
@@ -136,9 +136,14 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
     });
   }, [leads, sortKey, sortDirection]);
 
-  const handleAddLead = (lead: Omit<Lead, 'id' | 'notes'>) => {
-    if (!leadsCollectionRef) return;
-    addDocumentNonBlocking(leadsCollectionRef, {...lead, createdAt: serverTimestamp()});
+  const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'agent'>) => {
+    if (!leadsCollectionRef || !activeUser) return;
+    const leadData = {
+        ...lead,
+        agent: activeUser.username,
+        createdAt: serverTimestamp()
+    };
+    addDocumentNonBlocking(leadsCollectionRef, leadData);
     toast({ title: 'Lead Added', description: `${lead.firstName} ${lead.lastName} has been added.` });
   };
 
@@ -180,6 +185,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         <SelectContent>
                             <SelectItem value="createdAt">Date Added</SelectItem>
                             <SelectItem value="lastName">Name</SelectItem>
+                            <SelectItem value="agent">Agent</SelectItem>
                             <SelectItem value="source">Source</SelectItem>
                             <SelectItem value="contactDate">Contact Date</SelectItem>
                             <SelectItem value="projectedRevenue">Projected Revenue</SelectItem>
@@ -218,7 +224,8 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-4"></TableHead>
+                                <TableHead className="sticky left-0 bg-card w-4 z-20"></TableHead>
+                                <TableHead className="sticky left-4 bg-card z-20 border-r">Agent</TableHead>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Source</TableHead>
                                 <TableHead>Contact Date</TableHead>
@@ -232,15 +239,16 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                 <TableHead>Revenue</TableHead>
                                 <TableHead>CompanyCam</TableHead>
                                 <TableHead>Pending Notes</TableHead>
-                                <TableHead className="text-right sticky right-0 bg-card">Actions</TableHead>
+                                <TableHead className="text-right sticky right-0 bg-card z-10">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {sortedLeads.map(lead => (
                                 <TableRow key={lead.id} onClick={() => setLeadForNotes(lead)} className="cursor-pointer">
-                                    <TableCell>
+                                    <TableCell className="sticky left-0 bg-card z-20">
                                         <div className={cn("w-2.5 h-2.5 rounded-full", getIndicatorColorClass(lead.currentStep))}></div>
                                     </TableCell>
+                                    <TableCell className="sticky left-4 bg-card z-20 font-medium border-r">{lead.agent}</TableCell>
                                     <TableCell className="font-medium">{lead.firstName} {lead.lastName}</TableCell>
                                     <TableCell>{lead.source}</TableCell>
                                     <TableCell>{lead.contactDate}</TableCell>
@@ -254,7 +262,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                     <TableCell>{lead.projectedRevenue}</TableCell>
                                     <TableCell><Checkbox checked={lead.companyCam} disabled /></TableCell>
                                     <TableCell className="max-w-[200px] truncate">{lead.pendingNotes}</TableCell>
-                                    <TableCell className="text-right space-x-1 sticky right-0 bg-card">
+                                    <TableCell className="text-right space-x-1 sticky right-0 bg-card z-10">
                                         <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, lead)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>

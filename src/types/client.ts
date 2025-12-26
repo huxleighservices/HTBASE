@@ -82,6 +82,7 @@ export type OpaCustomer = {
 
 export type Lead = {
     id: string;
+    agent: string;
     firstName: string;
     lastName: string;
     source?: string;

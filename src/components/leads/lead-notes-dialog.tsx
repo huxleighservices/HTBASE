@@ -100,6 +100,9 @@ export function LeadNotesDialog({
 
         <div className="grid md:grid-cols-2 gap-x-8 gap-y-6 py-4">
             <div className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <LeadDetail label="Agent" value={lead.agent} />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <LeadDetail label="F. Name" value={lead.firstName} />
                     <LeadDetail label="L. Name" value={lead.lastName} />

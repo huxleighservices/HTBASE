@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -75,7 +76,7 @@ const FormLink = ({ formId }: { formId: string }) => {
     );
 };
 
-export function FormManagementDialog({ open, onOpenChange, client }: FormManagementDialogProps) {
+export function FormManagementDialog({ open, onOpenChange, client, activeUser }: FormManagementDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
@@ -196,7 +197,7 @@ export function FormManagementDialog({ open, onOpenChange, client }: FormManagem
             </Card>
           </TabsContent>
           <TabsContent value="viewer" className="flex-grow m-0">
-            <ViewSubmissionsDialog clientPath={client.path || null} forms={forms || []} isLoading={isLoading} />
+            <ViewSubmissionsDialog clientPath={client.path || null} forms={forms || []} isLoading={isLoading} activeUser={activeUser} />
           </TabsContent>
         </Tabs>
       </DialogContent>

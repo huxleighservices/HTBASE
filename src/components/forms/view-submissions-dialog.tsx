@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -22,14 +23,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import type { AccessKey } from '@/types/session';
 
 type ViewSubmissionsDialogProps = {
   clientPath: string | null;
   forms: Form[];
   isLoading: boolean;
+  activeUser: AccessKey | null;
 };
 
-export function ViewSubmissionsDialog({ clientPath, forms, isLoading }: ViewSubmissionsDialogProps) {
+export function ViewSubmissionsDialog({ clientPath, forms, isLoading, activeUser }: ViewSubmissionsDialogProps) {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -60,7 +63,8 @@ export function ViewSubmissionsDialog({ clientPath, forms, isLoading }: ViewSubm
 
     const leadsCollectionRef = collection(firestore, clientPath, 'leads');
     
-    const newLead: Omit<Lead, 'id' | 'notes' | 'activityLog' | 'createdAt'> = {
+    const newLead: Omit<Lead, 'id' | 'notes' | 'createdAt'> = {
+        agent: activeUser?.username || 'Unknown',
         firstName: submission.data['First Name'] || '',
         lastName: submission.data['Last Name'] || '',
         source: submission.data['How did you hear bout us?'] || '',
@@ -71,7 +75,7 @@ export function ViewSubmissionsDialog({ clientPath, forms, isLoading }: ViewSubm
         currentStep: 'Initial Contact', // Default value
     };
 
-    addDocumentNonBlocking(leadsCollectionRef, {...newLead, activityLog: [], createdAt: serverTimestamp()});
+    addDocumentNonBlocking(leadsCollectionRef, {...newLead, createdAt: serverTimestamp()});
 
     // Mark the submission as sent
     if (submissionsCollectionRef) {
