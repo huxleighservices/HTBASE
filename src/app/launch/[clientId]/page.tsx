@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -420,77 +421,77 @@ export default function ClientLaunchPage() {
                     </div>
                 )}
                 
-                {(hasAssets || is4WK21Y) && (
-                    <div className="space-y-4">
-                        <h3 className="font-headline text-xl font-semibold">Operations</h3>
-                        <div className="grid gap-6 md:grid-cols-2">
-                        {assets?.map(asset => (
-                            <Card key={asset.id}>
-                                <CardHeader>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        {getAssetIcon(asset.title)}
-                                    </div>
-                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
-                                </div>
-                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={getAssetAction(asset)}>
-                                        {getAssetButtonText(asset.title)}
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                         {is4WK21Y && cardVisibility.builds && (
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wrench className="size-6" /></div>
-                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Builds Tracker</CardTitle>
-                                    </div>
-                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your build projects.</CardDescription>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={() => setIsBuildsTrackerOpen(true)}>Open Builds</Button>
-                                </CardFooter>
-                            </Card>
-                         )}
-                         {is4WK21Y && cardVisibility.forms && (
-                            <Card>
-                                <CardHeader>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileSignature className="size-6" /></div>
-                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Forms</CardTitle>
-                                    </div>
-                                    <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage public data entry forms.</CardDescription>
-                                </CardHeader>
-                                <CardFooter>
-                                    <Button onClick={() => setIsFormManagementOpen(true)}>Manage Forms</Button>
-                                </CardFooter>
-                            </Card>
-                         )}
-                        </div>
-                    </div>
-                )}
+                <div className="space-y-4">
+                  <h3 className="font-headline text-xl font-semibold">Operations</h3>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {assets?.map(asset => (
+                      <Card key={asset.id}>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              {getAssetIcon(asset.title)}
+                            </div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
+                          </div>
+                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button onClick={getAssetAction(asset)}>
+                            {getAssetButtonText(asset.title)}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                    {is4WK21Y && cardVisibility.builds && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wrench className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Builds Tracker</CardTitle>
+                          </div>
+                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your build projects.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button onClick={() => setIsBuildsTrackerOpen(true)}>Open Builds</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
+                    {is4WK21Y && cardVisibility.forms && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileSignature className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Forms</CardTitle>
+                          </div>
+                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage public data entry forms.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button onClick={() => setIsFormManagementOpen(true)}>Manage Forms</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
+                  </div>
+                </div>
 
-                {is4WK21Y && cardVisibility.leads && (
-                    <div className="space-y-4">
-                        <h3 className="font-headline text-xl font-semibold">Leads</h3>
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
-                                    <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
-                                </div>
-                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
-                            </CardFooter>
-                        </Card>
-                    </div>
-                )}
+                <div className="space-y-4">
+                  <h3 className="font-headline text-xl font-semibold">Leads</h3>
+                  <div className="grid gap-6 md:grid-cols-1">
+                    {is4WK21Y && cardVisibility.leads && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
+                          </div>
+                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
+                  </div>
+                </div>
                 
               </CardContent>
               <CardFooter className="justify-center">
