@@ -180,7 +180,7 @@
         "contractPresentationDate": { "type": "string", "format": "date" },
         "nextStepDueDate": { "type": "string", "format": "date" }
       },
-      "required": ["id", "firstName", "lastName", "createdAt"]
+      "required": ["id", "agent", "firstName", "lastName", "createdAt"]
     },
     "Project": {
       "title": "Project",

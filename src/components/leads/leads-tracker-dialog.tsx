@@ -74,7 +74,7 @@ const getStepColorClass = (step?: string) => {
     if (s.includes('paid & done')) {
         return 'bg-gray-500 text-white shadow-[0_0_10px_theme(colors.gray.500)] ring-1 ring-gray-500/50';
     }
-    if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('in progress')) {
+    if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit')) {
         return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
     }
     return 'bg-secondary text-secondary-foreground';
@@ -93,7 +93,7 @@ const getIndicatorColorClass = (step?: string) => {
     if (s.includes('paid & done')) {
         return 'bg-gray-500';
     }
-     if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('in progress')) {
+     if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit')) {
         return 'bg-green-500';
     }
     return 'bg-gray-400';
@@ -137,7 +137,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     });
   }, [leads, sortKey, sortDirection]);
 
-  const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'agent'>) => {
+  const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'createdAt' | 'agent'>) => {
     if (!leadsCollectionRef || !activeUser || !firestore) return;
     const leadData = {
         ...lead,
