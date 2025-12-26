@@ -50,6 +50,7 @@ import type { AccessKey } from '@/types/session';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
+import { cn } from '@/lib/utils';
 
 type LeadsTrackerDialogProps = {
     open: boolean;
@@ -99,6 +100,45 @@ const ActivityLogTooltip = ({ lead }: { lead: Lead }) => {
         </TooltipProvider>
     );
 };
+
+const getStepColorClass = (step?: string) => {
+    if (!step) return 'bg-gray-400 text-gray-800';
+    const s = step.toLowerCase();
+    
+    if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
+        return 'bg-white text-gray-800 shadow-[0_0_10px_theme(colors.white)] ring-1 ring-white/50';
+    }
+    if (s.includes('build done')) {
+        return 'bg-red-500 text-white shadow-[0_0_10px_theme(colors.red.500)] ring-1 ring-red-500/50';
+    }
+    if (s.includes('archived')) {
+        return 'bg-gray-500 text-white shadow-[0_0_10px_theme(colors.gray.500)] ring-1 ring-gray-500/50';
+    }
+    if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('in progress') || s.includes('paid')) {
+        return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
+    }
+    return 'bg-secondary text-secondary-foreground';
+};
+
+const getIndicatorColorClass = (step?: string) => {
+    if (!step) return 'bg-gray-400';
+    const s = step.toLowerCase();
+
+    if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
+        return 'bg-white';
+    }
+    if (s.includes('build done')) {
+        return 'bg-red-500';
+    }
+    if (s.includes('archived')) {
+        return 'bg-gray-500';
+    }
+     if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('in progress') || s.includes('paid')) {
+        return 'bg-green-500';
+    }
+    return 'bg-gray-400';
+};
+
 
 export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerDialogProps) {
   const firestore = useFirestore();
@@ -224,6 +264,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-4"></TableHead>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Source</TableHead>
                                 <TableHead>Contact Date</TableHead>
@@ -242,10 +283,13 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         <TableBody>
                             {sortedLeads.map(lead => (
                                 <TableRow key={lead.id} onClick={() => setLeadForNotes(lead)} className="cursor-pointer">
+                                    <TableCell>
+                                        <div className={cn("w-2.5 h-2.5 rounded-full", getIndicatorColorClass(lead.currentStep))}></div>
+                                    </TableCell>
                                     <TableCell className="font-medium">{lead.firstName} {lead.lastName}</TableCell>
                                     <TableCell>{lead.source}</TableCell>
                                     <TableCell>{lead.contactDate}</TableCell>
-                                    <TableCell><Badge variant="secondary">{lead.currentStep}</Badge></TableCell>
+                                    <TableCell><Badge className={cn("transition-all", getStepColorClass(lead.currentStep))}>{lead.currentStep}</Badge></TableCell>
                                     <TableCell>{lead.jobType}</TableCell>
                                     <TableCell>{lead.phoneNumber}</TableCell>
                                     <TableCell>{lead.email}</TableCell>

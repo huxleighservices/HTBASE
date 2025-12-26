@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -59,11 +58,13 @@ type EditLeadDialogProps = {
 const currentStepOptions = [
     'Initial Contact',
     'Inspection Scheduled',
+    'Presentation Scheduled',
+    'Contract Signed',
     'Build Date Confirmed',
     'Permit/Logistics Confirmed',
     'Build in Progress',
     'Build Done | Collections in Progress',
-    'Signed, Paid, Done',
+    'Paid & Done',
     'Archived',
 ];
 
