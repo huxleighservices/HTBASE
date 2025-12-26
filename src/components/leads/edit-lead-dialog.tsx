@@ -145,7 +145,12 @@ export function EditLeadDialog({
         contractPres: data.contractPresentationDate || '',
         nextStepDue: data.nextStepDueDate || '',
         jobType: data.jobType || '',
-        phone: data.phoneNumber || ''
+        phone: data.phoneNumber || '',
+        email: data.email || '',
+        address: data.homeAddress || '',
+        revenue: data.projectedRevenue || '',
+        companyCam: data.companyCam || false,
+        pendingNotes: data.pendingNotes || '',
     };
     const syncedLeadRef = doc(firestore, 'syncedLeads', lead.id);
     setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });

@@ -74,7 +74,7 @@ const getStepColorClass = (step?: string) => {
     if (s.includes('paid & done')) {
         return 'bg-gray-500 text-white shadow-[0_0_10px_theme(colors.gray.500)] ring-1 ring-gray-500/50';
     }
-    if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('in progress') || s.includes('build done')) {
+    if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('in progress')) {
         return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
     }
     return 'bg-secondary text-secondary-foreground';
@@ -156,7 +156,12 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                 contractPres: leadData.contractPresentationDate || '',
                 nextStepDue: leadData.nextStepDueDate || '',
                 jobType: leadData.jobType || '',
-                phone: leadData.phoneNumber || ''
+                phone: leadData.phoneNumber || '',
+                email: leadData.email || '',
+                address: leadData.homeAddress || '',
+                revenue: leadData.projectedRevenue || '',
+                companyCam: leadData.companyCam || false,
+                pendingNotes: leadData.pendingNotes || '',
             };
             const syncedLeadRef = doc(firestore, 'syncedLeads', docRef.id);
             setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });

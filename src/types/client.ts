@@ -76,7 +76,6 @@ export type OpaCustomer = {
     phoneNumber: string;
     extraInfo: string;
     notes?: string;
-    activityLog?: ActivityLogEntry[];
     createdAt: any;
 };
 
@@ -111,6 +110,11 @@ export type SyncedLead = {
     nextStepDue: string;
     jobType: string;
     phone: string;
+    email: string;
+    address: string;
+    revenue: string;
+    companyCam: boolean;
+    pendingNotes: string;
 }
 
 export type Build = {
