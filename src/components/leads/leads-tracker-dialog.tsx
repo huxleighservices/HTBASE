@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Users, Activity, Edit, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -28,7 +28,7 @@ import {
 } from '@/firebase';
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { AddLeadDialog } from '@/components/leads/add-lead-dialog';
-import type { Client, Lead, ActivityLogEntry } from '@/types/client';
+import type { Client, Lead } from '@/types/client';
 import { LeadNotesDialog } from '@/components/leads/lead-notes-dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -43,8 +43,6 @@ import {
     AlertDialogTrigger,
   } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle as LeadsDialogTitle, DialogDescription } from '../ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { formatDistanceToNow } from 'date-fns';
 import { EditLeadDialog } from './edit-lead-dialog';
 import type { AccessKey } from '@/types/session';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -59,47 +57,8 @@ type LeadsTrackerDialogProps = {
     activeUser: AccessKey | null;
 };
 
-type SortKey = keyof Lead | 'createdAt' | 'lastActivity';
+type SortKey = keyof Lead | 'createdAt';
 type SortDirection = 'asc' | 'desc';
-
-const ActivityLogTooltip = ({ lead }: { lead: Lead }) => {
-    if (!lead.activityLog || lead.activityLog.length === 0) {
-        return null;
-    }
-    const sortedLog = [...lead.activityLog].sort((a, b) => {
-        const dateA = (a.timestamp as any)?.toDate ? (a.timestamp as any).toDate() : new Date(a.timestamp);
-        const dateB = (b.timestamp as any)?.toDate ? (b.timestamp as any).toDate() : new Date(b.timestamp);
-        return dateB.getTime() - dateA.getTime();
-    });
-
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Activity className="h-4 w-4 text-blue-500 cursor-pointer" />
-                </TooltipTrigger>
-                <TooltipContent className='max-w-xs'>
-                    <p className="font-bold mb-2">Activity Log</p>
-                    <ul className='space-y-2'>
-                        {sortedLog.map((log, index) => {
-                             const date = (log.timestamp as any)?.toDate ? (log.timestamp as any).toDate() : new Date(log.timestamp);
-                             return (
-                                <li key={index} className='text-xs'>
-                                    <p className='font-medium'>
-                                        <span className="font-bold">{log.user || 'System'}:</span> {log.activity}
-                                    </p>
-                                    <p className='text-muted-foreground'>
-                                        {formatDistanceToNow(date, { addSuffix: true })}
-                                    </p>
-                                </li>
-                             )
-                        })}
-                    </ul>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
-};
 
 const getStepColorClass = (step?: string) => {
     if (!step) return 'bg-gray-400 text-gray-800';
@@ -163,11 +122,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
     
     return [...leads].sort((a, b) => {
         let valA: any, valB: any;
-
-        if (sortKey === 'lastActivity') {
-            valA = a.activityLog?.[a.activityLog.length - 1]?.timestamp?.toDate() || new Date(0);
-            valB = b.activityLog?.[b.activityLog.length - 1]?.timestamp?.toDate() || new Date(0);
-        } else if (sortKey === 'createdAt') {
+        if (sortKey === 'createdAt') {
             valA = a.createdAt?.toDate() || new Date(0);
             valB = b.createdAt?.toDate() || new Date(0);
         } else {
@@ -181,9 +136,9 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
     });
   }, [leads, sortKey, sortDirection]);
 
-  const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'activityLog'>) => {
+  const handleAddLead = (lead: Omit<Lead, 'id' | 'notes'>) => {
     if (!leadsCollectionRef) return;
-    addDocumentNonBlocking(leadsCollectionRef, {...lead, activityLog: [], createdAt: serverTimestamp()});
+    addDocumentNonBlocking(leadsCollectionRef, {...lead, createdAt: serverTimestamp()});
     toast({ title: 'Lead Added', description: `${lead.firstName} ${lead.lastName} has been added.` });
   };
 
@@ -224,7 +179,6 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="createdAt">Date Added</SelectItem>
-                            <SelectItem value="lastActivity">Last Activity</SelectItem>
                             <SelectItem value="lastName">Name</SelectItem>
                             <SelectItem value="source">Source</SelectItem>
                             <SelectItem value="contactDate">Contact Date</SelectItem>
@@ -278,7 +232,6 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                 <TableHead>Revenue</TableHead>
                                 <TableHead>CompanyCam</TableHead>
                                 <TableHead>Pending Notes</TableHead>
-                                <TableHead>Activity</TableHead>
                                 <TableHead className="text-right sticky right-0 bg-card">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -301,9 +254,6 @@ export function LeadsTrackerDialog({ open, onOpenChange, client }: LeadsTrackerD
                                     <TableCell>{lead.projectedRevenue}</TableCell>
                                     <TableCell><Checkbox checked={lead.companyCam} disabled /></TableCell>
                                     <TableCell className="max-w-[200px] truncate">{lead.pendingNotes}</TableCell>
-                                    <TableCell>
-                                        <ActivityLogTooltip lead={lead} />
-                                    </TableCell>
                                     <TableCell className="text-right space-x-1 sticky right-0 bg-card">
                                         <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, lead)}>
                                             <Edit className="h-4 w-4" />

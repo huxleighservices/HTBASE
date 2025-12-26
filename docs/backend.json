@@ -175,7 +175,6 @@
         "phoneNumber": { "type": "string" },
         "extraInfo": { "type": "string" },
         "notes": { "type": "string" },
-        "activityLog": { "type": "array", "items": { "type": "object" } },
         "createdAt": { "type": "string", "format": "date-time" },
         "contractPresentationDate": { "type": "string", "format": "date" },
         "nextStepDueDate": { "type": "string", "format": "date" }
@@ -342,4 +341,3 @@
     "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
-

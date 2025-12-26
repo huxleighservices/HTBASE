@@ -95,7 +95,6 @@ export type Lead = {
     companyCam?: boolean;
     pendingNotes?: string;
     notes?: string;
-    activityLog?: ActivityLogEntry[];
     createdAt: any;
     contractPresentationDate?: string;
     nextStepDueDate?: string;

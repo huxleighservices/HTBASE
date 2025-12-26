@@ -51,7 +51,7 @@ type FormValues = z.infer<typeof formSchema>;
 type AddLeadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddLead: (lead: Omit<Lead, 'id' | 'notes' | 'activityLog' | 'createdAt'>) => void;
+  onAddLead: (lead: Omit<Lead, 'id' | 'notes' | 'createdAt'>) => void;
 };
 
 const currentStepOptions = [
@@ -112,7 +112,7 @@ export function AddLeadDialog({
 
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    onAddLead(data as Omit<Lead, 'id' | 'notes' | 'activityLog' | 'createdAt'>);
+    onAddLead(data as Omit<Lead, 'id' | 'notes' | 'createdAt'>);
     handleOpenChange(false);
   };
 
