@@ -165,6 +165,7 @@
       "description": "Represents a lead for a client.",
       "properties": {
         "id": { "type": "string" },
+        "agent": { "type": "string" },
         "firstName": { "type": "string" },
         "lastName": { "type": "string" },
         "franchise": { "type": "string" },
@@ -237,6 +238,23 @@
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["id", "data", "createdAt"]
+    },
+    "SyncedLead": {
+      "title": "Synced Lead",
+      "type": "object",
+      "description": "Represents a lead to be synced with an external service like Google Sheets.",
+      "properties": {
+        "agent": { "type": "string" },
+        "name": { "type": "string" },
+        "source": { "type": "string" },
+        "contactDate": { "type": "string", "format": "date" },
+        "currentStep": { "type": "string" },
+        "contractPres": { "type": "string", "format": "date" },
+        "nextStepDue": { "type": "string", "format": "date" },
+        "jobType": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["name", "agent"]
     }
   },
   "auth": {
@@ -335,6 +353,14 @@
               }
             }
           ]
+        }
+      },
+      {
+        "path": "/syncedLeads/{leadId}",
+        "definition": {
+          "entityName": "SyncedLead",
+          "schema": { "$ref": "#/backend/entities/SyncedLead" },
+          "description": "Stores lead data for syncing with external services."
         }
       }
     ],
