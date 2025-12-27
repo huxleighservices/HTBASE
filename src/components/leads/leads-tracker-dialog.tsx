@@ -68,7 +68,7 @@ const getStepColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white text-gray-800 shadow-[0_0_10px_theme(colors.white)] ring-1 ring-white/50';
     }
-    if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress')) {
+    if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done')) {
         return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
     }
     if (s.includes('archived')) {
@@ -87,7 +87,7 @@ const getIndicatorColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white';
     }
-     if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress')) {
+     if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done')) {
         return 'bg-green-500';
     }
     if (s.includes('archived')) {
@@ -164,11 +164,11 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                 nextStepDue: leadData.nextStepDueDate || '',
                 jobType: leadData.jobType || '',
                 phone: leadData.phoneNumber || '',
-                email: leadData.email || '',
-                address: leadData.homeAddress || '',
-                revenue: leadData.projectedRevenue || '',
-                companyCam: leadData.companyCam || false,
-                pendingNotes: leadData.pendingNotes || '',
+                email: lead.email || '',
+                address: lead.homeAddress || '',
+                revenue: lead.projectedRevenue || '',
+                companyCam: lead.companyCam || false,
+                pendingNotes: lead.pendingNotes || '',
             };
             const syncedLeadRef = doc(firestore, 'syncedLeads', docRef.id);
             setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
@@ -343,6 +343,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
         open={isAddLeadOpen}
         onOpenChange={setIsAddLeadOpen}
         onAddLead={handleAddLead}
+        client={client}
     />
 
     {leadForNotes && (

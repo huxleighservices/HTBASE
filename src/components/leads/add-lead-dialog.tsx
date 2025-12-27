@@ -23,13 +23,13 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useState } from 'react';
-import type { Lead } from '@/types/client';
+import { useState, useMemo } from 'react';
+import type { Lead, Client } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-const formSchema = z.object({
+const baseFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   source: z.string().optional(),
@@ -46,12 +46,26 @@ const formSchema = z.object({
   nextStepDueDate: z.string().optional(),
 });
 
+const requiredFormSchema = baseFormSchema.extend({
+  source: z.string().min(1, "Source is required"),
+  contactDate: z.string().min(1, "Contact date is required"),
+  currentStep: z.string().min(1, "Current step is required"),
+  jobType: z.string().min(1, "Job type is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  email: z.string().email("A valid email is required"),
+  homeAddress: z.string().min(1, "Home address is required"),
+  projectedRevenue: z.string().min(1, "Projected revenue is required"),
+  contractPresentationDate: z.string().min(1, "Contract presentation date is required"),
+  nextStepDueDate: z.string().min(1, "Next step due date is required"),
+});
 
-type FormValues = z.infer<typeof formSchema>;
+
+type FormValues = z.infer<typeof baseFormSchema>;
 type AddLeadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddLead: (lead: Omit<Lead, 'id' | 'notes' | 'createdAt' | 'agent'>) => void;
+  client?: Client;
 };
 
 const currentStepOptions = [
@@ -71,8 +85,12 @@ export function AddLeadDialog({
   open,
   onOpenChange,
   onAddLead,
+  client,
 }: AddLeadDialogProps) {
   const [step, setStep] = useState(1);
+  
+  const is4WK21Y = client?.displayId === '4WK21Y';
+  const formSchema = is4WK21Y ? requiredFormSchema : baseFormSchema;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
