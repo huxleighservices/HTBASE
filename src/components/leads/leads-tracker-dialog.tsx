@@ -68,13 +68,16 @@ const getStepColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white text-gray-800 shadow-[0_0_10px_theme(colors.white)] ring-1 ring-white/50';
     }
-    if (s.includes('archived')) {
-        return 'bg-red-500 text-white shadow-[0_0_10px_theme(colors.red.500)] ring-1 ring-red-500/50';
+    if (s.includes('build done')) {
+        return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
     }
     if (s.includes('paid & done')) {
         return 'bg-gray-500 text-white shadow-[0_0_10px_theme(colors.gray.500)] ring-1 ring-gray-500/50';
     }
-    if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit')) {
+    if (s.includes('archived')) {
+        return 'bg-red-500 text-white shadow-[0_0_10px_theme(colors.red.500)] ring-1 ring-red-500/50';
+    }
+    if (s.includes('signed') || s.includes('build date') || s.includes('permit')) {
         return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
     }
     return 'bg-secondary text-secondary-foreground';
@@ -87,13 +90,16 @@ const getIndicatorColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white';
     }
-     if (s.includes('archived')) {
-        return 'bg-red-500';
+     if (s.includes('build done')) {
+        return 'bg-green-500';
     }
     if (s.includes('paid & done')) {
         return 'bg-gray-500';
     }
-     if (s.includes('build done') || s.includes('signed') || s.includes('build date') || s.includes('permit')) {
+     if (s.includes('archived')) {
+        return 'bg-red-500';
+    }
+     if (s.includes('signed') || s.includes('build date') || s.includes('permit')) {
         return 'bg-green-500';
     }
     return 'bg-gray-400';
@@ -121,7 +127,14 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   const sortedLeads = useMemo(() => {
     if (!leads) return [];
     
-    return [...leads].sort((a, b) => {
+    let filteredLeads = leads;
+
+    // If client is 4WK21Y, filter leads by agent
+    if (client.displayId === '4WK21Y' && activeUser) {
+        filteredLeads = leads.filter(lead => lead.agent === activeUser.username);
+    }
+    
+    return [...filteredLeads].sort((a, b) => {
         let valA: any, valB: any;
         if (sortKey === 'createdAt') {
             valA = a.createdAt?.toDate() || new Date(0);
@@ -135,7 +148,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
     });
-  }, [leads, sortKey, sortDirection]);
+  }, [leads, sortKey, sortDirection, client.displayId, activeUser]);
 
   const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'createdAt' | 'agent'>) => {
     if (!leadsCollectionRef || !activeUser || !firestore) return;
