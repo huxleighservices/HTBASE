@@ -68,7 +68,7 @@ const getStepColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white text-gray-800 shadow-[0_0_10px_theme(colors.white)] ring-1 ring-white/50';
     }
-    if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done')) {
+    if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done | collections in progress')) {
         return 'bg-green-500 text-white shadow-[0_0_10px_theme(colors.green.500)] ring-1 ring-green-500/50';
     }
     if (s.includes('archived')) {
@@ -87,7 +87,7 @@ const getIndicatorColorClass = (step?: string) => {
     if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
         return 'bg-white';
     }
-     if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done')) {
+     if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done | collections in progress')) {
         return 'bg-green-500';
     }
     if (s.includes('archived')) {
@@ -198,6 +198,9 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   }
+  
+  const is4WK21Y = client?.displayId === '4WK21Y';
+
 
   return (
     <>
@@ -302,30 +305,32 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                         <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(e, lead)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This will permanently delete the record for {lead.firstName} {lead.lastName}.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={() => handleDeleteLead(lead)}
-                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                >
-                                                    Delete
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                                        {!is4WK21Y && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will permanently delete the record for {lead.firstName} {lead.lastName}.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => handleDeleteLead(lead)}
+                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
