@@ -24,12 +24,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { Client, Lead, SyncedLead } from '@/types/client';
+import type { Client, Lead, SyncedLead, QueueTask } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { useFirestore, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { doc, Timestamp } from 'firebase/firestore';
+import { Loader2, Info } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -136,10 +136,8 @@ export function EditLeadDialog({
         agent: lead.agent // Keep the original agent
     };
     
-    // 1. Update the primary lead document
     updateDocumentNonBlocking(leadDocRef, leadUpdateData);
     
-    // 2. Update the synced lead document
     const syncedLeadData: SyncedLead = {
         agent: lead.agent,
         name: `${data.firstName} ${data.lastName}`,
@@ -159,6 +157,31 @@ export function EditLeadDialog({
     const syncedLeadRef = doc(firestore, 'syncedLeads', lead.id);
     setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
 
+    // Handle Queue Task
+    const currentIndex = currentStepOptions.findIndex(s => s === data.currentStep);
+    const queueTaskRef = doc(firestore, 'queueTasks', lead.id);
+
+    if (is4WK21Y && currentIndex >= 0 && currentIndex < currentStepOptions.length - 1) {
+      const nextStep = currentStepOptions[currentIndex + 1];
+      const dueDate = new Date();
+      dueDate.setHours(dueDate.getHours() + 24);
+      
+      const taskData: QueueTask = {
+        id: lead.id,
+        leadId: lead.id,
+        leadName: `${data.firstName} ${data.lastName}`,
+        currentStep: data.currentStep || '',
+        nextStep: nextStep,
+        dueDate: Timestamp.fromDate(dueDate),
+        status: 'current',
+        agent: lead.agent,
+        notes: [],
+      };
+      setDocumentNonBlocking(queueTaskRef, taskData, { merge: true });
+    } else {
+      // If lead is in last step or archived, delete the task
+      deleteDocumentNonBlocking(queueTaskRef);
+    }
     
     setTimeout(() => {
         toast({ title: 'Lead Updated', description: `${data.firstName} ${data.lastName}'s record has been updated.` });
@@ -230,7 +253,7 @@ export function EditLeadDialog({
              )}
              {step === 2 && (
                 <>
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
                         <FormField
                         control={form.control}
                         name="currentStep"
@@ -253,6 +276,13 @@ export function EditLeadDialog({
                             </FormItem>
                         )}
                         />
+                        {is4WK21Y && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Info className="h-3 w-3" />
+                            <p>Follow-up will be added to queue.</p>
+                          </div>
+                        )}
+                    </div>
                     <FormField control={form.control} name="jobType" render={({ field }) => (
                         <FormItem>
                         <FormLabel>Job Type</FormLabel>
@@ -260,7 +290,6 @@ export function EditLeadDialog({
                         <FormMessage />
                         </FormItem>
                     )}/>
-                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
                             <FormItem>

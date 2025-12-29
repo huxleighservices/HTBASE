@@ -176,4 +176,16 @@ export type FormSubmission = {
     data: Record<string, any>;
     createdAt: any;
 };
+
+export type QueueTask = {
+    id: string;
+    leadId: string;
+    leadName: string;
+    currentStep: string;
+    nextStep: string;
+    dueDate: any; // Timestamp
+    status: 'current' | 'overdue';
+    agent: string;
+    notes?: string[];
+};
     
