@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -241,10 +242,10 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
         </DialogHeader>
 
         <Tabs defaultValue="current" className="flex-grow flex flex-col min-h-0">
-            <TabsList>
-                <TabsTrigger value="current" className="text-foreground">Current ({currentTasks.length})</TabsTrigger>
-                <TabsTrigger value="overdue" className="text-foreground">Overdue ({overdueTasks.length})</TabsTrigger>
-                <TabsTrigger value="completed" className="text-foreground">Completed ({completedTasks?.length || 0})</TabsTrigger>
+            <TabsList className="bg-transparent p-0">
+                <TabsTrigger value="current" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Current ({currentTasks.length})</TabsTrigger>
+                <TabsTrigger value="overdue" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Overdue ({overdueTasks.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Completed ({completedTasks?.length || 0})</TabsTrigger>
             </TabsList>
             <div className="flex-grow mt-4 min-h-0 overflow-hidden">
                 {isLoading ? (
