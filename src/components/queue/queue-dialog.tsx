@@ -14,23 +14,23 @@ import {
 } from '@/components/ui/dialog';
 import type { Client } from '@/types/client';
 import type { AccessKey } from '@/types/session';
-import { BrainCircuit } from 'lucide-react';
+import { GanttChartSquare } from 'lucide-react';
 
-type CueDialogProps = {
+type QueueDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   client: Client;
   activeUser: AccessKey | null;
 };
 
-export function CueDialog({ open, onOpenChange, client, activeUser }: CueDialogProps) {
+export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold font-headline tracking-tight flex items-center gap-3">
-            <BrainCircuit /> Cue
+            <GanttChartSquare /> Queue
           </DialogTitle>
           <DialogDescription>
             Automated lead follow-up reminders for {client.firmName}.
@@ -38,7 +38,7 @@ export function CueDialog({ open, onOpenChange, client, activeUser }: CueDialogP
         </DialogHeader>
 
         <div className="flex-grow flex items-center justify-center text-muted-foreground">
-            <p>Cue functionality will be built here.</p>
+            <p>Queue functionality will be built here.</p>
         </div>
 
         <DialogFooter>
