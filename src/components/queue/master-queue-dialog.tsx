@@ -97,13 +97,13 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
   const { data: tasks, isLoading: areTasksLoading } = useCollection<QueueTask>(queueCollectionRef);
   
   const completedTasksCollectionRef = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return collection(firestore, 'completedTasks');
+    if (!firestore) return null;
+    return collection(firestore, 'completedTasks');
   }, [firestore]);
 
   const completedTasksQuery = useMemoFirebase(() => {
-      if (!completedTasksCollectionRef) return null;
-      return query(completedTasksCollectionRef, orderBy('completedAt', 'desc'));
+    if (!completedTasksCollectionRef) return null;
+    return query(completedTasksCollectionRef, orderBy('completedAt', 'desc'));
   }, [completedTasksCollectionRef]);
 
   const { data: completedTasks, isLoading: areCompletedTasksLoading } = useCollection<QueueTask & { completedAt: any }>(completedTasksQuery);
@@ -236,9 +236,9 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
 
         <Tabs defaultValue="current" className="flex-grow flex flex-col min-h-0">
             <TabsList className="bg-transparent p-0">
-                <TabsTrigger value="current" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Current ({currentTasks.length})</TabsTrigger>
-                <TabsTrigger value="overdue" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Overdue ({overdueTasks.length})</TabsTrigger>
-                <TabsTrigger value="completed" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Completed ({completedTasks?.length || 0})</TabsTrigger>
+                <TabsTrigger value="current" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none bg-background/50">Current ({currentTasks.length})</TabsTrigger>
+                <TabsTrigger value="overdue" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none bg-background/50">Overdue ({overdueTasks.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none bg-background/50">Completed ({completedTasks?.length || 0})</TabsTrigger>
             </TabsList>
             <div className="flex-grow mt-4 min-h-0 overflow-hidden">
                 {isLoading ? (
