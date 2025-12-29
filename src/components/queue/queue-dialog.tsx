@@ -34,6 +34,7 @@ import { Card, CardContent } from '../ui/card';
 import { Loader2 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '../ui/scroll-area';
 
 type QueueDialogProps = {
   open: boolean;
