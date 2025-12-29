@@ -72,6 +72,7 @@ const currentStepOptions = [
     'Initial Contact',
     'Inspection Scheduled',
     'Presentation Scheduled',
+    'Pending Signature',
     'Contract Signed',
     'Build Date Confirmed',
     'Permit/Logistics Confirmed',

@@ -30,7 +30,7 @@ import {
 import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { AddLeadDialog } from '@/components/leads/add-lead-dialog';
 import type { Client, Lead, SyncedLead } from '@/types/client';
-import { LeadNotesDialog } from '@/components/leads/lead-notes-dialog';
+import { LeadNotesDialog } from './lead-notes-dialog';
 import { useToast } from '@/hooks/use-toast';
 import {
     AlertDialog,
@@ -65,7 +65,7 @@ const getStepColorClass = (step?: string) => {
     if (!step) return 'bg-gray-400 text-gray-800';
     const s = step.toLowerCase();
     
-    if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
+    if (s.includes('initial') || s.includes('inspection') || s.includes('presentation') || s.includes('pending signature')) {
         return 'bg-white text-gray-800 shadow-[0_0_10px_theme(colors.white)] ring-1 ring-white/50';
     }
     if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done | collections in progress')) {
@@ -84,7 +84,7 @@ const getIndicatorColorClass = (step?: string) => {
     if (!step) return 'bg-gray-400';
     const s = step.toLowerCase();
 
-    if (s.includes('initial') || s.includes('inspection') || s.includes('presentation')) {
+    if (s.includes('initial') || s.includes('inspection') || s.includes('presentation') || s.includes('pending signature')) {
         return 'bg-white';
     }
      if (s.includes('signed') || s.includes('build date') || s.includes('permit') || s.includes('build in progress') || s.includes('build done | collections in progress')) {
