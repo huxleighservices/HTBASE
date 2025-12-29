@@ -98,7 +98,6 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
   
   const completedTasksCollectionRef = useMemoFirebase(() => {
       if (!firestore) return null;
-      // This path assumes a global completed tasks collection. 
       return collection(firestore, 'completedTasks');
   }, [firestore]);
 
