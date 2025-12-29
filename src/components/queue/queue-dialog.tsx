@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -28,11 +27,11 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Client, Lead, QueueTask } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import { GanttChartSquare, CheckCircle, XCircle, Info, RefreshCw } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, Timestamp, arrayUnion } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc, Timestamp, arrayUnion, serverTimestamp, orderBy } from 'firebase/firestore';
 import { Card, CardContent } from '../ui/card';
 import { Loader2 } from 'lucide-react';
-import { formatDistanceToNowStrict } from 'date-fns';
+import { format, formatDistanceToNowStrict } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -42,20 +41,6 @@ type QueueDialogProps = {
   client: Client;
   activeUser: AccessKey | null;
 };
-
-const currentStepOptions = [
-    'Initial Contact',
-    'Inspection Scheduled',
-    'Presentation Scheduled',
-    'Pending Signature',
-    'Contract Signed',
-    'Build Date Confirmed',
-    'Permit/Logistics Confirmed',
-    'Build in Progress',
-    'Build Done | Collections in Progress',
-    'Paid & Done',
-    'Archived',
-];
 
 const Countdown = ({ dueDate }: { dueDate: any }) => {
     const [now, setNow] = useState(new Date());
@@ -115,7 +100,20 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
     return query(queueCollectionRef, where('agent', '==', activeUser.username));
   }, [queueCollectionRef, activeUser]);
   
-  const { data: tasks, isLoading } = useCollection<QueueTask>(agentQueueQuery);
+  const { data: tasks, isLoading: areTasksLoading } = useCollection<QueueTask>(agentQueueQuery);
+
+  const completedTasksCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !client.path || !activeUser) return null;
+    return collection(firestore, client.path, 'users', activeUser.username, 'completedTasks');
+  }, [firestore, client.path, activeUser]);
+  
+  const completedTasksQuery = useMemoFirebase(() => {
+      if (!completedTasksCollectionRef) return null;
+      return query(completedTasksCollectionRef, orderBy('completedAt', 'desc'));
+  }, [completedTasksCollectionRef]);
+
+  const { data: completedTasks, isLoading: areCompletedTasksLoading } = useCollection<QueueTask & { completedAt: any }>(completedTasksQuery);
+
 
   const [currentTasks, overdueTasks] = useMemo(() => {
     if (!tasks) return [[], []];
@@ -132,10 +130,12 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
   }, [tasks, now]);
 
   const handleComplete = (task: QueueTask) => {
-    if (!firestore || !client.path) return;
+    if (!firestore || !client.path || !completedTasksCollectionRef) return;
     const leadRef = doc(firestore, client.path, 'leads', task.leadId);
     updateDocumentNonBlocking(leadRef, { currentStep: task.nextStep });
     
+    addDocumentNonBlocking(completedTasksCollectionRef, { ...task, completedAt: serverTimestamp() });
+
     const taskRef = doc(firestore, 'queueTasks', task.id);
     deleteDocumentNonBlocking(taskRef);
 
@@ -205,6 +205,27 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
         ))}
     </div>
   );
+  
+  const renderCompletedList = (taskList: (QueueTask & { completedAt: any })[]) => (
+    <div className="space-y-3">
+        {taskList.map(task => (
+            <Card key={task.id}>
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                        <p className="font-semibold">{task.leadName}</p>
+                        <p className="text-sm text-muted-foreground">Completed Step: <span className="font-medium text-foreground">{task.nextStep}</span></p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {task.completedAt?.toDate ? format(task.completedAt.toDate(), 'PPP p') : 'Just now'}
+                    </p>
+                </CardContent>
+            </Card>
+        ))}
+    </div>
+);
+
+
+  const isLoading = areTasksLoading || areCompletedTasksLoading;
 
   return (
     <>
@@ -221,8 +242,9 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
 
         <Tabs defaultValue="current" className="flex-grow flex flex-col min-h-0">
             <TabsList>
-                <TabsTrigger value="current">Current ({currentTasks.length})</TabsTrigger>
-                <TabsTrigger value="overdue">Overdue ({overdueTasks.length})</TabsTrigger>
+                <TabsTrigger value="current" className="text-foreground">Current ({currentTasks.length})</TabsTrigger>
+                <TabsTrigger value="overdue" className="text-foreground">Overdue ({overdueTasks.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="text-foreground">Completed ({completedTasks?.length || 0})</TabsTrigger>
             </TabsList>
             <div className="flex-grow mt-4 min-h-0 overflow-hidden">
                 {isLoading ? (
@@ -237,6 +259,11 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
                     <TabsContent value="overdue" className="h-full m-0">
                         <ScrollArea className="h-full pr-4 -mr-4">
                             {overdueTasks.length > 0 ? renderTaskList(overdueTasks) : <p className="text-center text-muted-foreground py-12">No overdue tasks. Great job!</p>}
+                        </ScrollArea>
+                    </TabsContent>
+                    <TabsContent value="completed" className="h-full m-0">
+                        <ScrollArea className="h-full pr-4 -mr-4">
+                           {completedTasks && completedTasks.length > 0 ? renderCompletedList(completedTasks) : <p className="text-center text-muted-foreground py-12">No completed tasks yet.</p>}
                         </ScrollArea>
                     </TabsContent>
                     </>

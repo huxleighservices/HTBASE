@@ -370,6 +370,14 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "path": "/users/{userId}/completedTasks/{taskId}",
+                    "definition": {
+                      "entityName": "QueueTask",
+                      "schema": { "$ref": "#/backend/entities/QueueTask" },
+                      "description": "Stores completed follow-up tasks for a specific user."
+                    }
                   }
                 ]
               }
