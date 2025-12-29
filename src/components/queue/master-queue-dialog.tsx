@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -98,7 +99,6 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
   const completedTasksCollectionRef = useMemoFirebase(() => {
       if (!firestore) return null;
       // This path assumes a global completed tasks collection. 
-      // If tasks are per-client or per-user, this path needs adjustment.
       return collection(firestore, 'completedTasks');
   }, [firestore]);
 
@@ -107,7 +107,7 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
       return query(completedTasksCollectionRef, orderBy('completedAt', 'desc'));
   }, [completedTasksCollectionRef]);
 
-  const { data: completedTasks, isLoading: areCompletedTasksLoading } = useCollection<QueueTask>(completedTasksQuery);
+  const { data: completedTasks, isLoading: areCompletedTasksLoading } = useCollection<QueueTask & { completedAt: any }>(completedTasksQuery);
 
 
   const [currentTasks, overdueTasks] = useMemo(() => {
@@ -129,8 +129,6 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
     const leadRef = doc(firestore, client.path, 'leads', task.leadId);
     updateDocumentNonBlocking(leadRef, { currentStep: task.nextStep });
     
-    // Add to completedTasks collection
-    const completedTaskRef = doc(completedTasksCollectionRef, task.id);
     addDocumentNonBlocking(completedTasksCollectionRef, { ...task, completedAt: serverTimestamp() });
 
     // Delete from active queue
@@ -204,7 +202,7 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
     </div>
   );
 
-  const renderCompletedList = (taskList: QueueTask[]) => (
+  const renderCompletedList = (taskList: (QueueTask & { completedAt: any})[]) => (
     <div className="space-y-3">
         {taskList.map(task => (
             <Card key={task.id}>
@@ -238,10 +236,10 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
         </DialogHeader>
 
         <Tabs defaultValue="current" className="flex-grow flex flex-col min-h-0">
-            <TabsList>
-                <TabsTrigger value="current">Current ({currentTasks.length})</TabsTrigger>
-                <TabsTrigger value="overdue">Overdue ({overdueTasks.length})</TabsTrigger>
-                <TabsTrigger value="completed">Completed ({completedTasks?.length || 0})</TabsTrigger>
+            <TabsList className="bg-transparent p-0">
+                <TabsTrigger value="current" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Current ({currentTasks.length})</TabsTrigger>
+                <TabsTrigger value="overdue" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Overdue ({overdueTasks.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none">Completed ({completedTasks?.length || 0})</TabsTrigger>
             </TabsList>
             <div className="flex-grow mt-4 min-h-0 overflow-hidden">
                 {isLoading ? (
