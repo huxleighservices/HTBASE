@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -53,6 +52,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMe
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { FormManagementDialog } from '@/components/forms/form-management-dialog';
 import { QueueDialog } from '@/components/queue/queue-dialog';
+import { MasterQueuePasscodeDialog } from '@/components/queue/master-queue-passcode-dialog';
+import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 
 type Stage = 'login' | 'trainer';
 
@@ -96,6 +97,8 @@ export default function ClientLaunchPage() {
   const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [isMasterQueuePasscodeOpen, setIsMasterQueuePasscodeOpen] = useState(false);
+  const [isMasterQueueOpen, setIsMasterQueueOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -453,8 +456,9 @@ export default function ClientLaunchPage() {
                           </div>
                           <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Automated follow-up reminders for leads.</CardDescription>
                         </CardHeader>
-                        <CardFooter>
+                        <CardFooter className="flex gap-2">
                           <Button onClick={() => setIsQueueOpen(true)}>Open Queue</Button>
+                           <Button variant="outline" onClick={() => setIsMasterQueuePasscodeOpen(true)}>Master Queue</Button>
                         </CardFooter>
                       </Card>
                     )}
@@ -528,6 +532,20 @@ export default function ClientLaunchPage() {
           {client && <BuildsTrackerDialog open={isBuildsTrackerOpen} onOpenChange={setIsBuildsTrackerOpen} client={client} activeUser={activeUser} />}
           {client && <FormManagementDialog open={isFormManagementOpen} onOpenChange={setIsFormManagementOpen} client={client} activeUser={activeUser} />}
           {client && <QueueDialog open={isQueueOpen} onOpenChange={setIsQueueOpen} client={client} activeUser={activeUser} />}
+          {client && (
+            <MasterQueuePasscodeDialog 
+                open={isMasterQueuePasscodeOpen} 
+                onOpenChange={setIsMasterQueuePasscodeOpen}
+                onSuccess={() => setIsMasterQueueOpen(true)}
+            />
+          )}
+          {client && (
+            <MasterQueueDialog
+                open={isMasterQueueOpen}
+                onOpenChange={setIsMasterQueueOpen}
+                client={client}
+            />
+          )}
         </>
       );
     }
