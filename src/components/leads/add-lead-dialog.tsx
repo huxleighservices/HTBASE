@@ -56,7 +56,7 @@ const requiredFormSchema = baseFormSchema.extend({
   homeAddress: z.string().min(1, "Home address is required"),
   projectedRevenue: z.string().min(1, "Projected revenue is required"),
   contractPresentationDate: z.string().min(1, "Contract presentation date is required"),
-  nextStepDueDate: z.string().min(1, "Next step due date is required"),
+  // nextStepDueDate is intentionally NOT required here for 4WK21Y
 });
 
 
@@ -238,13 +238,15 @@ export function AddLeadDialog({
                         <FormMessage />
                         </FormItem>
                     )}/>
-                    <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Next Step Due Date</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
+                    {!is4WK21Y && (
+                      <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Next Step Due Date</FormLabel>
+                          <FormControl><Input type="date" {...field} /></FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}/>
+                    )}
                 </div>
                 <FormField control={form.control} name="homeAddress" render={({ field }) => (
                     <FormItem>

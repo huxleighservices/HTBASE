@@ -22,7 +22,7 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { Lead } from '@/types/client';
+import type { Lead, Client } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useFirestore, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -38,18 +38,21 @@ type LeadNotesDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lead: Lead;
-  clientPath: string | null;
+  client: Client | null;
 };
 
 export function LeadNotesDialog({
   open,
   onOpenChange,
   lead,
-  clientPath
+  client
 }: LeadNotesDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  
+  const clientPath = client?.path || null;
+  const is4WK21Y = client?.displayId === '4WK21Y';
 
   const leadDocRef = useMemoFirebase(() => {
     if (!firestore || !clientPath) return null;
@@ -115,7 +118,7 @@ export function LeadNotesDialog({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <LeadDetail label="Contract Presentation" value={lead.contractPresentationDate} />
-                    <LeadDetail label="Next Step Due" value={lead.nextStepDueDate} />
+                    {!is4WK21Y && <LeadDetail label="Next Step Due" value={lead.nextStepDueDate} />}
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <LeadDetail label="Phone Number" value={lead.phoneNumber} />

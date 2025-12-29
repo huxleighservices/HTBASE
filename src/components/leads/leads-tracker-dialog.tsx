@@ -270,7 +270,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                 <TableHead>Contact Date</TableHead>
                                 <TableHead>Current Step</TableHead>
                                 <TableHead>Contract Pres.</TableHead>
-                                <TableHead>Next Step Due</TableHead>
+                                {!is4WK21Y && <TableHead>Next Step Due</TableHead>}
                                 <TableHead>Job Type</TableHead>
                                 <TableHead>Phone</TableHead>
                                 <TableHead>Email</TableHead>
@@ -293,7 +293,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                     <TableCell>{lead.contactDate}</TableCell>
                                     <TableCell><Badge className={cn("transition-all", getStepColorClass(lead.currentStep))}>{lead.currentStep}</Badge></TableCell>
                                     <TableCell>{lead.contractPresentationDate}</TableCell>
-                                    <TableCell>{lead.nextStepDueDate}</TableCell>
+                                    {!is4WK21Y && <TableCell>{lead.nextStepDueDate}</TableCell>}
                                     <TableCell>{lead.jobType}</TableCell>
                                     <TableCell>{lead.phoneNumber}</TableCell>
                                     <TableCell>{lead.email}</TableCell>
@@ -357,7 +357,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
             open={!!leadForNotes}
             onOpenChange={(isOpen) => !isOpen && setLeadForNotes(null)}
             lead={leadForNotes}
-            clientPath={client.path || null}
+            client={client}
         />
     )}
     {leadToEdit && client.path && (
@@ -366,7 +366,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
             open={!!leadToEdit}
             onOpenChange={(isOpen) => !isOpen && setLeadToEdit(null)}
             lead={leadToEdit}
-            clientPath={client.path}
+            client={client}
         />
     )}
     </>

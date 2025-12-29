@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { Lead, SyncedLead } from '@/types/client';
+import type { Client, Lead, SyncedLead } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
@@ -55,7 +55,7 @@ type EditLeadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lead: Lead;
-  clientPath: string;
+  client: Client;
 };
 
 const currentStepOptions = [
@@ -75,12 +75,15 @@ export function EditLeadDialog({
   open,
   onOpenChange,
   lead,
-  clientPath,
+  client,
 }: EditLeadDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState(1);
+  
+  const is4WK21Y = client?.displayId === '4WK21Y';
+  const clientPath = client.path;
 
   const leadDocRef = useMemoFirebase(() => {
     if (!firestore || !clientPath) return null;
@@ -265,13 +268,15 @@ export function EditLeadDialog({
                             <FormMessage />
                             </FormItem>
                         )}/>
-                        <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Next Step Due Date</FormLabel>
-                            <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}/>
+                        {!is4WK21Y && (
+                          <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Next Step Due Date</FormLabel>
+                              <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}/>
+                        )}
                     </div>
                     <FormField control={form.control} name="homeAddress" render={({ field }) => (
                         <FormItem>
