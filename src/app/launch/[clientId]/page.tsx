@@ -22,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature, BrainCircuit } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -52,6 +52,7 @@ import { BuildsTrackerDialog } from '@/components/builds/builds-tracker-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { FormManagementDialog } from '@/components/forms/form-management-dialog';
+import { CueDialog } from '@/components/cue/cue-dialog';
 
 type Stage = 'login' | 'trainer';
 
@@ -94,6 +95,7 @@ export default function ClientLaunchPage() {
   const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
   const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
   const [isFormManagementOpen, setIsFormManagementOpen] = useState(false);
+  const [isCueOpen, setIsCueOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -442,6 +444,20 @@ export default function ClientLaunchPage() {
                         </CardFooter>
                       </Card>
                     ))}
+                    {is4WK21Y && (
+                       <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><BrainCircuit className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cue</CardTitle>
+                          </div>
+                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Automated follow-up reminders for leads.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button onClick={() => setIsCueOpen(true)}>Open Cue</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
                     {is4WK21Y && cardVisibility.builds && (
                       <Card>
                         <CardHeader>
@@ -511,6 +527,7 @@ export default function ClientLaunchPage() {
           {client && <LeadsTrackerDialog open={isLeadsTrackerOpen} onOpenChange={setIsLeadsTrackerOpen} client={client} activeUser={activeUser} />}
           {client && <BuildsTrackerDialog open={isBuildsTrackerOpen} onOpenChange={setIsBuildsTrackerOpen} client={client} activeUser={activeUser} />}
           {client && <FormManagementDialog open={isFormManagementOpen} onOpenChange={setIsFormManagementOpen} client={client} activeUser={activeUser} />}
+          {client && <CueDialog open={isCueOpen} onOpenChange={setIsCueOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
