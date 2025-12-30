@@ -238,7 +238,6 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
             <TabsList className="bg-transparent p-0">
                 <TabsTrigger value="current" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none bg-background/50">Current ({currentTasks.length})</TabsTrigger>
                 <TabsTrigger value="overdue" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none bg-background/50">Overdue ({overdueTasks.length})</TabsTrigger>
-                <TabsTrigger value="completed" className="border data-[state=active]:bg-primary/10 data-[state=active]:border-primary data-[state=active]:shadow-none bg-background/50">Completed ({completedTasks?.length || 0})</TabsTrigger>
             </TabsList>
             <div className="flex-grow mt-4 min-h-0 overflow-hidden">
                 {isLoading ? (
@@ -253,11 +252,6 @@ export function MasterQueueDialog({ open, onOpenChange, client }: MasterQueueDia
                     <TabsContent value="overdue" className="h-full m-0">
                         <ScrollArea className="h-full pr-4 -mr-4">
                             {overdueTasks.length > 0 ? renderTaskList(overdueTasks) : <p className="text-center text-muted-foreground py-12">No overdue tasks. Great job!</p>}
-                        </ScrollArea>
-                    </TabsContent>
-                    <TabsContent value="completed" className="h-full m-0">
-                        <ScrollArea className="h-full pr-4 -mr-4">
-                           {completedTasks && completedTasks.length > 0 ? renderCompletedList(completedTasks) : <p className="text-center text-muted-foreground py-12">No completed tasks yet.</p>}
                         </ScrollArea>
                     </TabsContent>
                     </>
