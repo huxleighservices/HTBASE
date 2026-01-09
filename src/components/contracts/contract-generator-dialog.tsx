@@ -128,26 +128,6 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
             templatesMap.set(data.title, data.content);
         });
 
-        let fullContractText = '';
-        
-        // Ensure the order of text matches the checklist order
-        contractItems.forEach(item => {
-            if (includedItemLabels.includes(item.label)) {
-                const templateContent = templatesMap.get(item.label);
-                if (templateContent) {
-                    fullContractText += `## ${item.label}\n\n${templateContent}\n\n---\n\n`;
-                }
-            }
-        });
-
-        if (!fullContractText) {
-            toast({ title: 'No Content', description: 'No templates found for the selected items. Please add them in "Manage Templates".', variant: 'destructive'});
-            setIsGenerating(false);
-            return;
-        }
-
-        // Replace placeholders
-        let populatedText = fullContractText;
         const placeholders = {
             '{{firstName}}': selectedLead.firstName,
             '{{lastName}}': selectedLead.lastName,
@@ -156,39 +136,56 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
             '{{email}}': selectedLead.email || '',
             '{{jobType}}': selectedLead.jobType || '',
             '{{projectedRevenue}}': selectedLead.projectedRevenue || '',
-            // Add more lead properties as needed
         };
 
-        for (const [placeholder, value] of Object.entries(placeholders)) {
-            populatedText = populatedText.replace(new RegExp(placeholder, 'g'), value);
-        }
-
-        // Generate PDF
         const doc = new jsPDF();
+        doc.setFont('times', 'normal');
         const margin = 15;
         const pageHeight = doc.internal.pageSize.getHeight();
-        const splitText = doc.splitTextToSize(populatedText, doc.internal.pageSize.getWidth() - margin * 2);
-        
         let y = margin;
-        for (let i = 0; i < splitText.length; i++) {
-            if (y > pageHeight - margin) {
-                doc.addPage();
-                y = margin;
+        
+        let isFirstSection = true;
+
+        contractItems.forEach(item => {
+            if (includedItemLabels.includes(item.label)) {
+                const templateContent = templatesMap.get(item.label);
+                if (templateContent) {
+
+                    if (!isFirstSection) {
+                        doc.addPage();
+                        y = margin;
+                    }
+                    isFirstSection = false;
+
+                    let populatedText = templateContent;
+                    for (const [placeholder, value] of Object.entries(placeholders)) {
+                        populatedText = populatedText.replace(new RegExp(placeholder, 'g'), value);
+                    }
+                    
+                    // Replace bullet points
+                    populatedText = populatedText.replace(/(\* |• )/g, '- ');
+
+                    const title = item.label;
+                    doc.setFont('times', 'bold');
+                    doc.text(title, margin, y);
+                    y += 10;
+                    doc.setFont('times', 'normal');
+
+                    const splitText = doc.splitTextToSize(populatedText, doc.internal.pageSize.getWidth() - margin * 2);
+                    
+                    for (const line of splitText) {
+                         if (y > pageHeight - margin) {
+                            doc.addPage();
+                            y = margin;
+                        }
+                        doc.text(line, margin, y);
+                        y += 7; // Line height
+                    }
+
+                    y += 10; // Space after a section
+                }
             }
-            const line = splitText[i];
-            if (line.startsWith('## ')) {
-                doc.setFont('helvetica', 'bold');
-                doc.text(line.substring(3), margin, y);
-                doc.setFont('helvetica', 'normal');
-            } else if (line === '---') {
-                y += 5; // Add some space for the separator
-                // You could draw a line here if you want
-                y += 5;
-            } else {
-                 doc.text(line, margin, y);
-            }
-            y += 7; // Line height
-        }
+        });
         
         doc.save(`${selectedLead.lastName}_Contract.pdf`);
 
