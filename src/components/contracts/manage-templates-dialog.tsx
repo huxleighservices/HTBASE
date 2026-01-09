@@ -121,7 +121,10 @@ export function ManageTemplatesDialog({ open, onOpenChange, client, activeUser }
                 </div>
             </div>
             <div className="col-span-2 flex flex-col gap-2">
-                 <h3 className="font-semibold px-1">Template Content for "{selectedItem?.label || '... seç'}"</h3>
+                 <div className="px-1">
+                    <h3 className="font-semibold">Template Content for:</h3>
+                    <p className="text-sm text-muted-foreground">{selectedItem?.label || 'Select a section from the left'}</p>
+                 </div>
                  <Textarea 
                     className="flex-grow resize-none"
                     placeholder="Select a section to edit its template..."
