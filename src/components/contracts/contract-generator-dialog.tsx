@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -24,6 +23,8 @@ import { Card } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
 import { contractItems } from './contract-items';
 import jsPDF from 'jspdf';
+import { format } from 'date-fns';
+
 
 type ContractGeneratorDialogProps = {
   open: boolean;
@@ -131,9 +132,12 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         const placeholders = {
             '{{firstName}}': selectedLead.firstName,
             '{{lastName}}': selectedLead.lastName,
+            '{{leadname}}': `${selectedLead.firstName} ${selectedLead.lastName}`,
             '{{homeAddress}}': selectedLead.homeAddress || '',
             '{{phoneNumber}}': selectedLead.phoneNumber || '',
+            '{{Phone}}': selectedLead.phoneNumber || '',
             '{{email}}': selectedLead.email || '',
+            '{{Email}}': selectedLead.email || '',
             '{{jobType}}': selectedLead.jobType || '',
             '{{projectedRevenue}}': selectedLead.projectedRevenue || '',
         };
@@ -142,20 +146,24 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         doc.setFont('times', 'normal');
         const margin = 15;
         const pageHeight = doc.internal.pageSize.getHeight();
-        let y = margin;
-        
-        let isFirstSection = true;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        let y = pageHeight / 2;
+
+        // --- Cover Page ---
+        doc.setFontSize(22);
+        doc.text("Service Agreement Contract", pageWidth / 2, y - 10, { align: 'center' });
+        doc.setFontSize(16);
+        doc.text("M&T Roofing and Restoration", pageWidth / 2, y + 10, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`Generated: ${format(new Date(), 'PPP p')}`, pageWidth / 2, y + 30, { align: 'center' });
 
         contractItems.forEach(item => {
             if (includedItemLabels.includes(item.label)) {
                 const templateContent = templatesMap.get(item.label);
                 if (templateContent) {
-
-                    if (!isFirstSection) {
-                        doc.addPage();
-                        y = margin;
-                    }
-                    isFirstSection = false;
+                    
+                    doc.addPage();
+                    y = margin;
 
                     let populatedText = templateContent;
                     for (const [placeholder, value] of Object.entries(placeholders)) {
@@ -163,7 +171,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
                     }
                     
                     // Replace bullet points
-                    populatedText = populatedText.replace(/(\* |• )/g, '- ');
+                    populatedText = populatedText.replace(/(\* |• )/g, '');
 
                     const title = item.label;
                     doc.setFont('times', 'bold');
@@ -171,7 +179,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
                     y += 10;
                     doc.setFont('times', 'normal');
 
-                    const splitText = doc.splitTextToSize(populatedText, doc.internal.pageSize.getWidth() - margin * 2);
+                    const splitText = doc.splitTextToSize(populatedText, pageWidth - margin * 2);
                     
                     for (const line of splitText) {
                          if (y > pageHeight - margin) {
