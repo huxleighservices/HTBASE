@@ -155,7 +155,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
               <DialogTitle>Step 2: Configure Contract</DialogTitle>
               <DialogDescription>Select items to include for {selectedLead?.firstName} {selectedLead?.lastName}.</DialogDescription>
             </DialogHeader>
-            <div className="py-4 space-y-4">
+            <div className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 {contractItems.map(item => (
                     <div key={item.id} className="flex items-center space-x-2 rounded-md border p-4">
                         <Checkbox 
