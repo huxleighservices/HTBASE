@@ -180,7 +180,7 @@
         "contractPresentationDate": { "type": "string", "format": "date" },
         "nextStepDueDate": { "type": "string", "format": "date" }
       },
-      "required": ["id", "agent", "firstName", "lastName", "createdAt"]
+      "required": ["id", "firstName", "lastName", "createdAt"]
     },
     "Project": {
       "title": "Project",
@@ -277,6 +277,19 @@
         "notes": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["id", "leadId", "leadName", "nextStep", "dueDate", "status", "agent"]
+    },
+    "Contract": {
+        "title": "Contract",
+        "type": "object",
+        "description": "Represents a generated contract for a lead.",
+        "properties": {
+            "id": { "type": "string" },
+            "leadId": { "type": "string" },
+            "leadName": { "type": "string" },
+            "includedItems": { "type": "array", "items": { "type": "string" } },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "leadId", "leadName", "createdAt"]
     }
   },
   "auth": {
@@ -372,11 +385,11 @@
                     }
                   },
                   {
-                    "path": "/users/{userId}/completedTasks/{taskId}",
+                    "path": "/contracts/{contractId}",
                     "definition": {
-                      "entityName": "QueueTask",
-                      "schema": { "$ref": "#/backend/entities/QueueTask" },
-                      "description": "Stores completed follow-up tasks for a specific user."
+                      "entityName": "Contract",
+                      "schema": { "$ref": "#/backend/entities/Contract" },
+                      "description": "Generated contracts for a client."
                     }
                   }
                 ]

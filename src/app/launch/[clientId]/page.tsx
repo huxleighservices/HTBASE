@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature, FileText } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -54,6 +55,8 @@ import { FormManagementDialog } from '@/components/forms/form-management-dialog'
 import { QueueDialog } from '@/components/queue/queue-dialog';
 import { MasterQueuePasscodeDialog } from '@/components/queue/master-queue-passcode-dialog';
 import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
+import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
+
 
 type Stage = 'login' | 'trainer';
 
@@ -76,6 +79,7 @@ export default function ClientLaunchPage() {
     leads: true,
     trainingResults: true,
     forms: true,
+    contractGenerator: true,
   });
 
   const [stage, setStage] = useState<Stage>('login');
@@ -99,6 +103,7 @@ export default function ClientLaunchPage() {
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isMasterQueuePasscodeOpen, setIsMasterQueuePasscodeOpen] = useState(false);
   const [isMasterQueueOpen, setIsMasterQueueOpen] = useState(false);
+  const [isContractGeneratorOpen, setIsContractGeneratorOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -371,6 +376,7 @@ export default function ClientLaunchPage() {
                       <DropdownMenuCheckboxItem checked={cardVisibility.builds} onCheckedChange={(c) => handleVisibilityChange('builds', !!c)}>Builds Tracker</DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={cardVisibility.leads} onCheckedChange={(c) => handleVisibilityChange('leads', !!c)}>Leads Tracker</DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={cardVisibility.forms} onCheckedChange={(c) => handleVisibilityChange('forms', !!c)}>Forms</DropdownMenuCheckboxItem>
+                      <DropdownMenuCheckboxItem checked={cardVisibility.contractGenerator} onCheckedChange={(c) => handleVisibilityChange('contractGenerator', !!c)}>Contract Generator</DropdownMenuCheckboxItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -490,6 +496,20 @@ export default function ClientLaunchPage() {
                         </CardFooter>
                       </Card>
                     )}
+                     {is4WK21Y && cardVisibility.contractGenerator && (
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-6" /></div>
+                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Contract Generator</CardTitle>
+                          </div>
+                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Generate contracts for your leads.</CardDescription>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button onClick={() => setIsContractGeneratorOpen(true)}>Open Generator</Button>
+                        </CardFooter>
+                      </Card>
+                    )}
                   </div>
                 </div>
 
@@ -546,6 +566,7 @@ export default function ClientLaunchPage() {
                 client={client}
             />
           )}
+          {client && <ContractGeneratorDialog open={isContractGeneratorOpen} onOpenChange={setIsContractGeneratorOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }

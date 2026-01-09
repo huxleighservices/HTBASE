@@ -187,6 +187,12 @@ export type QueueTask = {
     status: 'current' | 'overdue';
     agent: string;
     notes?: string[];
-    completedAt?: any; // Timestamp
 };
     
+export type Contract = {
+    id: string;
+    leadId: string;
+    leadName: string;
+    includedItems: string[];
+    createdAt: any;
+};
