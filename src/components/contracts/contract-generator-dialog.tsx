@@ -33,12 +33,16 @@ type ContractGeneratorDialogProps = {
 type Stage = 'select-lead' | 'configure' | 'download';
 
 const contractItems = [
-    { id: 'item1', label: 'Initial Inspection Report' },
-    { id: 'item2', label: 'Scope of Work Document' },
-    { id: 'item3', label: 'Materials and Labor Quote' },
-    { id: 'item4', label: 'Contingency Clause' },
-    { id: 'item5', label: 'Payment Schedule' },
-    { id: 'item6', label: 'Warranty Information' },
+    { id: 'item1', label: 'Inspection Completion' },
+    { id: 'item2', label: 'Service Agreement Contract' },
+    { id: 'item3', label: 'Conditional Lien Agreement' },
+    { id: 'item5', label: 'Prevailing Wage Addendum' },
+    { id: 'item6', label: 'Production Pre-Check Completion' },
+    { id: 'item7', label: 'Insurance Addendum' },
+    { id: 'item8', label: 'Build Completion Checkpoint' },
+    { id: 'item9', label: 'Post Production Authorization' },
+    { id: 'item10', label: 'Supplement & Completion Addendum' },
+    { id: 'item11', label: 'Payment Collection Confirmation' },
 ];
 
 export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser }: ContractGeneratorDialogProps) {
