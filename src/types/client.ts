@@ -196,3 +196,9 @@ export type Contract = {
     includedItems: string[];
     createdAt: any;
 };
+
+export type ContractTemplate = {
+    id: string; // Corresponds to the contract item id
+    title: string;
+    content: string;
+}

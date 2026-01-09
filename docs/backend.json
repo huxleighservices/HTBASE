@@ -290,6 +290,17 @@
             "createdAt": { "type": "string", "format": "date-time" }
         },
         "required": ["id", "leadId", "leadName", "createdAt"]
+    },
+    "ContractTemplate": {
+        "title": "Contract Template",
+        "type": "object",
+        "description": "Stores the text content for a contract document section.",
+        "properties": {
+            "id": { "type": "string" },
+            "title": { "type": "string" },
+            "content": { "type": "string" }
+        },
+        "required": ["id", "title", "content"]
     }
   },
   "auth": {
@@ -390,6 +401,14 @@
                       "entityName": "Contract",
                       "schema": { "$ref": "#/backend/entities/Contract" },
                       "description": "Generated contracts for a client."
+                    }
+                  },
+                  {
+                    "path": "/contractTemplates/{templateId}",
+                    "definition": {
+                      "entityName": "ContractTemplate",
+                      "schema": { "$ref": "#/backend/entities/ContractTemplate" },
+                      "description": "Text templates for contract documents."
                     }
                   }
                 ]

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -56,6 +55,7 @@ import { QueueDialog } from '@/components/queue/queue-dialog';
 import { MasterQueuePasscodeDialog } from '@/components/queue/master-queue-passcode-dialog';
 import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
+import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -104,6 +104,7 @@ export default function ClientLaunchPage() {
   const [isMasterQueuePasscodeOpen, setIsMasterQueuePasscodeOpen] = useState(false);
   const [isMasterQueueOpen, setIsMasterQueueOpen] = useState(false);
   const [isContractGeneratorOpen, setIsContractGeneratorOpen] = useState(false);
+  const [isManageTemplatesOpen, setIsManageTemplatesOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -505,7 +506,8 @@ export default function ClientLaunchPage() {
                           </div>
                           <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Generate contracts for your leads.</CardDescription>
                         </CardHeader>
-                        <CardFooter>
+                        <CardFooter className="flex gap-2">
+                           <Button onClick={() => setIsManageTemplatesOpen(true)} variant="secondary">Manage Templates</Button>
                           <Button onClick={() => setIsContractGeneratorOpen(true)}>Open Generator</Button>
                         </CardFooter>
                       </Card>
@@ -567,6 +569,7 @@ export default function ClientLaunchPage() {
             />
           )}
           {client && <ContractGeneratorDialog open={isContractGeneratorOpen} onOpenChange={setIsContractGeneratorOpen} client={client} activeUser={activeUser} />}
+          {client && <ManageTemplatesDialog open={isManageTemplatesOpen} onOpenChange={setIsManageTemplatesOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
