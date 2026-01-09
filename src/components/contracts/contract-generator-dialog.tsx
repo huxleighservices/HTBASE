@@ -12,17 +12,18 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { Client, Lead } from '@/types/client';
+import type { Client, Lead, ContractTemplate } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import { FileText, ChevronRight, Loader2, Download, UserCheck } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
 import { contractItems } from './contract-items';
+import jsPDF from 'jspdf';
 
 type ContractGeneratorDialogProps = {
   open: boolean;
@@ -41,6 +42,8 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItems, setSelectedItems] = useState<Record<string, boolean>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContractId, setGeneratedContractId] = useState<string | null>(null);
 
   const leadsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -52,6 +55,11 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
   const contractsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
     return collection(firestore, client.path, 'contracts');
+  }, [firestore, client.path]);
+
+  const templatesCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !client.path) return null;
+    return collection(firestore, client.path, 'contractTemplates');
   }, [firestore, client.path]);
 
   const filteredLeads = useMemo(() => {
@@ -67,7 +75,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
     setStage('configure');
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!selectedLead || !contractsCollectionRef) return;
     
     const includedItems = Object.keys(selectedItems).filter(key => selectedItems[key]);
@@ -77,16 +85,120 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         return;
     }
 
-    addDocumentNonBlocking(contractsCollectionRef, {
-        leadId: selectedLead.id,
-        leadName: `${selectedLead.firstName} ${selectedLead.lastName}`,
-        includedItems: includedItems,
-        createdAt: serverTimestamp(),
-    });
+    setIsGenerating(true);
+    try {
+        const docRef = await addDocumentNonBlocking(contractsCollectionRef, {
+            leadId: selectedLead.id,
+            leadName: `${selectedLead.firstName} ${selectedLead.lastName}`,
+            includedItems: includedItems,
+            createdAt: serverTimestamp(),
+        });
 
-    toast({ title: "Contract Generated!", description: "The contract is now ready for download." });
-    setStage('download');
+        if (docRef) {
+            setGeneratedContractId(docRef.id);
+            toast({ title: "Contract Generated!", description: "The contract is now ready for download." });
+            setStage('download');
+        } else {
+            throw new Error("Failed to get document reference after creation.");
+        }
+
+    } catch (error: any) {
+        toast({ title: "Generation Failed", description: error.message, variant: "destructive" });
+    } finally {
+        setIsGenerating(false);
+    }
   };
+  
+  const handleDownload = async () => {
+    if (!selectedLead || !templatesCollectionRef) {
+        toast({ title: 'Error', description: 'Missing lead or template data.', variant: 'destructive' });
+        return;
+    }
+    
+    setIsGenerating(true);
+    try {
+        const includedItemLabels = Object.keys(selectedItems).filter(key => selectedItems[key]);
+
+        const templatesQuery = query(templatesCollectionRef, where('title', 'in', includedItemLabels));
+        const querySnapshot = await getDocs(templatesQuery);
+
+        const templatesMap = new Map<string, string>();
+        querySnapshot.forEach(doc => {
+            const data = doc.data() as ContractTemplate;
+            templatesMap.set(data.title, data.content);
+        });
+
+        let fullContractText = '';
+        
+        // Ensure the order of text matches the checklist order
+        contractItems.forEach(item => {
+            if (includedItemLabels.includes(item.label)) {
+                const templateContent = templatesMap.get(item.label);
+                if (templateContent) {
+                    fullContractText += `## ${item.label}\n\n${templateContent}\n\n---\n\n`;
+                }
+            }
+        });
+
+        if (!fullContractText) {
+            toast({ title: 'No Content', description: 'No templates found for the selected items. Please add them in "Manage Templates".', variant: 'destructive'});
+            setIsGenerating(false);
+            return;
+        }
+
+        // Replace placeholders
+        let populatedText = fullContractText;
+        const placeholders = {
+            '{{firstName}}': selectedLead.firstName,
+            '{{lastName}}': selectedLead.lastName,
+            '{{homeAddress}}': selectedLead.homeAddress || '',
+            '{{phoneNumber}}': selectedLead.phoneNumber || '',
+            '{{email}}': selectedLead.email || '',
+            '{{jobType}}': selectedLead.jobType || '',
+            '{{projectedRevenue}}': selectedLead.projectedRevenue || '',
+            // Add more lead properties as needed
+        };
+
+        for (const [placeholder, value] of Object.entries(placeholders)) {
+            populatedText = populatedText.replace(new RegExp(placeholder, 'g'), value);
+        }
+
+        // Generate PDF
+        const doc = new jsPDF();
+        const margin = 15;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const splitText = doc.splitTextToSize(populatedText, doc.internal.pageSize.getWidth() - margin * 2);
+        
+        let y = margin;
+        for (let i = 0; i < splitText.length; i++) {
+            if (y > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+            const line = splitText[i];
+            if (line.startsWith('## ')) {
+                doc.setFont('helvetica', 'bold');
+                doc.text(line.substring(3), margin, y);
+                doc.setFont('helvetica', 'normal');
+            } else if (line === '---') {
+                y += 5; // Add some space for the separator
+                // You could draw a line here if you want
+                y += 5;
+            } else {
+                 doc.text(line, margin, y);
+            }
+            y += 7; // Line height
+        }
+        
+        doc.save(`${selectedLead.lastName}_Contract.pdf`);
+
+    } catch (error: any) {
+        toast({ title: 'Download Failed', description: error.message, variant: 'destructive' });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
 
   const handleClose = () => {
     onOpenChange(false);
@@ -96,6 +208,8 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         setSelectedLead(null);
         setSearchQuery('');
         setSelectedItems({});
+        setGeneratedContractId(null);
+        setIsGenerating(false);
     }, 200);
   };
 
@@ -158,8 +272,11 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
                 ))}
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setStage('select-lead')}>Back</Button>
-                <Button onClick={handleGenerate}>Generate</Button>
+                <Button variant="outline" onClick={() => setStage('select-lead')} disabled={isGenerating}>Back</Button>
+                <Button onClick={handleGenerate} disabled={isGenerating}>
+                    {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Generate
+                </Button>
             </DialogFooter>
           </>
         );
@@ -173,9 +290,9 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
             </DialogHeader>
             <div className="py-8 text-center">
                 <p className="text-muted-foreground mb-4">Click below to download the PDF.</p>
-                <Button size="lg">
-                    <Download className="mr-2" />
-                    Download PDF (Placeholder)
+                <Button size="lg" onClick={handleDownload} disabled={isGenerating}>
+                    {isGenerating ? <Loader2 className="mr-2 animate-spin" /> : <Download className="mr-2" />}
+                    {isGenerating ? 'Generating...' : 'Download PDF'}
                 </Button>
             </div>
              <DialogFooter>
