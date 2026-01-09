@@ -130,10 +130,11 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
             templatesMap.set(data.title, data.content);
         });
 
+        const leadFullName = `${selectedLead.firstName} ${selectedLead.lastName}`;
         const placeholders = {
             '{{firstName}}': selectedLead.firstName,
             '{{lastName}}': selectedLead.lastName,
-            '{{leadname}}': `${selectedLead.firstName} ${selectedLead.lastName}`,
+            '{{leadname}}': leadFullName,
             '{{homeAddress}}': selectedLead.homeAddress || '',
             '{{phoneNumber}}': selectedLead.phoneNumber || '',
             '{{Phone}}': selectedLead.phoneNumber || '',
@@ -153,9 +154,11 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
 
         // --- Cover Page ---
         doc.setFontSize(22);
-        doc.text("Service Agreement Contract", pageWidth / 2, y - 10, { align: 'center' });
+        doc.text("Service Agreement Contract", pageWidth / 2, y - 20, { align: 'center' });
         doc.setFontSize(16);
-        doc.text("M&T Roofing and Restoration", pageWidth / 2, y + 10, { align: 'center' });
+        doc.text("M&T Roofing and Restoration", pageWidth / 2, y, { align: 'center' });
+        doc.setFontSize(14);
+        doc.text(leadFullName, pageWidth / 2, y + 10, { align: 'center' });
         doc.setFontSize(12);
         doc.text(`Generated: ${format(new Date(), 'PPP p')}`, pageWidth / 2, y + 30, { align: 'center' });
 
