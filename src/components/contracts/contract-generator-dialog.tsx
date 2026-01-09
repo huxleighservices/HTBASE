@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -139,6 +140,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
             '{{email}}': selectedLead.email || '',
             '{{Email}}': selectedLead.email || '',
             '{{jobType}}': selectedLead.jobType || '',
+            '{{type}}': selectedLead.jobType || '',
             '{{projectedRevenue}}': selectedLead.projectedRevenue || '',
         };
 
