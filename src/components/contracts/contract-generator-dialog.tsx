@@ -171,7 +171,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
                     }
                     
                     // Replace bullet points
-                    populatedText = populatedText.replace(/(\* |• )/g, '');
+                    populatedText = populatedText.replace(/(\* |• |● )/g, '- ');
 
                     const title = item.label;
                     doc.setFont('times', 'bold');
