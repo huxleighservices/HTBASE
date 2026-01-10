@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown, KeyRound } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -50,6 +50,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { MasterQueuePasscodeDialog } from '../queue/master-queue-passcode-dialog';
 
 type LeadsTrackerDialogProps = {
     open: boolean;
@@ -106,6 +107,8 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
   const [leadForNotes, setLeadForNotes] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
+  const [isMasterViewPasscodeOpen, setIsMasterViewPasscodeOpen] = useState(false);
+  const [isMasterViewActive, setIsMasterViewActive] = useState(false);
 
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -123,8 +126,8 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     
     let filteredLeads = leads;
 
-    // If client is 4WK21Y, filter leads by agent
-    if (client.displayId === '4WK21Y' && activeUser) {
+    // If client is 4WK21Y and master view is NOT active, filter leads by agent
+    if (client.displayId === '4WK21Y' && activeUser && !isMasterViewActive) {
         filteredLeads = leads.filter(lead => lead.agent === activeUser.username);
     }
     
@@ -142,7 +145,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
         if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
         return 0;
     });
-  }, [leads, sortKey, sortDirection, client.displayId, activeUser]);
+  }, [leads, sortKey, sortDirection, client.displayId, activeUser, isMasterViewActive]);
 
   const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'createdAt' | 'agent'>) => {
     if (!leadsCollectionRef || !activeUser || !firestore) return;
@@ -235,6 +238,12 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                     </Button>
                 </div>
                 <div className="flex gap-2">
+                  {is4WK21Y && (
+                    <Button variant="outline" onClick={() => setIsMasterViewPasscodeOpen(true)}>
+                        <KeyRound className="mr-2"/>
+                        Master View
+                    </Button>
+                  )}
                   <Button onClick={() => setIsAddLeadOpen(true)}>
                     <PlusCircle className="mr-2"/>
                     Add Lead
@@ -246,7 +255,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                 <CardHeader>
                 <CardTitle>Lead List</CardTitle>
                 <CardDescription>
-                    All tracked leads are listed below. Click on a row to view or edit notes.
+                    {isMasterViewActive ? 'Showing all leads for all agents.' : 'All tracked leads are listed below. Click on a row to view or edit notes.'}
                 </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow relative">
@@ -367,6 +376,13 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
             onOpenChange={(isOpen) => !isOpen && setLeadToEdit(null)}
             lead={leadToEdit}
             client={client}
+        />
+    )}
+     {is4WK21Y && (
+        <MasterQueuePasscodeDialog 
+            open={isMasterViewPasscodeOpen} 
+            onOpenChange={setIsMasterViewPasscodeOpen}
+            onSuccess={() => setIsMasterViewActive(true)}
         />
     )}
     </>
