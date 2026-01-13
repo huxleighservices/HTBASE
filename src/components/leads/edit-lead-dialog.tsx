@@ -130,6 +130,14 @@ export function EditLeadDialog({
     }
   };
 
+  const handleNotificationDialogChange = (isOpen: boolean) => {
+    setIsNotificationDialogOpen(isOpen);
+    // If the notification dialog is closing, close the main edit dialog too
+    if (!isOpen) {
+        onOpenChange(false);
+    }
+  };
+
   const onSubmit: SubmitHandler<FormValues> = data => {
     if (!leadDocRef || !firestore) return;
     setIsSaving(true);
@@ -189,12 +197,13 @@ export function EditLeadDialog({
     setTimeout(() => {
         toast({ title: 'Lead Updated', description: `${data.firstName} ${data.lastName}'s record has been updated.` });
         setIsSaving(false);
-        onOpenChange(false);
         
         // Check if the status was changed to "Contract Signed"
         if (data.currentStep === 'Contract Signed' && lead.currentStep !== 'Contract Signed') {
             setUpdatedLeadData({ ...lead, ...data });
             setIsNotificationDialogOpen(true);
+        } else {
+            onOpenChange(false);
         }
 
     }, 500);
@@ -202,7 +211,7 @@ export function EditLeadDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open && !isNotificationDialogOpen} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Lead: {lead.firstName} {lead.lastName}</DialogTitle>
@@ -376,7 +385,7 @@ export function EditLeadDialog({
       {updatedLeadData && (
           <ContractSignedNotificationDialog
               open={isNotificationDialogOpen}
-              onOpenChange={setIsNotificationDialogOpen}
+              onOpenChange={handleNotificationDialogChange}
               lead={updatedLeadData}
           />
       )}
