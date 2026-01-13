@@ -49,6 +49,9 @@ const formSchema = z.object({
   pendingNotes: z.string().optional(),
   contractPresentationDate: z.string().optional(),
   nextStepDueDate: z.string().optional(),
+  reminderValue: z.number().optional(),
+  reminderUnit: z.enum(['days', 'weeks']).optional(),
+  bypassReminder: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -126,6 +129,9 @@ export function EditLeadDialog({
         pendingNotes: lead.pendingNotes || '',
         contractPresentationDate: lead.contractPresentationDate || '',
         nextStepDueDate: lead.nextStepDueDate || '',
+        reminderValue: 1,
+        reminderUnit: 'days',
+        bypassReminder: false,
       });
     }
   }, [open, lead, form]);
@@ -175,12 +181,20 @@ export function EditLeadDialog({
     // Handle Queue Task
     const currentIndex = currentStepOptions.findIndex(s => s === data.currentStep);
     const queueTaskRef = doc(firestore, 'queueTasks', lead.id);
-
-    if (is4WK21Y && currentIndex >= 0 && currentIndex < currentStepOptions.length - 1) {
+    
+    if (is4WK21Y && !data.bypassReminder && currentIndex >= 0 && currentIndex < currentStepOptions.length - 1) {
       const nextStep = currentStepOptions[currentIndex + 1];
       const dueDate = new Date();
-      dueDate.setHours(dueDate.getHours() + 24);
-      
+      if (data.reminderValue && data.reminderUnit) {
+        if (data.reminderUnit === 'days') {
+            dueDate.setDate(dueDate.getDate() + data.reminderValue);
+        } else if (data.reminderUnit === 'weeks') {
+            dueDate.setDate(dueDate.getDate() + data.reminderValue * 7);
+        }
+      } else {
+         dueDate.setHours(dueDate.getHours() + 24); // Default to 24 hours
+      }
+
       const taskData: QueueTask = {
         id: lead.id,
         leadId: lead.id,
@@ -194,7 +208,7 @@ export function EditLeadDialog({
       };
       setDocumentNonBlocking(queueTaskRef, taskData, { merge: true });
     } else {
-      // If lead is in last step or archived, delete the task
+      // If bypassed, last step, or archived, delete the task
       deleteDocumentNonBlocking(queueTaskRef);
     }
     
@@ -321,10 +335,48 @@ export function EditLeadDialog({
                               </FormItem>
                           )}
                           />
-                          {is4WK21Y && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Info className="h-3 w-3" />
-                              <p>Follow-up will be added to queue.</p>
+                           {is4WK21Y && (
+                            <div className="rounded-lg border p-4 space-y-3">
+                                <FormLabel>Next Step Reminder</FormLabel>
+                                <div className="flex items-center gap-2">
+                                     <FormField
+                                        control={form.control}
+                                        name="reminderValue"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl><Input type="number" min="1" max="10" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} disabled={isSaving || form.watch('bypassReminder')} /></FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="reminderUnit"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSaving || form.watch('bypassReminder')}>
+                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="days">Days</SelectItem>
+                                                        <SelectItem value="weeks">Weeks</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="bypassReminder"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/></FormControl>
+                                            <FormLabel className="font-normal">Bypass Reminder</FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                                {form.watch('bypassReminder') && (
+                                     <p className="text-xs text-amber-600 flex items-center gap-1"><Info className="h-3 w-3"/> Bypassing is not recommended.</p>
+                                )}
                             </div>
                           )}
                       </div>
