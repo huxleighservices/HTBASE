@@ -29,13 +29,13 @@ import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-const baseFormSchema = z.object({
+const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  source: z.string().optional(),
-  contactDate: z.string().optional(),
+  source: z.string().min(1, 'Source is required'),
+  contactDate: z.string().min(1, 'Contact date is required'),
+  jobType: z.string().min(1, 'Job type is required'),
   currentStep: z.string().optional(),
-  jobType: z.string().optional(),
   phoneNumber: z.string().optional(),
   email: z.string().optional(),
   homeAddress: z.string().optional(),
@@ -46,21 +46,8 @@ const baseFormSchema = z.object({
   nextStepDueDate: z.string().optional(),
 });
 
-const requiredFormSchema = baseFormSchema.extend({
-  source: z.string().min(1, "Source is required"),
-  contactDate: z.string().min(1, "Contact date is required"),
-  currentStep: z.string().min(1, "Current step is required"),
-  jobType: z.string().min(1, "Job type is required"),
-  phoneNumber: z.string().min(1, "Phone number is required"),
-  email: z.string().email("A valid email is required"),
-  homeAddress: z.string().min(1, "Home address is required"),
-  projectedRevenue: z.string().min(1, "Projected revenue is required"),
-  contractPresentationDate: z.string().min(1, "Contract presentation date is required"),
-  // nextStepDueDate is intentionally NOT required here for 4WK21Y
-});
 
-
-type FormValues = z.infer<typeof baseFormSchema>;
+type FormValues = z.infer<typeof formSchema>;
 type AddLeadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -91,7 +78,6 @@ export function AddLeadDialog({
   const [step, setStep] = useState(1);
   
   const is4WK21Y = client?.displayId === '4WK21Y';
-  const formSchema = is4WK21Y ? requiredFormSchema : baseFormSchema;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -122,7 +108,7 @@ export function AddLeadDialog({
   };
 
   const handleNext = async () => {
-    const fieldsToValidate: (keyof FormValues)[] = ['firstName', 'lastName', 'source', 'contactDate', 'phoneNumber', 'email'];
+    const fieldsToValidate: (keyof FormValues)[] = ['firstName', 'lastName', 'source', 'contactDate', 'jobType'];
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
       setStep(2);
@@ -179,6 +165,40 @@ export function AddLeadDialog({
                     <FormMessage />
                   </FormItem>
                 )}/>
+                <FormField control={form.control} name="jobType" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Type</FormLabel>
+                    <FormControl><Input {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}/>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="currentStep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Current Step</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a step..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {currentStepOptions.map(option => (
+                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                  <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="phoneNumber" render={({ field }) => (
                         <FormItem>
@@ -195,42 +215,6 @@ export function AddLeadDialog({
                         </FormItem>
                     )}/>
                 </div>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="currentStep"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Step</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a step..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {currentStepOptions.map(option => (
-                              <SelectItem key={option} value={option}>{option}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="jobType" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Job Type</FormLabel>
-                      <FormControl><Input {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}/>
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
                         <FormItem>
@@ -239,15 +223,13 @@ export function AddLeadDialog({
                         <FormMessage />
                         </FormItem>
                     )}/>
-                    {!is4WK21Y && (
-                      <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Next Step Due Date</FormLabel>
-                          <FormControl><Input type="date" {...field} /></FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}/>
-                    )}
+                    <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Next Step Due Date</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}/>
                 </div>
                 <FormField control={form.control} name="homeAddress" render={({ field }) => (
                     <FormItem>
