@@ -207,3 +207,12 @@ export type ClientContractTemplate = {
     id: string;
     label: string;
 };
+
+export type AccessKey = {
+  id: string; // Document ID
+  username: string;
+  password?: string; // Optional for security when reading lists
+  displayName: string;
+  createdAt: any;
+  phoneNumber?: string;
+};

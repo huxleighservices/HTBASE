@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -24,17 +23,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useEffect, useState } from 'react';
-import type { Client, Lead, SyncedLead, QueueTask } from '@/types/client';
+import type { Client, Lead, SyncedLead, QueueTask, AccessKey } from '@/types/client';
 import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { doc, Timestamp } from 'firebase/firestore';
+import { useFirestore, updateDocumentNonBlocking, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, useCollection } from '@/firebase';
+import { doc, Timestamp, collection } from 'firebase/firestore';
 import { Loader2, Info } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ContractSignedNotificationDialog } from './contract-signed-notification-dialog';
 
 const formSchema = z.object({
+  agent: z.string().min(1, "Agent is required."),
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   source: z.string().optional(),
@@ -93,6 +93,13 @@ export function EditLeadDialog({
     if (!firestore || !clientPath) return null;
     return doc(firestore, clientPath, 'leads', lead.id);
   }, [firestore, clientPath, lead.id]);
+  
+  const accessKeysCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !clientPath) return null;
+    return collection(firestore, clientPath, 'accessKeys');
+  }, [firestore, clientPath]);
+
+  const { data: accessKeys, isLoading: areKeysLoading } = useCollection<AccessKey>(accessKeysCollectionRef);
 
 
   const form = useForm<FormValues>({
@@ -104,6 +111,7 @@ export function EditLeadDialog({
     if (open) {
       setStep(1);
       form.reset({
+        agent: lead.agent || '',
         firstName: lead.firstName || '',
         lastName: lead.lastName || '',
         source: lead.source || '',
@@ -123,7 +131,7 @@ export function EditLeadDialog({
   }, [open, lead, form]);
   
   const handleNext = async () => {
-    const fieldsToValidate: (keyof FormValues)[] = ['firstName', 'lastName', 'source', 'contactDate', 'phoneNumber', 'email'];
+    const fieldsToValidate: (keyof FormValues)[] = ['agent', 'firstName', 'lastName', 'source', 'contactDate', 'phoneNumber', 'email'];
     const isValid = await form.trigger(fieldsToValidate);
     if (isValid) {
       setStep(2);
@@ -132,7 +140,6 @@ export function EditLeadDialog({
 
   const handleNotificationDialogChange = (isOpen: boolean) => {
     setIsNotificationDialogOpen(isOpen);
-    // If the notification dialog is closing, close the main edit dialog too
     if (!isOpen) {
         onOpenChange(false);
     }
@@ -142,15 +149,12 @@ export function EditLeadDialog({
     if (!leadDocRef || !firestore) return;
     setIsSaving(true);
     
-    const leadUpdateData = {
-        ...data,
-        agent: lead.agent // Keep the original agent
-    };
+    const leadUpdateData = { ...data };
     
     updateDocumentNonBlocking(leadDocRef, leadUpdateData);
     
     const syncedLeadData: SyncedLead = {
-        agent: lead.agent,
+        agent: data.agent,
         name: `${data.firstName} ${data.lastName}`,
         source: data.source || '',
         contactDate: data.contactDate || '',
@@ -185,7 +189,7 @@ export function EditLeadDialog({
         nextStep: nextStep,
         dueDate: Timestamp.fromDate(dueDate),
         status: 'current',
-        agent: lead.agent,
+        agent: data.agent,
         notes: [],
       };
       setDocumentNonBlocking(queueTaskRef, taskData, { merge: true });
@@ -198,7 +202,6 @@ export function EditLeadDialog({
         toast({ title: 'Lead Updated', description: `${data.firstName} ${data.lastName}'s record has been updated.` });
         setIsSaving(false);
         
-        // Check if the status was changed to "Contract Signed"
         if (data.currentStep === 'Contract Signed' && lead.currentStep !== 'Contract Signed') {
             setUpdatedLeadData({ ...lead, ...data });
             setIsNotificationDialogOpen(true);
@@ -223,6 +226,28 @@ export function EditLeadDialog({
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               {step === 1 && (
                   <>
+                      <FormField
+                          control={form.control}
+                          name="agent"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Agent</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={areKeysLoading || isSaving}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select an agent..." />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {accessKeys?.map(key => (
+                                    <SelectItem key={key.id} value={key.username}>{key.displayName}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       <div className="grid grid-cols-2 gap-4">
                       <FormField control={form.control} name="firstName" render={({ field }) => (
                           <FormItem>
