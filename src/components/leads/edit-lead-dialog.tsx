@@ -32,6 +32,7 @@ import { doc, Timestamp } from 'firebase/firestore';
 import { Loader2, Info } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { ContractSignedNotificationDialog } from './contract-signed-notification-dialog';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -82,6 +83,8 @@ export function EditLeadDialog({
   const firestore = useFirestore();
   const [isSaving, setIsSaving] = useState(false);
   const [step, setStep] = useState(1);
+  const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState(false);
+  const [updatedLeadData, setUpdatedLeadData] = useState<Lead | null>(null);
   
   const is4WK21Y = client?.displayId === '4WK21Y';
   const clientPath = client.path;
@@ -187,179 +190,196 @@ export function EditLeadDialog({
         toast({ title: 'Lead Updated', description: `${data.firstName} ${data.lastName}'s record has been updated.` });
         setIsSaving(false);
         onOpenChange(false);
+        
+        // Check if the status was changed to "Contract Signed"
+        if (data.currentStep === 'Contract Signed' && lead.currentStep !== 'Contract Signed') {
+            setUpdatedLeadData({ ...lead, ...data });
+            setIsNotificationDialogOpen(true);
+        }
+
     }, 500);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit Lead: {lead.firstName} {lead.lastName}</DialogTitle>
-          <DialogDescription>
-            Step {step} of 2: Update the lead's details below.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-             {step === 1 && (
-                <>
-                    <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="firstName" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>F. Name</FormLabel>
-                            <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="lastName" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>L. Name</FormLabel>
-                            <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}/>
-                    </div>
-                    <FormField control={form.control} name="source" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Source</FormLabel>
-                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="contactDate" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Contact Date</FormLabel>
-                        <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}/>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="phoneNumber" render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Phone Number</FormLabel>
-                            <FormControl><Input type="tel" {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}/>
-                        <FormField control={form.control} name="email" render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl><Input type="email" {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}/>
-                    </div>
-                </>
-             )}
-             {step === 2 && (
-                <>
-                     <div className="space-y-2">
-                        <FormField
-                        control={form.control}
-                        name="currentStep"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Current Step</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSaving}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a step..." />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                {currentStepOptions.map(option => (
-                                    <SelectItem key={option} value={option}>{option}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                        {is4WK21Y && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Info className="h-3 w-3" />
-                            <p>Follow-up will be added to queue.</p>
-                          </div>
-                        )}
-                    </div>
-                    <FormField control={form.control} name="jobType" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Job Type</FormLabel>
-                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Contract Presentation</FormLabel>
-                            <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}/>
-                        {!is4WK21Y && (
-                          <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Lead: {lead.firstName} {lead.lastName}</DialogTitle>
+            <DialogDescription>
+              Step {step} of 2: Update the lead's details below.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {step === 1 && (
+                  <>
+                      <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form.control} name="firstName" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>F. Name</FormLabel>
+                              <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )}/>
+                      <FormField control={form.control} name="lastName" render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>L. Name</FormLabel>
+                              <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )}/>
+                      </div>
+                      <FormField control={form.control} name="source" render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Source</FormLabel>
+                          <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}/>
+                      <FormField control={form.control} name="contactDate" render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Contact Date</FormLabel>
+                          <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}/>
+                      <div className="grid grid-cols-2 gap-4">
+                          <FormField control={form.control} name="phoneNumber" render={({ field }) => (
                               <FormItem>
-                              <FormLabel>Next Step Due Date</FormLabel>
+                              <FormLabel>Phone Number</FormLabel>
+                              <FormControl><Input type="tel" {...field} disabled={isSaving}/></FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}/>
+                          <FormField control={form.control} name="email" render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl><Input type="email" {...field} disabled={isSaving}/></FormControl>
+                              <FormMessage />
+                              </FormItem>
+                          )}/>
+                      </div>
+                  </>
+              )}
+              {step === 2 && (
+                  <>
+                      <div className="space-y-2">
+                          <FormField
+                          control={form.control}
+                          name="currentStep"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Current Step</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSaving}>
+                                  <FormControl>
+                                  <SelectTrigger>
+                                      <SelectValue placeholder="Select a step..." />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                  {currentStepOptions.map(option => (
+                                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                                  ))}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage />
+                              </FormItem>
+                          )}
+                          />
+                          {is4WK21Y && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Info className="h-3 w-3" />
+                              <p>Follow-up will be added to queue.</p>
+                            </div>
+                          )}
+                      </div>
+                      <FormField control={form.control} name="jobType" render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Job Type</FormLabel>
+                          <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}/>
+                      <div className="grid grid-cols-2 gap-4">
+                          <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
+                              <FormItem>
+                              <FormLabel>Contract Presentation</FormLabel>
                               <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
                               <FormMessage />
                               </FormItem>
                           )}/>
-                        )}
-                    </div>
-                    <FormField control={form.control} name="homeAddress" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Home Address</FormLabel>
-                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Projected Revenue</FormLabel>
-                        <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="pendingNotes" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Pending Notes</FormLabel>
-                        <FormControl><Textarea {...field} disabled={isSaving}/></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}/>
-                    <FormField control={form.control} name="companyCam" render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl>
-                                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/>
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel>CompanyCam?</FormLabel>
-                            </div>
-                        </FormItem>
-                    )}/>
-                </>
-             )}
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="ghost" disabled={isSaving}>Cancel</Button>
-              </DialogClose>
-               {step === 1 ? (
-                <Button type="button" onClick={handleNext}>Next</Button>
-              ) : (
-                <>
-                  <Button type="button" variant="outline" onClick={() => setStep(1)} disabled={isSaving}>Back</Button>
-                  <Button type="submit" disabled={isSaving}>
-                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                     {isSaving ? "Saving..." : "Save Changes"}
-                  </Button>
-                </>
+                          {!is4WK21Y && (
+                            <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Next Step Due Date</FormLabel>
+                                <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}/>
+                          )}
+                      </div>
+                      <FormField control={form.control} name="homeAddress" render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Home Address</FormLabel>
+                          <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}/>
+                      <FormField control={form.control} name="projectedRevenue" render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Projected Revenue</FormLabel>
+                          <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}/>
+                      <FormField control={form.control} name="pendingNotes" render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Pending Notes</FormLabel>
+                          <FormControl><Textarea {...field} disabled={isSaving}/></FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}/>
+                      <FormField control={form.control} name="companyCam" render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/>
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                  <FormLabel>CompanyCam?</FormLabel>
+                              </div>
+                          </FormItem>
+                      )}/>
+                  </>
               )}
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="ghost" disabled={isSaving}>Cancel</Button>
+                </DialogClose>
+                {step === 1 ? (
+                  <Button type="button" onClick={handleNext}>Next</Button>
+                ) : (
+                  <>
+                    <Button type="button" variant="outline" onClick={() => setStep(1)} disabled={isSaving}>Back</Button>
+                    <Button type="submit" disabled={isSaving}>
+                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isSaving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {updatedLeadData && (
+          <ContractSignedNotificationDialog
+              open={isNotificationDialogOpen}
+              onOpenChange={setIsNotificationDialogOpen}
+              lead={updatedLeadData}
+          />
+      )}
+    </>
   );
 }
