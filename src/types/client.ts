@@ -201,4 +201,9 @@ export type ContractTemplate = {
     id: string; // Corresponds to the contract item id
     title: string;
     content: string;
-}
+};
+
+export type ClientContractTemplate = {
+    id: string;
+    label: string;
+};

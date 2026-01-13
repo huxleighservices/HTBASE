@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { Client, Lead, ContractTemplate } from '@/types/client';
+import type { Client, Lead, ContractTemplate, ClientContractTemplate } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import { FileText, ChevronRight, Loader2, Download, UserCheck } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
@@ -22,7 +22,7 @@ import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
 import { Card } from '../ui/card';
 import { Checkbox } from '../ui/checkbox';
-import { contractItems } from './contract-items';
+import { contractItems as defaultContractItems } from './contract-items';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
 
@@ -63,6 +63,25 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
     if (!firestore || !client.path) return null;
     return collection(firestore, client.path, 'contractTemplates');
   }, [firestore, client.path]);
+
+  const clientTemplatesCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !client.path) return null;
+    return collection(firestore, client.path, 'clientContractTemplates');
+  }, [firestore, client.path]);
+
+  const { data: customContractItems, isLoading: areCustomItemsLoading } = useCollection<ClientContractTemplate>(clientTemplatesCollectionRef);
+
+  const allContractItems = useMemo(() => {
+    const combined = [...defaultContractItems];
+    if (customContractItems) {
+        customContractItems.forEach(customItem => {
+            if (!combined.some(item => item.id === customItem.id)) {
+                combined.push(customItem);
+            }
+        });
+    }
+    return combined;
+  }, [customContractItems]);
 
   const filteredLeads = useMemo(() => {
     if (!leads) return [];
@@ -112,7 +131,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
   };
   
   const handleDownload = async () => {
-    if (!selectedLead || !templatesCollectionRef) {
+    if (!selectedLead || !templatesCollectionRef || !clientTemplatesCollectionRef) {
         toast({ title: 'Error', description: 'Missing lead or template data.', variant: 'destructive' });
         return;
     }
@@ -121,13 +140,22 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
     try {
         const includedItemLabels = Object.keys(selectedItems).filter(key => selectedItems[key]);
 
-        const templatesQuery = query(templatesCollectionRef, where('title', 'in', includedItemLabels));
-        const querySnapshot = await getDocs(templatesQuery);
+        const defaultTemplatesQuery = query(templatesCollectionRef, where('title', 'in', includedItemLabels));
+        const customTemplatesQuery = query(clientTemplatesCollectionRef, where('label', 'in', includedItemLabels));
+
+        const [defaultSnapshot, customSnapshot] = await Promise.all([
+            getDocs(defaultTemplatesQuery),
+            getDocs(customTemplatesQuery),
+        ]);
 
         const templatesMap = new Map<string, string>();
-        querySnapshot.forEach(doc => {
+        defaultSnapshot.forEach(doc => {
             const data = doc.data() as ContractTemplate;
             templatesMap.set(data.title, data.content);
+        });
+        customSnapshot.forEach(doc => {
+            const data = doc.data() as {label: string, content: string}; // Client templates have `label` and `content`
+            templatesMap.set(data.label, data.content);
         });
 
         const leadFullName = `${selectedLead.firstName} ${selectedLead.lastName}`;
@@ -162,7 +190,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         doc.setFontSize(12);
         doc.text(`Generated: ${format(new Date(), 'PPP p')}`, pageWidth / 2, y + 30, { align: 'center' });
 
-        contractItems.forEach(item => {
+        allContractItems.forEach(item => {
             if (includedItemLabels.includes(item.label)) {
                 const templateContent = templatesMap.get(item.label);
                 if (templateContent) {
@@ -267,20 +295,22 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
               <DialogTitle>Step 2: Configure Contract</DialogTitle>
               <DialogDescription>Select items to include for {selectedLead?.firstName} {selectedLead?.lastName}.</DialogDescription>
             </DialogHeader>
-            <div className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {contractItems.map(item => (
-                    <div key={item.id} className="flex items-center space-x-2 rounded-md border p-4">
-                        <Checkbox 
-                            id={item.id}
-                            checked={selectedItems[item.label] || false}
-                            onCheckedChange={(checked) => setSelectedItems(prev => ({...prev, [item.label]: !!checked}))}
-                        />
-                        <label htmlFor={item.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                           {item.label}
-                        </label>
-                    </div>
-                ))}
-            </div>
+            <ScrollArea className="h-80">
+              <div className="py-4 grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                  {allContractItems.map(item => (
+                      <div key={item.id} className="flex items-center space-x-2 rounded-md border p-4">
+                          <Checkbox 
+                              id={item.id}
+                              checked={selectedItems[item.label] || false}
+                              onCheckedChange={(checked) => setSelectedItems(prev => ({...prev, [item.label]: !!checked}))}
+                          />
+                          <label htmlFor={item.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            {item.label}
+                          </label>
+                      </div>
+                  ))}
+              </div>
+            </ScrollArea>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setStage('select-lead')} disabled={isGenerating}>Back</Button>
                 <Button onClick={handleGenerate} disabled={isGenerating}>
