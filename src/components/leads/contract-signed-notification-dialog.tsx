@@ -28,6 +28,7 @@ import type { Lead } from '@/types/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
+import { sendEmail } from '@/app/actions/send-email';
 
 const formSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -65,19 +66,14 @@ export function ContractSignedNotificationDialog({
 
     setIsSending(true);
     try {
-        const response = await fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                to: data.email,
-                subject: `Contract Signed: ${lead.firstName} ${lead.lastName}`,
-                text: `The contract for lead ${lead.firstName} ${lead.lastName} (Address: ${lead.homeAddress}) has been signed.`,
-            }),
+        const result = await sendEmail({
+            to: data.email,
+            subject: `Contract Signed: ${lead.firstName} ${lead.lastName}`,
+            html: `<p>The contract for lead ${lead.firstName} ${lead.lastName} (Address: ${lead.homeAddress}) has been signed.</p>`,
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to send email.');
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to send email.');
         }
         
         toast({
