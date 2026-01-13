@@ -1,29 +1,30 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
 
-// Initialize a separate admin-like app instance for this server-side route
-// Note: In a real production scenario, you would use the Firebase Admin SDK
-// with service account credentials for security. For this context, we'll
-// use the client SDK with the understanding that security rules will be essential.
-let db;
-try {
-    const { firestore } = initializeFirebase();
-    db = firestore;
-} catch (e) {
-    console.error("Failed to initialize Firebase for send-email route", e);
+// This is a placeholder for your actual email sending logic (e.g., using Resend, SendGrid, etc.)
+async function sendEmail(to: string, subject: string, text: string) {
+    console.log(`Email to: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body: ${text}`);
+
+    // In a real application, you would integrate with your email service provider here.
+    // For example, using the Resend SDK:
+    //
+    // import { Resend } from 'resend';
+    // const resend = new Resend(process.env.RESEND_API_KEY);
+    // await resend.emails.send({
+    //   from: 'onboarding@resend.dev',
+    //   to: to,
+    //   subject: subject,
+    //   text: text,
+    // });
+    
+    // For now, we'll just simulate a successful email send.
+    return { success: true };
 }
 
 
 export async function POST(request: NextRequest) {
-  if (!db) {
-    return NextResponse.json(
-        { error: 'The database is not initialized. Cannot send email.' },
-        { status: 500 }
-      );
-  }
-  
   try {
     const { to, subject, text } = await request.json();
 
@@ -34,27 +35,21 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // The "Trigger Email" extension listens to a specific collection.
-    // We will write a new document to the 'mail' collection.
-    const mailCollection = collection(db, 'mail');
-    
-    await addDoc(mailCollection, {
-        to: [to],
-        message: {
-            subject: subject,
-            text: text,
-        }
-    });
+    const result = await sendEmail(to, subject, text);
+
+    if (!result.success) {
+      throw new Error('Failed to send email via external service.');
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Email queued for sending via Firebase.'
+      message: 'Email sent successfully.'
     });
 
   } catch (error) {
     console.error('Error in send-email route:', error);
     return NextResponse.json(
-      { error: 'Failed to queue email', details: error instanceof Error ? error.message : 'An unknown error occurred.' },
+      { error: 'Failed to send email', details: error instanceof Error ? error.message : 'An unknown error occurred.' },
       { status: 500 }
     );
   }

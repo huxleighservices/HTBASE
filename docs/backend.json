@@ -301,24 +301,6 @@
             "content": { "type": "string" }
         },
         "required": ["id", "title", "content"]
-    },
-    "Mail": {
-        "title": "Mail",
-        "type": "object",
-        "description": "Represents an email to be sent by the Trigger Email extension.",
-        "properties": {
-          "to": { "type": "array", "items": { "type": "string", "format": "email" } },
-          "message": {
-            "type": "object",
-            "properties": {
-              "subject": { "type": "string" },
-              "text": { "type": "string" },
-              "html": { "type": "string" }
-            },
-            "required": ["subject"]
-          }
-        },
-        "required": ["to", "message"]
     }
   },
   "auth": {
@@ -449,14 +431,6 @@
           "entityName": "QueueTask",
           "schema": { "$ref": "#/backend/entities/QueueTask" },
           "description": "Stores automated follow-up tasks for leads."
-        }
-      },
-      {
-        "path": "/mail/{mailId}",
-        "definition": {
-            "entityName": "Mail",
-            "schema": { "$ref": "#/backend/entities/Mail" },
-            "description": "Stores email documents to be sent by the Trigger Email extension."
         }
       }
     ],
