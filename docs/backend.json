@@ -177,7 +177,7 @@
         "extraInfo": { "type": "string" },
         "notes": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "contractPresentationDate": { "type": "string", "format": "date" },
+        "contractPresentationDate": { "type": "string", "format": "date", "description": "Date of the inspection." },
         "nextStepDueDate": { "type": "string", "format": "date" }
       },
       "required": ["id", "firstName", "lastName", "createdAt"]
@@ -301,6 +301,16 @@
             "content": { "type": "string" }
         },
         "required": ["id", "title", "content"]
+    },
+    "ClientContractTemplate": {
+        "title": "Client Contract Template",
+        "type": "object",
+        "description": "A custom contract template created by a client.",
+        "properties": {
+            "id": { "type": "string" },
+            "label": { "type": "string" }
+        },
+        "required": ["id", "label"]
     }
   },
   "auth": {
@@ -410,6 +420,14 @@
                       "schema": { "$ref": "#/backend/entities/ContractTemplate" },
                       "description": "Text templates for contract documents."
                     }
+                  },
+                  {
+                    "path": "/clientContractTemplates/{templateId}",
+                    "definition": {
+                      "entityName": "ClientContractTemplate",
+                      "schema": { "$ref": "#/backend/entities/ClientContractTemplate" },
+                      "description": "Custom contract templates created by a client."
+                    }
                   }
                 ]
               }
@@ -437,3 +455,5 @@
     "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
+
+    

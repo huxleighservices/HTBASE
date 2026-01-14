@@ -218,7 +218,7 @@ export function AddLeadDialog({
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Contract Presentation</FormLabel>
+                        <FormLabel>Inspection Date</FormLabel>
                         <FormControl><Input type="date" {...field} /></FormControl>
                         <FormMessage />
                         </FormItem>
@@ -284,3 +284,5 @@ export function AddLeadDialog({
     </Dialog>
   );
 }
+
+    

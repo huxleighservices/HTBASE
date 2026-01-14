@@ -278,7 +278,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                 <TableHead>Source</TableHead>
                                 <TableHead>Contact Date</TableHead>
                                 <TableHead>Current Step</TableHead>
-                                <TableHead>Contract Pres.</TableHead>
+                                <TableHead>Insp. Date</TableHead>
                                 {!is4WK21Y && <TableHead>Next Step Due</TableHead>}
                                 <TableHead>Job Type</TableHead>
                                 <TableHead>Phone</TableHead>
@@ -388,3 +388,5 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     </>
   );
 }
+
+    
