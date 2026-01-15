@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -226,41 +227,37 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
             </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 pt-4 flex-grow min-h-0">
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                <div className='flex items-center gap-2'>
-                   <Select value={sortKey} onValueChange={(val) => setSortKey(val as SortKey)}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Sort by..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="createdAt">Date Added</SelectItem>
-                            <SelectItem value="lastName">Name</SelectItem>
-                            <SelectItem value="agent">Agent</SelectItem>
-                            <SelectItem value="source">Source</SelectItem>
-                            <SelectItem value="contactDate">Contact Date</SelectItem>
-                            <SelectItem value="currentStep">Current Step</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon" onClick={toggleSortDirection}>
-                        <ArrowUpDown className="h-4 w-4" />
-                    </Button>
-                </div>
-                <div className="flex gap-2">
-                  {is4WK21Y && (
-                    <Button variant="outline" onClick={() => setIsMasterViewPasscodeOpen(true)}>
-                        <KeyRound className="mr-2"/>
-                        Master View
-                    </Button>
-                  )}
-                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)}>
+            <div className="flex flex-wrap items-center gap-2">
+                <Select value={sortKey} onValueChange={(val) => setSortKey(val as SortKey)}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Sort by..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="createdAt">Date Added</SelectItem>
+                        <SelectItem value="lastName">Name</SelectItem>
+                        <SelectItem value="agent">Agent</SelectItem>
+                        <SelectItem value="source">Source</SelectItem>
+                        <SelectItem value="contactDate">Contact Date</SelectItem>
+                        <SelectItem value="currentStep">Current Step</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button variant="outline" size="icon" onClick={toggleSortDirection}>
+                    <ArrowUpDown className="h-4 w-4" />
+                </Button>
+                {is4WK21Y && (
+                <Button variant="outline" onClick={() => setIsMasterViewPasscodeOpen(true)}>
+                    <KeyRound className="mr-2"/>
+                    Master View
+                </Button>
+                )}
+                <Button variant="outline" onClick={() => setIsBulkAddOpen(true)}>
                     <Upload className="mr-2" />
                     Bulk Add
-                  </Button>
-                  <Button onClick={() => setIsAddLeadOpen(true)}>
+                </Button>
+                <Button onClick={() => setIsAddLeadOpen(true)}>
                     <PlusCircle className="mr-2"/>
                     Add Lead
-                  </Button>
-                </div>
+                </Button>
             </div>
 
             <Card className='flex-grow flex flex-col min-h-0'>
