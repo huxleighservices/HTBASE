@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown, KeyRound } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Users, Edit, ArrowUpDown, KeyRound, Upload } from 'lucide-react';
 import {
   useFirestore,
   useCollection,
@@ -50,6 +50,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { MasterQueuePasscodeDialog } from '../queue/master-queue-passcode-dialog';
+import { BulkAddLeadsDialog } from './bulk-add-leads-dialog';
 
 type LeadsTrackerDialogProps = {
     open: boolean;
@@ -111,6 +112,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isAddLeadOpen, setIsAddLeadOpen] = useState(false);
+  const [isBulkAddOpen, setIsBulkAddOpen] = useState(false);
   const [leadForNotes, setLeadForNotes] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
   const [isMasterViewPasscodeOpen, setIsMasterViewPasscodeOpen] = useState(false);
@@ -224,7 +226,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
             </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 pt-4 flex-grow min-h-0">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
                 <div className='flex items-center gap-2'>
                    <Select value={sortKey} onValueChange={(val) => setSortKey(val as SortKey)}>
                         <SelectTrigger className="w-[180px]">
@@ -250,6 +252,10 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                         Master View
                     </Button>
                   )}
+                  <Button variant="outline" onClick={() => setIsBulkAddOpen(true)}>
+                    <Upload className="mr-2" />
+                    Bulk Add
+                  </Button>
                   <Button onClick={() => setIsAddLeadOpen(true)}>
                     <PlusCircle className="mr-2"/>
                     Add Lead
@@ -364,6 +370,14 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
         onOpenChange={setIsAddLeadOpen}
         onAddLead={handleAddLead}
         client={client}
+    />
+    
+    <BulkAddLeadsDialog
+        open={isBulkAddOpen}
+        onOpenChange={setIsBulkAddOpen}
+        client={client}
+        activeUser={activeUser}
+        leadsCollectionRef={leadsCollectionRef}
     />
 
     {leadForNotes && (
