@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -98,6 +97,13 @@ const getIndicatorColorClass = (step?: string) => {
         return 'bg-gray-500';
     }
     return 'bg-gray-400';
+};
+
+const getStepDisplayLabel = (stepValue?: string) => {
+    if (stepValue === 'Initial Contact') {
+        return 'Initial Contact (Prospecting)';
+    }
+    return stepValue || 'N/A';
 };
 
 
@@ -300,7 +306,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                                     <TableCell className="font-medium">{lead.firstName} {lead.lastName}</TableCell>
                                     <TableCell>{lead.source}</TableCell>
                                     <TableCell>{lead.contactDate}</TableCell>
-                                    <TableCell><Badge className={cn("transition-all", getStepColorClass(lead.currentStep))}>{lead.currentStep}</Badge></TableCell>
+                                    <TableCell><Badge className={cn("transition-all", getStepColorClass(lead.currentStep))}>{getStepDisplayLabel(lead.currentStep)}</Badge></TableCell>
                                     <TableCell>{lead.contractPresentationDate}</TableCell>
                                     {!is4WK21Y && <TableCell>{lead.nextStepDueDate}</TableCell>}
                                     <TableCell>{lead.jobType}</TableCell>
@@ -388,7 +394,3 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     </>
   );
 }
-
-    
-
-    

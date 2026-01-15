@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -39,6 +38,13 @@ type LeadNotesDialogProps = {
   onOpenChange: (open: boolean) => void;
   lead: Lead;
   client: Client | null;
+};
+
+const getStepDisplayLabel = (stepValue?: string) => {
+    if (stepValue === 'Initial Contact') {
+        return 'Initial Contact (Prospecting)';
+    }
+    return stepValue || 'N/A';
 };
 
 export function LeadNotesDialog({
@@ -113,7 +119,7 @@ export function LeadNotesDialog({
                 <LeadDetail label="Source" value={lead.source} />
                 <LeadDetail label="Contact Date" value={lead.contactDate} />
                  <div className="grid grid-cols-2 gap-4">
-                    <LeadDetail label="Current Step" value={lead.currentStep} />
+                    <LeadDetail label="Current Step" value={getStepDisplayLabel(lead.currentStep)} />
                     <LeadDetail label="Job Type" value={lead.jobType} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -163,5 +169,3 @@ export function LeadNotesDialog({
     </Dialog>
   );
 }
-
-    

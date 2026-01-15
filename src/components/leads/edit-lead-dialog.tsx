@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -64,18 +63,19 @@ type EditLeadDialogProps = {
 };
 
 const currentStepOptions = [
-    'Initial Contact',
-    'Inspection Scheduled',
-    'Presentation Scheduled',
-    'Pending Signature',
-    'Contract Signed',
-    'Build Date Confirmed',
-    'Permit/Logistics Confirmed',
-    'Build in Progress',
-    'Build Done | Collections in Progress',
-    'Paid & Done',
-    'Archived',
+    { value: 'Initial Contact', label: 'Initial Contact (Prospecting)' },
+    { value: 'Inspection Scheduled', label: 'Inspection Scheduled' },
+    { value: 'Presentation Scheduled', label: 'Presentation Scheduled' },
+    { value: 'Pending Signature', label: 'Pending Signature' },
+    { value: 'Contract Signed', label: 'Contract Signed' },
+    { value: 'Build Date Confirmed', label: 'Build Date Confirmed' },
+    { value: 'Permit/Logistics Confirmed', label: 'Permit/Logistics Confirmed' },
+    { value: 'Build in Progress', label: 'Build in Progress' },
+    { value: 'Build Done | Collections in Progress', label: 'Build Done | Collections in Progress' },
+    { value: 'Paid & Done', label: 'Paid & Done' },
+    { value: 'Archived', label: 'Archived' },
 ];
+
 
 export function EditLeadDialog({
   open,
@@ -180,11 +180,11 @@ export function EditLeadDialog({
     setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
 
     // Handle Queue Task
-    const currentIndex = currentStepOptions.findIndex(s => s === data.currentStep);
+    const currentIndex = currentStepOptions.findIndex(s => s.value === data.currentStep);
     const queueTaskRef = doc(firestore, 'queueTasks', lead.id);
     
     if (is4WK21Y && !data.bypassReminder && currentIndex >= 0 && currentIndex < currentStepOptions.length - 1) {
-      const nextStep = currentStepOptions[currentIndex + 1];
+      const nextStep = currentStepOptions[currentIndex + 1].value;
       const dueDate = new Date();
       if (data.reminderValue && data.reminderUnit) {
         if (data.reminderUnit === 'days') {
@@ -328,7 +328,7 @@ export function EditLeadDialog({
                                   </FormControl>
                                   <SelectContent>
                                   {currentStepOptions.map(option => (
-                                      <SelectItem key={option} value={option}>{option}</SelectItem>
+                                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                                   ))}
                                   </SelectContent>
                               </Select>
@@ -470,5 +470,3 @@ export function EditLeadDialog({
     </>
   );
 }
-
-    
