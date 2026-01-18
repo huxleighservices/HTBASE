@@ -32,6 +32,7 @@ import { Loader2, Info } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ContractSignedNotificationDialog } from './contract-signed-notification-dialog';
+import { Label } from '../ui/label';
 
 const formSchema = z.object({
   agent: z.string().min(1, "Agent is required."),
@@ -341,13 +342,14 @@ export function EditLeadDialog({
                            {is4WK21Y && (
                             <div className="rounded-lg border p-4 space-y-3">
                                 <FormLabel>Next Step Reminder</FormLabel>
-                                <div className="flex items-center gap-2">
-                                     <FormField
+                                <div className="flex items-center gap-4 justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <FormField
                                         control={form.control}
                                         name="reminderValue"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormControl><Input type="number" min="1" max="10" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} disabled={isSaving || form.watch('bypassReminder')} /></FormControl>
+                                                <FormControl><Input className="w-20" type="number" min="1" max="10" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10))} disabled={isSaving || form.watch('bypassReminder')} /></FormControl>
                                             </FormItem>
                                         )}
                                     />
@@ -357,7 +359,7 @@ export function EditLeadDialog({
                                         render={({ field }) => (
                                             <FormItem>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSaving || form.watch('bypassReminder')}>
-                                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                                    <FormControl><SelectTrigger className="w-28"><SelectValue /></SelectTrigger></FormControl>
                                                     <SelectContent>
                                                         <SelectItem value="days">Days</SelectItem>
                                                         <SelectItem value="weeks">Weeks</SelectItem>
@@ -366,48 +368,51 @@ export function EditLeadDialog({
                                             </FormItem>
                                         )}
                                     />
+                                  </div>
+                                  <FormField
+                                      control={form.control}
+                                      name="bypassReminder"
+                                      render={({ field }) => (
+                                          <FormItem className="flex flex-row items-center space-x-2">
+                                              <FormControl><Checkbox id="bypass-reminder-checkbox" checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/></FormControl>
+                                              <Label htmlFor="bypass-reminder-checkbox" className="font-normal">Bypass</Label>
+                                          </FormItem>
+                                      )}
+                                  />
                                 </div>
-                                <FormField
-                                    control={form.control}
-                                    name="bypassReminder"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving}/></FormControl>
-                                            <FormLabel className="font-normal">Bypass Reminder</FormLabel>
-                                        </FormItem>
-                                    )}
-                                />
                                 {form.watch('bypassReminder') && (
                                      <p className="text-xs text-amber-600 flex items-center gap-1"><Info className="h-3 w-3"/> Bypassing is not recommended.</p>
                                 )}
                             </div>
                           )}
                       </div>
-                      <FormField control={form.control} name="jobType" render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Job Type</FormLabel>
-                          <FormControl><Input {...field} disabled={isSaving}/></FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}/>
                       <div className="grid grid-cols-2 gap-4">
-                          <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
+                        <FormField control={form.control} name="jobType" render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Job Type</FormLabel>
+                            <FormControl><Input {...field} disabled={isSaving}/></FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
+                         <FormField control={form.control} name="contractPresentationDate" render={({ field }) => (
                               <FormItem>
                               <FormLabel>Inspection Date</FormLabel>
                               <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
                               <FormMessage />
                               </FormItem>
                           )}/>
-                          {!is4WK21Y && (
-                            <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Next Step Due Date</FormLabel>
-                                <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}/>
-                          )}
                       </div>
+
+                      {!is4WK21Y && (
+                        <FormField control={form.control} name="nextStepDueDate" render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Next Step Due Date</FormLabel>
+                            <FormControl><Input type="date" {...field} disabled={isSaving}/></FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}/>
+                      )}
+
                       <FormField control={form.control} name="homeAddress" render={({ field }) => (
                           <FormItem>
                           <FormLabel>Home Address</FormLabel>
