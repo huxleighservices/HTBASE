@@ -65,6 +65,8 @@ type EditLeadDialogProps = {
 const currentStepOptions = [
     { value: 'Initial Contact', label: 'Initial Contact (Prospecting)' },
     { value: 'Inspection Scheduled', label: 'Inspection Scheduled' },
+    { value: 'Insurance ADJ Scheduled', label: 'Insurance ADJ Scheduled' },
+    { value: 'Insurance ADJ Completed', label: 'Insurance ADJ Completed' },
     { value: 'Presentation Scheduled', label: 'Presentation Scheduled' },
     { value: 'Pending Signature', label: 'Pending Signature' },
     { value: 'Contract Signed', label: 'Contract Signed' },
