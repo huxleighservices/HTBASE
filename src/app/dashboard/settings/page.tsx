@@ -102,8 +102,6 @@ export default function SettingsPage() {
     }, 500); 
   };
   
-  const isAdmin = userProfile?.role === 'admin';
-
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -183,7 +181,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-      {isAdmin && <AdminPanel />}
+      <AdminPanel />
     </div>
   );
 }
