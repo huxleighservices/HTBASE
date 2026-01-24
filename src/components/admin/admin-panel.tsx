@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,8 +27,8 @@ import {
 } from '@/firebase';
 import type { UserProfile } from '@/types/user';
 import type { Client, Lead, SyncedLead } from '@/types/client';
-import { collection, doc, writeBatch, collectionGroup, query, getDocs, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Shield } from 'lucide-react';
+import { collection, doc, writeBatch, collectionGroup, query, getDocs, serverTimestamp, where } from 'firebase/firestore';
+import { Loader2, Shield, AlertTriangle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -35,16 +36,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
 
 export function AdminPanel() {
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
 
   const usersCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -73,11 +83,7 @@ export function AdminPanel() {
     setDocumentNonBlocking(userDocRef, { assignedClientId: clientId }, { merge: true });
     toast({ title: 'Client Assignment Updated' });
   };
-
-  const isLoading = areUsersLoading || areClientsLoading;
-
-  const [isRestoring, setIsRestoring] = useState(false);
-
+  
   const handleRestore = async () => {
     if (!firestore) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive'});
@@ -87,7 +93,7 @@ export function AdminPanel() {
     setIsRestoring(true);
 
     try {
-      const clientQuery = query(collectionGroup(firestore, 'clients'), doc(firestore, 'users/C35xM3u3gYPGnDSQZon3pZk3P9D3/clients/1j4JmJp5k3N8mJqgP3rX'));
+      const clientQuery = query(collectionGroup(firestore, 'clients'), where('displayId', '==', '4WK21Y'));
       const clientSnapshot = await getDocs(clientQuery);
 
       if (clientSnapshot.empty) {
@@ -1225,3 +1231,5 @@ export function AdminPanel() {
         }
       ]
     }
+  ]
+}
