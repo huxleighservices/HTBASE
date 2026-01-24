@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -91,9 +92,10 @@ export function AdminPanel() {
     }
 
     setIsRestoring(true);
+    const clientPath = 'users/C35xM3u3gYPGnDSQZon3pZk3P9D3/clients/1j4JmJp5k3N8mJqgP3rX';
+    const leadsCollectionRef = collection(firestore, clientPath, 'leads');
     
-    try {
-      const leadsToRestore: Omit<Lead, 'id' | 'notes' | 'createdAt'>[] = [
+    const leadsToRestore: Omit<Lead, 'id' | 'notes' | 'createdAt'>[] = [
         {
             "firstName": "billy",
             "lastName": "test",
@@ -1215,6 +1217,6 @@ export function AdminPanel() {
             "projectedRevenue": "$100,000.00",
             "companyCam": false,
             "pendingNotes": "she wants to schedule the build in april."
-        }
+    }
   ]
 }
