@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -40,7 +39,44 @@ import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 
-const leadsToRestore = [
+export function AdminPanel() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const usersCollectionRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'users');
+  }, [firestore]);
+
+  const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>(usersCollectionRef);
+
+  const clientsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collectionGroup(firestore, 'clients'));
+  }, [firestore]);
+
+  const { data: clients, isLoading: areClientsLoading } = useCollection<Client>(clientsQuery);
+  
+  const handleRoleChange = (userId: string, role: 'admin' | 'manager' | 'user') => {
+    if (!firestore) return;
+    const userDocRef = doc(firestore, 'users', userId);
+    setDocumentNonBlocking(userDocRef, { role }, { merge: true });
+    toast({ title: 'User Role Updated' });
+  };
+
+  const handleAssignmentChange = (userId: string, clientId: string) => {
+    if (!firestore) return;
+    const userDocRef = doc(firestore, 'users', userId);
+    setDocumentNonBlocking(userDocRef, { assignedClientId: clientId }, { merge: true });
+    toast({ title: 'Client Assignment Updated' });
+  };
+
+  const isLoading = areUsersLoading || areClientsLoading;
+
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  const leadsToRestore = [
     {
       "firstName": "billy",
       "lastName": "test",
