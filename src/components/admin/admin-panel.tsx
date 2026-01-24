@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -80,7 +79,8 @@ export function AdminPanel() {
   const handleAssignmentChange = (userId: string, clientId: string) => {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', userId);
-    setDocumentNonBlocking(userDocRef, { assignedClientId: clientId }, { merge: true });
+    const newAssignedId = clientId === 'none' ? '' : clientId;
+    setDocumentNonBlocking(userDocRef, { assignedClientId: newAssignedId }, { merge: true });
     toast({ title: 'Client Assignment Updated' });
   };
   
@@ -91,22 +91,9 @@ export function AdminPanel() {
     }
 
     setIsRestoring(true);
-
+    
     try {
-      const clientQuery = query(collectionGroup(firestore, 'clients'), where('displayId', '==', '4WK21Y'));
-      const clientSnapshot = await getDocs(clientQuery);
-
-      if (clientSnapshot.empty) {
-          toast({ title: 'Client Not Found', description: 'Could not find the target client 4WK21Y to restore leads.', variant: 'destructive'});
-          setIsRestoring(false);
-          return;
-      }
-      
-      const clientDoc = clientSnapshot.docs[0];
-      const clientPath = clientDoc.ref.path;
-      const leadsCollectionRef = collection(firestore, clientPath, 'leads');
-      
-      const leadsToRestore: Omit<Lead, 'id' | 'createdAt' | 'notes'>[] = [
+      const leadsToRestore: Omit<Lead, 'id' | 'notes' | 'createdAt'>[] = [
         {
             "firstName": "billy",
             "lastName": "test",
