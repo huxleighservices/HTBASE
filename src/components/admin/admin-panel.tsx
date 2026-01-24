@@ -90,11 +90,20 @@ export function AdminPanel() {
   };
 
   const handleRestore = async () => {
-    if (!firestore) {
-        toast({ title: "Firestore not available", variant: "destructive" });
+    if (!firestore || !clients) {
+        toast({ title: "Firestore or client data not available", variant: "destructive" });
         return;
     }
     setIsRestoring(true);
+
+    const targetClient = clients.find(c => c.displayId === '4WK21Y');
+
+    if (!targetClient || !targetClient.path) {
+        toast({ title: "Client 4WK21Y Not Found", description: "Could not find the specified client to restore leads to. Please ensure it has been created.", variant: "destructive" });
+        setIsRestoring(false);
+        return;
+    }
+    const clientPath = targetClient.path;
 
     const leadsData = [
         { firstName: "billy", lastName: "test", agent: "DZimm", source: "linkedin", contactDate: "12-16-2025", currentStep: "Archived", contractPresentationDate: "12/22/2025", nextStepDueDate: "12-31-2025", jobType: "Siding", phoneNumber: "4125558888", email: "btest@yahoo.com", homeAddress: "378 rock rd, cleveland, oh 44125", projectedRevenue: "$4,450.00", companyCam: false, pendingNotes: "test entry" },
@@ -167,7 +176,6 @@ export function AdminPanel() {
 
     try {
         const batch = writeBatch(firestore);
-        const clientPath = 'users/C35xM3u3gYPGnDSQZon3pZk3P9D3/clients/1j4JmJp5k3N8mJqgP3rX';
         const leadsCollectionRef = collection(firestore, clientPath, 'leads');
 
         for (const lead of leadsData) {
@@ -326,7 +334,7 @@ export function AdminPanel() {
         </CardContent>
         <CardFooter>
             <Button onClick={handleRestore} disabled={isRestoring}>
-                {isRestoring ? <Loader2 className="mr-2 animate-spin"/> : <DatabaseZap />}
+                {isRestoring ? <Loader2 className="mr-2 animate-spin"/> : <DatabaseZap className="mr-2" />}
                 {isRestoring ? 'Restoring...' : 'Restore 4WK21Y Leads'}
             </Button>
         </CardFooter>
