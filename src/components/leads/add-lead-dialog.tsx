@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -62,8 +63,8 @@ const currentStepOptions = [
     { value: 'Presentation Scheduled', label: 'Presentation Scheduled' },
     { value: 'Pending Signature', label: 'Pending Signature' },
     { value: 'Contract Signed', label: 'Contract Signed' },
-    { value: 'Build Date Confirmed', label: 'Build Date Confirmed' },
     { value: 'Permit/Logistics Confirmed', label: 'Permit/Logistics Confirmed' },
+    { value: 'Build Date Confirmed', label: 'Build Date Confirmed' },
     { value: 'Build in Progress', label: 'Build in Progress' },
     { value: 'Build Done | Collections in Progress', label: 'Build Done | Collections in Progress' },
     { value: 'Paid & Done', label: 'Paid & Done' },
