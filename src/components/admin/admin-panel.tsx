@@ -21,6 +21,7 @@ import {
   useCollection,
   useFirestore,
   useMemoFirebase,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import type { UserProfile } from '@/types/user';
 import type { Client, Lead, SyncedLead } from '@/types/client';
@@ -38,7 +39,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
-
 
 const leadsToRestore = [
     {
