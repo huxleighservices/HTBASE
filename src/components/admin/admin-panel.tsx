@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -24,7 +25,7 @@ import {
 } from '@/firebase';
 import type { UserProfile } from '@/types/user';
 import type { Client, SyncedLead } from '@/types/client';
-import { collection, doc, query, collectionGroup, writeBatch, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, collectionGroup, writeBatch, serverTimestamp, getDocs } from 'firebase/firestore';
 import { Loader2, Shield, Unlock, DatabaseZap } from 'lucide-react';
 import {
   Select,
@@ -104,6 +105,7 @@ export function AdminPanel() {
         return;
     }
     const clientPath = targetClient.path;
+    const leadsCollectionRef = collection(firestore, clientPath, 'leads');
 
     const leadsData = [
         { firstName: "billy", lastName: "test", agent: "DZimm", source: "linkedin", contactDate: "12-16-2025", currentStep: "Archived", contractPresentationDate: "12/22/2025", nextStepDueDate: "12-31-2025", jobType: "Siding", phoneNumber: "4125558888", email: "btest@yahoo.com", homeAddress: "378 rock rd, cleveland, oh 44125", projectedRevenue: "$4,450.00", companyCam: false, pendingNotes: "test entry" },
@@ -176,8 +178,17 @@ export function AdminPanel() {
 
     try {
         const batch = writeBatch(firestore);
-        const leadsCollectionRef = collection(firestore, clientPath, 'leads');
 
+        // 1. Delete all existing leads and their corresponding syncedLeads
+        const existingLeadsSnapshot = await getDocs(leadsCollectionRef);
+        existingLeadsSnapshot.forEach(leadDoc => {
+            batch.delete(leadDoc.ref); // Delete the lead from the subcollection
+            const syncedLeadRef = doc(firestore, 'syncedLeads', leadDoc.id);
+            batch.delete(syncedLeadRef); // Delete the corresponding synced lead
+        });
+
+
+        // 2. Add the new 68 leads
         for (const lead of leadsData) {
             const newLeadRef = doc(leadsCollectionRef);
             batch.set(newLeadRef, { ...lead, createdAt: serverTimestamp() });
@@ -206,7 +217,7 @@ export function AdminPanel() {
 
         toast({
             title: "Leads Restored!",
-            description: `${leadsData.length} leads have been successfully restored for client 4WK21Y.`,
+            description: `The lead data has been reset to the correct 68 records.`,
         });
     } catch (e: any) {
         console.error("Error restoring leads:", e);
@@ -330,7 +341,7 @@ export function AdminPanel() {
             <CardDescription>One-time operation to restore data for a specific client.</CardDescription>
         </CardHeader>
         <CardContent>
-            <p className="text-sm">This tool will restore 68 lead records for the client identified as <strong>4WK21Y</strong>. This is a one-time operation.</p>
+            <p className="text-sm">This tool will first **delete all existing leads** for client <strong>4WK21Y</strong> and then restore the 68 official lead records. This ensures a clean data set.</p>
         </CardContent>
         <CardFooter>
             <Button onClick={handleRestore} disabled={isRestoring}>
@@ -342,3 +353,5 @@ export function AdminPanel() {
     </>
   );
 }
+
+    
