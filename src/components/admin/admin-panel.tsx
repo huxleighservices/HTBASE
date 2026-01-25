@@ -106,6 +106,7 @@ export function AdminPanel() {
     }
     const clientPath = targetClient.path;
     const leadsCollectionRef = collection(firestore, clientPath, 'leads');
+    const syncedLeadsCollectionRef = collection(firestore, 'syncedLeads');
 
     const leadsData = [
         { firstName: "billy", lastName: "test", agent: "DZimm", source: "linkedin", contactDate: "12-16-2025", currentStep: "Archived", contractPresentationDate: "12/22/2025", nextStepDueDate: "12-31-2025", jobType: "Siding", phoneNumber: "4125558888", email: "btest@yahoo.com", homeAddress: "378 rock rd, cleveland, oh 44125", projectedRevenue: "$4,450.00", companyCam: false, pendingNotes: "test entry" },
@@ -177,21 +178,24 @@ export function AdminPanel() {
     ];
 
     try {
-        const batch = writeBatch(firestore);
+        const deleteBatch = writeBatch(firestore);
 
-        // 1. Delete all existing leads and their corresponding syncedLeads
-        const existingLeadsSnapshot = await getDocs(leadsCollectionRef);
-        existingLeadsSnapshot.forEach(leadDoc => {
-            batch.delete(leadDoc.ref); // Delete the lead from the subcollection
-            const syncedLeadRef = doc(firestore, 'syncedLeads', leadDoc.id);
-            batch.delete(syncedLeadRef); // Delete the corresponding synced lead
+        const existingClientLeadsSnapshot = await getDocs(leadsCollectionRef);
+        existingClientLeadsSnapshot.forEach(leadDoc => {
+            deleteBatch.delete(leadDoc.ref);
         });
 
+        const existingSyncedLeadsSnapshot = await getDocs(syncedLeadsCollectionRef);
+        existingSyncedLeadsSnapshot.forEach(syncedDoc => {
+            deleteBatch.delete(syncedDoc.ref);
+        });
 
-        // 2. Add the new 68 leads
+        await deleteBatch.commit();
+        
+        const addBatch = writeBatch(firestore);
         for (const lead of leadsData) {
             const newLeadRef = doc(leadsCollectionRef);
-            batch.set(newLeadRef, { ...lead, createdAt: serverTimestamp() });
+            addBatch.set(newLeadRef, { ...lead, createdAt: serverTimestamp() });
 
             const syncedLeadData: SyncedLead = {
                 agent: lead.agent,
@@ -210,10 +214,10 @@ export function AdminPanel() {
                 pendingNotes: lead.pendingNotes || '',
             };
             const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadRef.id);
-            batch.set(syncedLeadRef, syncedLeadData);
+            addBatch.set(syncedLeadRef, syncedLeadData);
         }
 
-        await batch.commit();
+        await addBatch.commit();
 
         toast({
             title: "Leads Restored!",
