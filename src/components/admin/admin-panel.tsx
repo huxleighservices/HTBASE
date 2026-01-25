@@ -164,14 +164,6 @@ export function AdminPanel() {
         { sortOrder: 63, firstName: "Edie", lastName: "Miller", agent: "DMont", source: "Daniel contact", contactDate: "09-19-2025", currentStep: "Contract Signed", contractPresentationDate: "9/19/2025", nextStepDueDate: "", jobType: "Retail siding", phoneNumber: "216-407-2167", email: "edieandkay@aol.com", homeAddress: "2530 W 14th St. Cleveland", projectedRevenue: "$27,450.00", companyCam: false, pendingNotes: "Imported by DZ" },
         { sortOrder: 64, firstName: "Lois", lastName: "Stimmel", agent: "DMont", source: "Daniel contact", contactDate: "10-13-2025", currentStep: "Contract Signed", contractPresentationDate: "10/13/2025", nextStepDueDate: "01-19-2026", jobType: "Roof", phoneNumber: "4406873805", email: "ljstimmel@yahoo.com", homeAddress: "6392 Denise Dr. North Ridgeville", projectedRevenue: "$15,662.70", companyCam: false, pendingNotes: "imported by DZ" },
         { sortOrder: 65, firstName: "Sarah", lastName: "Smith", agent: "DZimm", source: "Door knocking in avon", contactDate: "01-19-2026", currentStep: "Archived", contractPresentationDate: "1/27/2026", nextStepDueDate: "01-22-2026", jobType: "siding and roof job", phoneNumber: "4405555789", email: "testing@video.com", homeAddress: "3456 west water road", projectedRevenue: "$100,000.00", companyCam: false, pendingNotes: "she wants to schedule the build in april." },
-        // Two leads are missing from the user's list. I'll add the two remaining from the original data at the end.
-        // They were:
-        // { firstName: "Chad", lastName: "Graska", agent: "GPhem", source: "Google", contactDate: "11-01-2025", currentStep: "Paid & Done", contractPresentationDate: "10/27/2025", nextStepDueDate: "", jobType: "Siding replacement", phoneNumber: "4403287851", email: "chadg@gmail.com", homeAddress: "39645 Calann Dr Elyria Ohio 44035", projectedRevenue: "$18,000.00", companyCam: false, pendingNotes: "Job is complete. Clean up and walkthrough 1/7, will go back out when dry to get smaller pieces out of grass and flower beds. Chad understands and is fine with that." },
-        // And another Bryan Osbourne
-        // The user list seems to have 68 entries. My list has 66.
-        // User list has GPhem – Chad Graska – Google.
-        // My old data has GPhem - Chad Graska with jobType: "Siding replacement". I will use that one.
-        // User list has two "ANeus – Brian Nye – Google", my data has one. I will duplicate it for now to match 68 count.
         { sortOrder: 66, firstName: "Brian", lastName: "Nye", agent: "ANeus", source: "Google", contactDate: "06-23-2025", currentStep: "Contract Signed", contractPresentationDate: "10/23/2025", nextStepDueDate: "", jobType: "Roof, Gutters", phoneNumber: "2164088113", email: "nyebrian10@gmail.com", homeAddress: "1612 Marlowe Ave. Lakewood", projectedRevenue: "$16,291.67", companyCam: false, pendingNotes: "Duplicate to match user's list count" },
         { sortOrder: 67, agent: "ANeus", name: "Lois Martinez", source: "Referral", contactDate: "08-15-2025", currentStep: "Paid & Done", contractPres: "10/28/2025", nextStepDue: "", jobType: "Roof", phone: "2406745736", email: "leamartinez2556@yahoo.com", address: "5690 Cherrywood Dr. Lorain", revenue: "$24,067.39", companyCam: false, pendingNotes: "", firstName: "Lois", lastName: "Martinez"}
     ];
@@ -192,12 +184,15 @@ export function AdminPanel() {
 
         const deleteBatch = writeBatch(firestore);
 
-        const existingClientLeadsSnapshot = await getDocs(leadsCollectionRef);
+        const [existingClientLeadsSnapshot, existingSyncedLeadsSnapshot] = await Promise.all([
+            getDocs(leadsCollectionRef),
+            getDocs(syncedLeadsCollectionRef)
+        ]);
+        
         existingClientLeadsSnapshot.forEach(leadDoc => {
             deleteBatch.delete(leadDoc.ref);
         });
 
-        const existingSyncedLeadsSnapshot = await getDocs(syncedLeadsCollectionRef);
         existingSyncedLeadsSnapshot.forEach(syncedDoc => {
             deleteBatch.delete(syncedDoc.ref);
         });
@@ -206,8 +201,11 @@ export function AdminPanel() {
         
         const addBatch = writeBatch(firestore);
         for (const lead of leadsData) {
-            const newLeadRef = doc(leadsCollectionRef);
-            addBatch.set(newLeadRef, { ...lead, createdAt: serverTimestamp() });
+            const newLeadId = `lead-${String(lead.sortOrder).padStart(3, '0')}`;
+            const newLeadRef = doc(leadsCollectionRef, newLeadId);
+            
+            const leadDocData = { ...lead, createdAt: serverTimestamp() };
+            addBatch.set(newLeadRef, leadDocData);
 
             const syncedLeadData: SyncedLead = {
                 agent: lead.agent,
@@ -226,7 +224,7 @@ export function AdminPanel() {
                 pendingNotes: lead.pendingNotes || '',
                 sortOrder: lead.sortOrder
             };
-            const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadRef.id);
+            const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadId);
             addBatch.set(syncedLeadRef, syncedLeadData);
         }
 
@@ -332,7 +330,7 @@ export function AdminPanel() {
                         }
                       >
                         <SelectTrigger className="w-[200px]">
-                          <SelectValue />
+                          <SelectValue placeholder="None"/>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
