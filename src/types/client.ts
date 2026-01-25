@@ -98,6 +98,7 @@ export type Lead = {
     createdAt: any;
     contractPresentationDate?: string;
     nextStepDueDate?: string;
+    sortOrder?: number;
 };
 
 export type SyncedLead = {
@@ -115,6 +116,7 @@ export type SyncedLead = {
     revenue: string;
     companyCam: boolean;
     pendingNotes: string;
+    sortOrder?: number;
 }
 
 export type Build = {

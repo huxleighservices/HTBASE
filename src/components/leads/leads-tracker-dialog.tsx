@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -59,7 +60,7 @@ type LeadsTrackerDialogProps = {
     activeUser: AccessKey | null;
 };
 
-type SortKey = keyof Lead | 'createdAt';
+type SortKey = keyof Lead | 'createdAt' | 'sortOrder';
 type SortDirection = 'asc' | 'desc';
 
 const getStepColorClass = (step?: string) => {
@@ -118,8 +119,8 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
   const [isMasterViewPasscodeOpen, setIsMasterViewPasscodeOpen] = useState(false);
   const [isMasterViewActive, setIsMasterViewActive] = useState(false);
 
-  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortKey, setSortKey] = useState<SortKey>('sortOrder');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
 
   const leadsCollectionRef = useMemoFirebase(() => {
@@ -141,9 +142,13 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     
     return [...filteredLeads].sort((a, b) => {
         let valA: any, valB: any;
+
         if (sortKey === 'createdAt') {
             valA = a.createdAt?.toDate() || new Date(0);
             valB = b.createdAt?.toDate() || new Date(0);
+        } else if (sortKey === 'sortOrder') {
+            valA = a.sortOrder ?? Infinity;
+            valB = b.sortOrder ?? Infinity;
         } else {
             valA = a[sortKey as keyof Lead] || '';
             valB = b[sortKey as keyof Lead] || '';
@@ -232,6 +237,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                         <SelectValue placeholder="Sort by..." />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="sortOrder">Default Order</SelectItem>
                         <SelectItem value="createdAt">Date Added</SelectItem>
                         <SelectItem value="lastName">Name</SelectItem>
                         <SelectItem value="agent">Agent</SelectItem>
