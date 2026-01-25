@@ -72,8 +72,8 @@ const currentStepOptions = [
     { value: 'Presentation Scheduled', label: 'Presentation Scheduled' },
     { value: 'Pending Signature', label: 'Pending Signature' },
     { value: 'Contract Signed', label: 'Contract Signed' },
-    { value: 'Permit/Logistics Confirmed', label: 'Permit/Logistics Confirmed' },
     { value: 'Build Date Confirmed', label: 'Build Date Confirmed' },
+    { value: 'Permit/Logistics Confirmed', label: 'Permit/Logistics Confirmed' },
     { value: 'Build in Progress', label: 'Build in Progress' },
     { value: 'Build Done | Collections in Progress', label: 'Build Done | Collections in Progress' },
     { value: 'Paid & Done', label: 'Paid & Done' },
@@ -160,7 +160,7 @@ export function EditLeadDialog({
     if (!leadDocRef || !firestore) return;
     setIsSaving(true);
     
-    const leadUpdateData = { ...data };
+    const leadUpdateData = { ...data, sortOrder: lead.sortOrder };
     
     updateDocumentNonBlocking(leadDocRef, leadUpdateData);
     
@@ -179,6 +179,7 @@ export function EditLeadDialog({
         revenue: data.projectedRevenue || '',
         companyCam: data.companyCam || false,
         pendingNotes: data.pendingNotes || '',
+        sortOrder: lead.sortOrder,
     };
     const syncedLeadRef = doc(firestore, 'syncedLeads', lead.id);
     setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
@@ -478,3 +479,5 @@ export function EditLeadDialog({
     </>
   );
 }
+
+    

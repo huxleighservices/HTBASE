@@ -102,6 +102,12 @@ const getIndicatorColorClass = (step?: string) => {
 };
 
 const getStepDisplayLabel = (stepValue?: string) => {
+    if (stepValue === 'Permit/Logistics Confirmed') {
+        return 'Build Date Confirmed';
+    }
+    if (stepValue === 'Build Date Confirmed') {
+        return 'Permit/Logistics Confirmed';
+    }
     if (stepValue === 'Initial Contact') {
         return 'Initial Contact (Prospecting)';
     }
@@ -162,11 +168,17 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
 
   const handleAddLead = (lead: Omit<Lead, 'id' | 'notes' | 'createdAt' | 'agent'>) => {
     if (!leadsCollectionRef || !activeUser || !firestore) return;
+    
+    const maxSortOrder = Math.max(-1, ...(leads?.map(l => l.sortOrder ?? -1) ?? []));
+    const newSortOrder = maxSortOrder + 1;
+
     const leadData = {
         ...lead,
         agent: activeUser.username,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        sortOrder: newSortOrder,
     };
+
     const promise = addDocumentNonBlocking(leadsCollectionRef, leadData);
     promise.then(docRef => {
         if(docRef) {
@@ -185,6 +197,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
                 revenue: lead.projectedRevenue || '',
                 companyCam: lead.companyCam || false,
                 pendingNotes: lead.pendingNotes || '',
+                sortOrder: newSortOrder,
             };
             const syncedLeadRef = doc(firestore, 'syncedLeads', docRef.id);
             setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
@@ -380,6 +393,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
         client={client}
         activeUser={activeUser}
         leadsCollectionRef={leadsCollectionRef}
+        allLeads={leads}
     />
 
     {leadForNotes && (
@@ -410,3 +424,5 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     </>
   );
 }
+
+    

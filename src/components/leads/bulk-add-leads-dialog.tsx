@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -69,6 +70,7 @@ type BulkAddLeadsDialogProps = {
   client: Client;
   activeUser: AccessKey | null;
   leadsCollectionRef: CollectionReference | null;
+  allLeads: Lead[] | null;
 };
 
 
@@ -78,6 +80,7 @@ export function BulkAddLeadsDialog({
   client,
   activeUser,
   leadsCollectionRef,
+  allLeads,
 }: BulkAddLeadsDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -148,14 +151,18 @@ export function BulkAddLeadsDialog({
     setIsSubmitting(true);
     
     const batch = writeBatch(firestore);
+    const maxSortOrder = Math.max(-1, ...(allLeads?.map(l => l.sortOrder ?? -1) ?? []));
+    let currentSortOrder = maxSortOrder + 1;
 
     for (const lead of data.leads) {
         const newLeadRef = doc(leadsCollectionRef);
+        const sortOrder = currentSortOrder++;
         const leadData = {
             ...lead,
             agent: activeUser.username,
             createdAt: serverTimestamp(),
-            currentStep: 'Initial Contact'
+            currentStep: 'Initial Contact',
+            sortOrder,
         };
         batch.set(newLeadRef, leadData);
 
@@ -174,6 +181,7 @@ export function BulkAddLeadsDialog({
             revenue: lead.projectedRevenue || '',
             companyCam: false,
             pendingNotes: '',
+            sortOrder,
         };
         const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadRef.id);
         batch.set(syncedLeadRef, syncedLeadData);
@@ -289,3 +297,5 @@ export function BulkAddLeadsDialog({
     </Dialog>
   );
 }
+
+    
