@@ -134,7 +134,7 @@ export default function ClientsPage() {
           contactEmail: 'service@sunmmu.com',
           contactPhoneNumber: 'N/A',
           location: 'USA',
-          isEdu: true,
+          isEdu: false,
           displayId: 'SUNMMU',
           status: 'active',
         };
