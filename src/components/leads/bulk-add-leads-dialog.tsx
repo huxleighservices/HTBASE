@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { writeBatch, doc, serverTimestamp, CollectionReference } from 'firebase/firestore';
-import { useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { ScrollArea } from '../ui/scroll-area';
 
 const leadSchema = z.object({
@@ -155,8 +155,10 @@ export function BulkAddLeadsDialog({
     let currentSortOrder = maxSortOrder + 1;
 
     for (const lead of data.leads) {
-        const newLeadRef = doc(leadsCollectionRef);
         const sortOrder = currentSortOrder++;
+        const newLeadId = `lead-${String(sortOrder).padStart(3, '0')}`;
+        const newLeadRef = doc(leadsCollectionRef, newLeadId);
+
         const leadData = {
             ...lead,
             agent: activeUser.username,
@@ -183,7 +185,7 @@ export function BulkAddLeadsDialog({
             pendingNotes: '',
             sortOrder,
         };
-        const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadRef.id);
+        const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadId);
         batch.set(syncedLeadRef, syncedLeadData);
     }
     
@@ -297,5 +299,7 @@ export function BulkAddLeadsDialog({
     </Dialog>
   );
 }
+
+    
 
     

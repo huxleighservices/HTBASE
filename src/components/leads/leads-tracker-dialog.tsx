@@ -23,7 +23,6 @@ import {
   useFirestore,
   useCollection,
   useMemoFirebase,
-  addDocumentNonBlocking,
   deleteDocumentNonBlocking,
   setDocumentNonBlocking,
 } from '@/firebase';
@@ -171,6 +170,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     
     const maxSortOrder = Math.max(-1, ...(leads?.map(l => l.sortOrder ?? -1) ?? []));
     const newSortOrder = maxSortOrder + 1;
+    const newLeadId = `lead-${String(newSortOrder).padStart(3, '0')}`;
 
     const leadData = {
         ...lead,
@@ -178,31 +178,29 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
         createdAt: serverTimestamp(),
         sortOrder: newSortOrder,
     };
+    
+    const leadDocRef = doc(leadsCollectionRef, newLeadId);
+    setDocumentNonBlocking(leadDocRef, leadData, {});
 
-    const promise = addDocumentNonBlocking(leadsCollectionRef, leadData);
-    promise.then(docRef => {
-        if(docRef) {
-            const syncedLeadData: SyncedLead = {
-                agent: leadData.agent,
-                name: `${leadData.firstName} ${leadData.lastName}`,
-                source: leadData.source || '',
-                contactDate: leadData.contactDate || '',
-                currentStep: leadData.currentStep || '',
-                contractPres: leadData.contractPresentationDate || '',
-                nextStepDue: leadData.nextStepDueDate || '',
-                jobType: leadData.jobType || '',
-                phone: leadData.phoneNumber || '',
-                email: lead.email || '',
-                address: lead.homeAddress || '',
-                revenue: lead.projectedRevenue || '',
-                companyCam: lead.companyCam || false,
-                pendingNotes: lead.pendingNotes || '',
-                sortOrder: newSortOrder,
-            };
-            const syncedLeadRef = doc(firestore, 'syncedLeads', docRef.id);
-            setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
-        }
-    });
+    const syncedLeadData: SyncedLead = {
+        agent: leadData.agent,
+        name: `${leadData.firstName} ${leadData.lastName}`,
+        source: leadData.source || '',
+        contactDate: leadData.contactDate || '',
+        currentStep: leadData.currentStep || '',
+        contractPres: leadData.contractPresentationDate || '',
+        nextStepDue: leadData.nextStepDueDate || '',
+        jobType: leadData.jobType || '',
+        phone: leadData.phoneNumber || '',
+        email: lead.email || '',
+        address: lead.homeAddress || '',
+        revenue: lead.projectedRevenue || '',
+        companyCam: lead.companyCam || false,
+        pendingNotes: lead.pendingNotes || '',
+        sortOrder: newSortOrder,
+    };
+    const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadId);
+    setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
 
     toast({ title: 'Lead Added', description: `${lead.firstName} ${lead.lastName} has been added.` });
   };
@@ -424,5 +422,7 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     </>
   );
 }
+
+    
 
     
