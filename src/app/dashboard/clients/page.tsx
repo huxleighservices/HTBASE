@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -39,7 +38,7 @@ import {
   deleteDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc, collectionGroup, query } from 'firebase/firestore';
+import { collection, doc, collectionGroup, query, getDocs, where } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
@@ -96,6 +95,7 @@ export default function ClientsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { toast } = useToast();
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -110,6 +110,48 @@ export default function ClientsPage() {
       router.push('/dashboard');
     }
   }, [userProfile, isProfileLoading, router]);
+
+  // Restore the SUNMMU client if it doesn't exist
+  useEffect(() => {
+    const restoreSunmmuClient = async () => {
+      if (!firestore) return;
+      
+      const q = query(collectionGroup(firestore, 'clients'), where('displayId', '==', 'SUNMMU'));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        // Using a known admin user ID to ensure the client is owned correctly.
+        const adminUserId = 'C35xM3u3gYPGnDSQZon3pZk3P9D3';
+        const userClientsCollectionRef = collection(firestore, 'users', adminUserId, 'clients');
+        
+        const sunmmuClientData = {
+          firmName: 'SUNMMU',
+          legalFirstName: 'Globe Life',
+          legalLastName: 'Liberty National',
+          firmSize: '100+',
+          firmEstYear: '1900',
+          industry: 'Insurance',
+          contactEmail: 'service@sunmmu.com',
+          contactPhoneNumber: 'N/A',
+          location: 'USA',
+          isEdu: true,
+          displayId: 'SUNMMU',
+          status: 'active',
+        };
+
+        addDocumentNonBlocking(userClientsCollectionRef, sunmmuClientData);
+        toast({
+          title: "SUNMMU Client Restored",
+          description: "The SUNMMU client has been created and is now active.",
+        });
+      }
+    };
+    
+    // Only run this logic if the user is an admin
+    if (userProfile?.role === 'admin') {
+        restoreSunmmuClient();
+    }
+  }, [firestore, userProfile, toast]);
 
   const clientsCollectionRef = useMemoFirebase(() => {
     if (!firestore) return null;
