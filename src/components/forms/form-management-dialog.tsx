@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -27,7 +26,7 @@ import {
 } from '@/firebase';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { CreateFormDialog } from '@/components/forms/create-form-dialog';
-import type { Client, Form } from '@/types/client';
+import type { Client, Form, Lead } from '@/types/client';
 import { useToast } from '@/hooks/use-toast';
 import {
     AlertDialog,
@@ -92,8 +91,17 @@ export function FormManagementDialog({ open, onOpenChange, client, activeUser }:
     return query(formsCollectionRef, orderBy('createdAt', 'desc'));
   }, [formsCollectionRef]);
 
-  const { data: forms, isLoading } = useCollection<Form>(formsQuery);
+  const { data: forms, isLoading: areFormsLoading } = useCollection<Form>(formsQuery);
   
+  const leadsCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !client.path) return null;
+    return collection(firestore, client.path, 'leads');
+  }, [firestore, client.path]);
+
+  const { data: allLeads, isLoading: areLeadsLoading } = useCollection<Lead>(leadsCollectionRef);
+
+  const isLoading = areFormsLoading || areLeadsLoading;
+
   const handleDeleteForm = (form: Form) => {
     if (!formsCollectionRef) return;
     const formDocRef = doc(formsCollectionRef, form.id);
@@ -197,7 +205,14 @@ export function FormManagementDialog({ open, onOpenChange, client, activeUser }:
             </Card>
           </TabsContent>
           <TabsContent value="viewer" className="flex-grow m-0">
-            <ViewSubmissionsDialog clientPath={client.path || null} forms={forms || []} isLoading={isLoading} activeUser={activeUser} />
+            <ViewSubmissionsDialog 
+                clientPath={client.path || null} 
+                forms={forms || []} 
+                isLoading={isLoading} 
+                activeUser={activeUser}
+                allLeads={allLeads}
+                leadsCollectionRef={leadsCollectionRef}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>

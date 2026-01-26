@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Loader2, Trash2, Send } from 'lucide-react';
-import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
-import type { Form, FormSubmission, Lead } from '@/types/client';
+import { useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc, query, orderBy, serverTimestamp, type CollectionReference } from 'firebase/firestore';
+import type { Form, FormSubmission, Lead, SyncedLead } from '@/types/client';
 import { format } from 'date-fns';
 import { Button } from '../ui/button';
 import {
@@ -30,9 +29,11 @@ type ViewSubmissionsDialogProps = {
   forms: Form[];
   isLoading: boolean;
   activeUser: AccessKey | null;
+  allLeads: Lead[] | null;
+  leadsCollectionRef: CollectionReference | null;
 };
 
-export function ViewSubmissionsDialog({ clientPath, forms, isLoading, activeUser }: ViewSubmissionsDialogProps) {
+export function ViewSubmissionsDialog({ clientPath, forms, isLoading, activeUser, allLeads, leadsCollectionRef }: ViewSubmissionsDialogProps) {
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -59,23 +60,48 @@ export function ViewSubmissionsDialog({ clientPath, forms, isLoading, activeUser
   };
   
   const handleSendToLeads = (submission: FormSubmission) => {
-    if (!firestore || !clientPath) return;
+    if (!firestore || !clientPath || !leadsCollectionRef || !activeUser) return;
 
-    const leadsCollectionRef = collection(firestore, clientPath, 'leads');
+    const maxSortOrder = Math.max(-1, ...(allLeads?.map(l => l.sortOrder ?? -1) ?? []));
+    const newSortOrder = maxSortOrder + 1;
+    const newLeadId = `lead-${String(newSortOrder).padStart(3, '0')}`;
     
-    const newLead: Omit<Lead, 'id' | 'notes' | 'createdAt'> = {
-        agent: activeUser?.username || 'Unknown',
+    const leadData: Omit<Lead, 'id'> = {
+        agent: activeUser.username,
         firstName: submission.data['First Name'] || '',
         lastName: submission.data['Last Name'] || '',
-        source: submission.data['How did you hear bout us?'] || '',
+        source: submission.data['How did you hear bout us?'] || 'Form Submission',
         phoneNumber: submission.data['Phone number'] || '',
         email: submission.data['Email'] || '',
         jobType: submission.data['What are we fixing?'] || '',
         homeAddress: submission.data['Address'] || '',
-        currentStep: 'Initial Contact', // Default value
+        currentStep: 'Initial Contact',
+        createdAt: serverTimestamp(),
+        sortOrder: newSortOrder,
     };
 
-    addDocumentNonBlocking(leadsCollectionRef, {...newLead, createdAt: serverTimestamp()});
+    const leadDocRef = doc(leadsCollectionRef, newLeadId);
+    setDocumentNonBlocking(leadDocRef, leadData, {});
+
+    const syncedLeadData: SyncedLead = {
+        agent: leadData.agent,
+        name: `${leadData.firstName} ${leadData.lastName}`,
+        source: leadData.source || '',
+        contactDate: leadData.contactDate || '',
+        currentStep: leadData.currentStep || '',
+        contractPres: '',
+        nextStepDue: '',
+        jobType: leadData.jobType || '',
+        phone: leadData.phoneNumber || '',
+        email: leadData.email || '',
+        address: leadData.homeAddress || '',
+        revenue: '',
+        companyCam: false,
+        pendingNotes: '',
+        sortOrder: newSortOrder,
+    };
+    const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadId);
+    setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
 
     // Mark the submission as sent
     if (submissionsCollectionRef) {
@@ -85,7 +111,7 @@ export function ViewSubmissionsDialog({ clientPath, forms, isLoading, activeUser
 
     toast({
         title: 'Lead Created',
-        description: `A new lead has been created for ${newLead.firstName} ${newLead.lastName}.`
+        description: `A new lead has been created for ${leadData.firstName} ${leadData.lastName}.`
     });
   };
 
