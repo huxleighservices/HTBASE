@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -160,20 +159,20 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
 
         const leadFullName = `${selectedLead.firstName} ${selectedLead.lastName}`;
         const placeholders = {
-            '{{firstName}}': selectedLead.firstName,
-            '{{lastName}}': selectedLead.lastName,
-            '{{leadname}}': leadFullName,
-            '{{LeadName}}': leadFullName,
-            '{{homeAddress}}': selectedLead.homeAddress || '',
-            '{{Address}}': selectedLead.homeAddress || '',
-            '{{phoneNumber}}': selectedLead.phoneNumber || '',
-            '{{Phone}}': selectedLead.phoneNumber || '',
-            '{{email}}': selectedLead.email || '',
-            '{{Email}}': selectedLead.email || '',
-            '{{jobType}}': selectedLead.jobType || '',
-            '{{type}}': selectedLead.jobType || '',
-            '{{Type}}': selectedLead.jobType || '',
-            '{{projectedRevenue}}': selectedLead.projectedRevenue || '',
+            '[[firstName]]': selectedLead.firstName || '',
+            '[[lastName]]': selectedLead.lastName || '',
+            '[[leadname]]': leadFullName,
+            '[[LeadName]]': leadFullName,
+            '[[homeAddress]]': selectedLead.homeAddress || '',
+            '[[Address]]': selectedLead.homeAddress || '',
+            '[[phoneNumber]]': selectedLead.phoneNumber || '',
+            '[[Phone]]': selectedLead.phoneNumber || '',
+            '[[email]]': selectedLead.email || '',
+            '[[Email]]': selectedLead.email || '',
+            '[[jobType]]': selectedLead.jobType || '',
+            '[[type]]': selectedLead.jobType || '',
+            '[[Type]]': selectedLead.jobType || '',
+            '[[projectedRevenue]]': selectedLead.projectedRevenue || '',
         };
 
         const doc = new jsPDF();
@@ -203,7 +202,8 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
 
                     let populatedText = templateContent;
                     for (const [placeholder, value] of Object.entries(placeholders)) {
-                        populatedText = populatedText.replace(new RegExp(placeholder, 'g'), value);
+                        const escapedPlaceholder = placeholder.replace(/\[/g, '\\[').replace(/\]/g, '\\]');
+                        populatedText = populatedText.replace(new RegExp(escapedPlaceholder, 'g'), value);
                     }
                     
                     // Replace bullet points
@@ -355,5 +355,3 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
     </Dialog>
   );
 }
-
-    
