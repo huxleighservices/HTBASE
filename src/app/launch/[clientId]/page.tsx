@@ -272,6 +272,7 @@ export default function ClientLaunchPage() {
     const isSalesClient = client?.isEdu !== true;
     const hasAssets = assets && assets.length > 0;
     const is4WK21Y = clientId === '4WK21Y';
+    const isSunmmuClient = clientId === 'SUNMMU';
     
     const handleVisibilityChange = (card: keyof typeof cardVisibility, checked: boolean) => {
         setCardVisibility(prev => ({ ...prev, [card]: checked }));
@@ -436,7 +437,21 @@ export default function ClientLaunchPage() {
                 <div className="space-y-4">
                   <h3 className="font-headline text-xl font-semibold">Operations</h3>
                   <div className="grid gap-6 md:grid-cols-2">
-                    {assets?.map(asset => (
+                    {isSunmmuClient && (
+                         <Card>
+                            <CardHeader>
+                                <div className="flex items-center gap-3">
+                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Database className="size-6" /></div>
+                                <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>OPAC Tracker</CardTitle>
+                                </div>
+                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Globe Life Liberty National Customer Tracker.</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                                <Button onClick={() => setIsOpacTrackerOpen(true)}>Open Tracker</Button>
+                            </CardFooter>
+                        </Card>
+                    )}
+                    {assets?.filter(asset => !isSunmmuClient || !asset.title.includes('OPAC')).map(asset => (
                       <Card key={asset.id}>
                         <CardHeader>
                           <div className="flex items-center gap-3">
