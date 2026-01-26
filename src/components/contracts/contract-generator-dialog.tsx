@@ -163,13 +163,16 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
             '{{firstName}}': selectedLead.firstName,
             '{{lastName}}': selectedLead.lastName,
             '{{leadname}}': leadFullName,
+            '{{LeadName}}': leadFullName,
             '{{homeAddress}}': selectedLead.homeAddress || '',
+            '{{Address}}': selectedLead.homeAddress || '',
             '{{phoneNumber}}': selectedLead.phoneNumber || '',
             '{{Phone}}': selectedLead.phoneNumber || '',
             '{{email}}': selectedLead.email || '',
             '{{Email}}': selectedLead.email || '',
             '{{jobType}}': selectedLead.jobType || '',
             '{{type}}': selectedLead.jobType || '',
+            '{{Type}}': selectedLead.jobType || '',
             '{{projectedRevenue}}': selectedLead.projectedRevenue || '',
         };
 
@@ -352,3 +355,5 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
     </Dialog>
   );
 }
+
+    
