@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,7 +22,7 @@ import {
   collectionGroup,
 } from 'firebase/firestore';
 import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature, FileText } from 'lucide-react';
+import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature, FileText, DollarSign } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -56,6 +57,7 @@ import { MasterQueuePasscodeDialog } from '@/components/queue/master-queue-passc
 import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
 import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
+import { ARCollectionsDialog } from '@/components/ar-collections/ar-collections-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -105,6 +107,7 @@ export default function ClientLaunchPage() {
   const [isMasterQueueOpen, setIsMasterQueueOpen] = useState(false);
   const [isContractGeneratorOpen, setIsContractGeneratorOpen] = useState(false);
   const [isManageTemplatesOpen, setIsManageTemplatesOpen] = useState(false);
+  const [isArCollectionsOpen, setIsArCollectionsOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -527,6 +530,20 @@ export default function ClientLaunchPage() {
                         </CardFooter>
                       </Card>
                     )}
+                    {is4WK21Y && (
+                        <Card>
+                            <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><DollarSign className="size-6" /></div>
+                                <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>A/R Collections</CardTitle>
+                            </div>
+                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage customer balances and collections.</CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                            <Button onClick={() => setIsArCollectionsOpen(true)}>Open Hub</Button>
+                            </CardFooter>
+                        </Card>
+                    )}
                   </div>
                 </div>
 
@@ -585,6 +602,7 @@ export default function ClientLaunchPage() {
           )}
           {client && <ContractGeneratorDialog open={isContractGeneratorOpen} onOpenChange={setIsContractGeneratorOpen} client={client} activeUser={activeUser} />}
           {client && <ManageTemplatesDialog open={isManageTemplatesOpen} onOpenChange={setIsManageTemplatesOpen} client={client} activeUser={activeUser} />}
+          {client && <ARCollectionsDialog open={isArCollectionsOpen} onOpenChange={setIsArCollectionsOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }

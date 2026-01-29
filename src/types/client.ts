@@ -220,4 +220,36 @@ export type AccessKey = {
   phoneNumber?: string;
 };
 
+export type ARCustomer = {
+    id: string;
+    leadId?: string;
+    customerName: string;
+    buildCompleteDate: any; // Firestore Timestamp
+    initialBalance: number;
+    createdAt: any; // Firestore Timestamp
+};
+
+export type ARPayment = {
+    id: string;
+    amount: number;
+    date: any; // Firestore Timestamp
+    user: string;
+};
+
+export type ARPenalty = {
+    id: string;
+    amount: number;
+    reason: string;
+    date: any; // Firestore Timestamp
+    user: string;
+};
+
+export type ARActivityLog = {
+    id: string;
+    type: 'Phone Call' | 'Email' | 'Text Message' | 'Other';
+    note: string;
+    date: any; // Firestore Timestamp
+    user: string;
+};
     
+
