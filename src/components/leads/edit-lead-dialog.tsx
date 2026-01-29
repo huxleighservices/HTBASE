@@ -157,7 +157,7 @@ export function EditLeadDialog({
   };
 
   const onSubmit: SubmitHandler<FormValues> = data => {
-    if (!leadDocRef || !firestore) return;
+    if (!leadDocRef || !firestore || !clientPath) return;
     setIsSaving(true);
     
     const leadUpdateData = { ...data, sortOrder: lead.sortOrder };
@@ -211,6 +211,7 @@ export function EditLeadDialog({
         status: 'current',
         agent: data.agent,
         notes: [],
+        clientPath: clientPath,
       };
       setDocumentNonBlocking(queueTaskRef, taskData, { merge: true });
     } else {

@@ -189,6 +189,7 @@ export type QueueTask = {
     status: 'current' | 'overdue';
     agent: string;
     notes?: string[];
+    clientPath: string;
 };
     
 export type Contract = {

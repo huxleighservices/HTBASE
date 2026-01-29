@@ -131,8 +131,17 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
   }, [tasks, now]);
 
   const handleComplete = (task: QueueTask) => {
-    if (!firestore || !client.path || !completedTasksCollectionRef) return;
-    const leadRef = doc(firestore, client.path, 'leads', task.leadId);
+    if (!firestore || !completedTasksCollectionRef) return;
+
+    if (!task.clientPath) {
+        toast({
+            title: "Task Error",
+            description: `Cannot complete task for "${task.leadName}" because client information is missing.`,
+            variant: "destructive",
+        });
+        return;
+    }
+    const leadRef = doc(firestore, task.clientPath, 'leads', task.leadId);
     updateDocumentNonBlocking(leadRef, { currentStep: task.nextStep });
     
     addDocumentNonBlocking(completedTasksCollectionRef, { ...task, completedAt: serverTimestamp() });
