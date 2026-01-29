@@ -125,7 +125,7 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
     setActivityNote('');
   };
 
-  const daysSinceCompletion = customer.buildCompleteDate ? formatDistanceToNow(customer.buildCompleteDate.toDate(), { addSuffix: true }) : 'N/A';
+  const daysSinceCompletion = customer.buildCompleteDate?.toDate ? formatDistanceToNow(customer.buildCompleteDate.toDate(), { addSuffix: true }) : 'N/A';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -193,7 +193,7 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                                             <div className="flex-grow">
                                                 <p className="text-sm font-medium">{log.note}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {log.user} - {formatDistanceToNow(log.date.toDate(), { addSuffix: true })}
+                                                    {log.user} - {log.date?.toDate ? formatDistanceToNow(log.date.toDate(), { addSuffix: true }) : '...'}
                                                 </p>
                                             </div>
                                         </li>
