@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -454,7 +453,7 @@ export default function ClientLaunchPage() {
                             </CardFooter>
                         </Card>
                     )}
-                    {assets?.filter(asset => !isSunmmuClient || !asset.title.includes('OPAC')).map(asset => (
+                    {assets?.filter(asset => (!isSunmmuClient || !asset.title.includes('OPAC')) && asset.title !== 'AR Collections Hub').map(asset => (
                       <Card key={asset.id}>
                         <CardHeader>
                           <div className="flex items-center gap-3">
