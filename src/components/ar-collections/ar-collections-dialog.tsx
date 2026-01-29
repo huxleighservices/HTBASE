@@ -25,15 +25,100 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import type { Client, Lead, ARCustomer } from '@/types/client';
+import type { Client, Lead, ARCustomer, ARPayment, ARPenalty } from '@/types/client';
 import type { AccessKey } from '@/types/session';
-import { DollarSign, PlusCircle, Trash2, Loader2 } from 'lucide-react';
+import { DollarSign, PlusCircle, Trash2, Loader2, Edit } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { AddArCustomerDialog } from './add-ar-customer-dialog';
 import { ManageArCustomerDialog } from './manage-ar-customer-dialog';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '../ui/skeleton';
+
+const ArCustomerRow = ({
+  customer,
+  clientPath,
+  onSelectCustomer,
+  onDeleteCustomer,
+}: {
+  customer: ARCustomer;
+  clientPath: string;
+  onSelectCustomer: (customer: ARCustomer) => void;
+  onDeleteCustomer: (customerId: string) => void;
+}) => {
+  const firestore = useFirestore();
+
+  const paymentsCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !clientPath) return null;
+    return collection(firestore, clientPath, 'arCustomers', customer.id, 'payments');
+  }, [firestore, clientPath, customer.id]);
+
+  const penaltiesCollectionRef = useMemoFirebase(() => {
+    if (!firestore || !clientPath) return null;
+    return collection(firestore, clientPath, 'arCustomers', customer.id, 'penalties');
+  }, [firestore, clientPath, customer.id]);
+  
+  const { data: payments } = useCollection<ARPayment>(paymentsCollectionRef);
+  const { data: penalties } = useCollection<ARPenalty>(penaltiesCollectionRef);
+
+  const { totalPaid, totalOwed, progress } = useMemo(() => {
+    const paid = payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
+    const pen = penalties?.reduce((acc, p) => acc + p.amount, 0) || 0;
+    const owed = customer.initialBalance + pen;
+    const prog = owed > 0 ? (paid / owed) * 100 : 0;
+    return { totalPaid: paid, totalOwed: owed, progress: prog };
+  }, [payments, penalties, customer.initialBalance]);
+  
+  const daysSinceBuild = customer.buildCompleteDate ? differenceInDays(new Date(), customer.buildCompleteDate.toDate()) : null;
+
+  return (
+     <TableRow>
+        <TableCell className="font-medium">{customer.customerName}</TableCell>
+        <TableCell>{customer.buildCompleteDate ? format(customer.buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
+        <TableCell>${customer.initialBalance.toLocaleString()}</TableCell>
+        <TableCell className="w-[200px]">
+            {payments === null || penalties === null ? (
+                <Skeleton className="h-4 w-full" />
+            ) : (
+                <>
+                    <Progress value={progress} className={progress >= 100 ? 'bg-green-500' : ''}/>
+                    <span className="text-xs text-muted-foreground">${totalPaid.toLocaleString()} of ${totalOwed.toLocaleString()}</span>
+                </>
+            )}
+        </TableCell>
+        <TableCell>{daysSinceBuild !== null ? `${daysSinceBuild} days` : 'N/A'}</TableCell>
+        <TableCell className="text-right">
+             <Button variant="ghost" size="icon" onClick={() => onSelectCustomer(customer)}>
+                <Edit className="h-4 w-4" />
+             </Button>
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently remove {customer.customerName} from A/R.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => onDeleteCustomer(customer.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </TableCell>
+    </TableRow>
+  );
+};
 
 type ARCollectionsDialogProps = {
   open: boolean;
@@ -92,7 +177,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
             <Card className="flex-grow flex flex-col">
                 <CardHeader>
                     <CardTitle>Collections Accounts</CardTitle>
-                    <CardDescription>Click a customer to manage their account.</CardDescription>
+                    <CardDescription>Click an account to manage payments, penalties, and activity.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow relative">
                     <div className="absolute inset-0 overflow-auto">
@@ -107,42 +192,20 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
                                         <TableHead>Customer</TableHead>
                                         <TableHead>Build Complete</TableHead>
                                         <TableHead>Initial Balance</TableHead>
+                                        <TableHead>Progress</TableHead>
                                         <TableHead>Days Since Build</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {arCustomers.map(customer => (
-                                        <TableRow key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer">
-                                            <TableCell className="font-medium">{customer.customerName}</TableCell>
-                                            <TableCell>{customer.buildCompleteDate ? format(customer.buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
-                                            <TableCell>${customer.initialBalance.toLocaleString()}</TableCell>
-                                            <TableCell>{customer.buildCompleteDate ? formatDistanceToNow(customer.buildCompleteDate.toDate()) : 'N/A'}</TableCell>
-                                            <TableCell className="text-right">
-                                                 <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDescription>This will permanently remove {customer.customerName} from A/R.</AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction
-                                                                onClick={() => handleDeleteCustomer(customer.id)}
-                                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                            >
-                                                                Delete
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </TableCell>
-                                        </TableRow>
+                                         <ArCustomerRow 
+                                            key={customer.id} 
+                                            customer={customer} 
+                                            clientPath={client.path!}
+                                            onSelectCustomer={setSelectedCustomer}
+                                            onDeleteCustomer={handleDeleteCustomer}
+                                        />
                                     ))}
                                 </TableBody>
                             </Table>
