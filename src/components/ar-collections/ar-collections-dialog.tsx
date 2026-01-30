@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,66 +27,56 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import type { Client, Lead, ARCustomer, ARPayment, ARPenalty } from '@/types/client';
 import type { AccessKey } from '@/types/session';
-import { DollarSign, PlusCircle, Trash2, Loader2, Edit } from 'lucide-react';
+import { DollarSign, PlusCircle, Trash2, Loader2, Edit, ArrowUpDown, Search } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { AddArCustomerDialog } from './add-ar-customer-dialog';
 import { ManageArCustomerDialog } from './manage-ar-customer-dialog';
 import { format, differenceInDays } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '../ui/skeleton';
+import { Input } from '../ui/input';
+
+type EnrichedARCustomer = ARCustomer & {
+    totalPaid: number;
+    totalOwed: number;
+    currentBalance: number;
+    progress: number;
+    daysSinceBuild: number | null;
+};
+type SortKey = 'customerName' | 'daysSinceBuild' | 'currentBalance';
+type SortDirection = 'asc' | 'desc';
+
 
 const ArCustomerRow = ({
   customer,
-  clientPath,
   onSelectCustomer,
   onDeleteCustomer,
 }: {
-  customer: ARCustomer;
-  clientPath: string;
+  customer: EnrichedARCustomer;
   onSelectCustomer: (customer: ARCustomer) => void;
   onDeleteCustomer: (customerId: string) => void;
 }) => {
-  const firestore = useFirestore();
-
-  const paymentsCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !clientPath) return null;
-    return collection(firestore, clientPath, 'arCustomers', customer.id, 'payments');
-  }, [firestore, clientPath, customer.id]);
-
-  const penaltiesCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !clientPath) return null;
-    return collection(firestore, clientPath, 'arCustomers', customer.id, 'penalties');
-  }, [firestore, clientPath, customer.id]);
-  
-  const { data: payments } = useCollection<ARPayment>(paymentsCollectionRef);
-  const { data: penalties } = useCollection<ARPenalty>(penaltiesCollectionRef);
-
-  const { totalPaid, totalOwed, progress } = useMemo(() => {
-    const paid = payments?.reduce((acc, p) => acc + p.amount, 0) || 0;
-    const pen = penalties?.reduce((acc, p) => acc + p.amount, 0) || 0;
-    const owed = customer.initialBalance + pen;
-    const prog = owed > 0 ? (paid / owed) * 100 : 0;
-    return { totalPaid: paid, totalOwed: owed, progress: prog };
-  }, [payments, penalties, customer.initialBalance]);
-  
-  const daysSinceBuild = customer.buildCompleteDate ? differenceInDays(new Date(), customer.buildCompleteDate.toDate()) : null;
+  const { 
+    id, 
+    customerName, 
+    buildCompleteDate, 
+    initialBalance, 
+    totalPaid, 
+    totalOwed, 
+    progress, 
+    daysSinceBuild 
+  } = customer;
 
   return (
      <TableRow>
-        <TableCell className="font-medium">{customer.customerName}</TableCell>
-        <TableCell>{customer.buildCompleteDate ? format(customer.buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
-        <TableCell>${customer.initialBalance.toLocaleString()}</TableCell>
+        <TableCell className="font-medium">{customerName}</TableCell>
+        <TableCell>{buildCompleteDate ? format(buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
+        <TableCell>${initialBalance.toLocaleString()}</TableCell>
         <TableCell className="w-[200px]">
-            {payments === null || penalties === null ? (
-                <Skeleton className="h-4 w-full" />
-            ) : (
-                <>
-                    <Progress value={progress} className={progress >= 100 ? 'bg-green-500' : ''}/>
-                    <span className="text-xs text-muted-foreground">${totalPaid.toLocaleString()} of ${totalOwed.toLocaleString()}</span>
-                </>
-            )}
+            <Progress value={progress} className={progress >= 100 ? 'bg-green-500' : ''}/>
+            <span className="text-xs text-muted-foreground">${totalPaid.toLocaleString()} of ${totalOwed.toLocaleString()}</span>
         </TableCell>
         <TableCell>{daysSinceBuild !== null ? `${daysSinceBuild} days` : 'N/A'}</TableCell>
         <TableCell className="text-right">
@@ -107,7 +97,7 @@ const ArCustomerRow = ({
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={() => onDeleteCustomer(customer.id)}
+                            onClick={() => onDeleteCustomer(id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             Delete
@@ -133,13 +123,101 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
 
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ARCustomer | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('daysSinceBuild');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [enrichedCustomers, setEnrichedCustomers] = useState<EnrichedARCustomer[] | null>(null);
+  const [isProcessing, setIsProcessing] = useState(true);
 
   const arCustomersCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
     return collection(firestore, client.path, 'arCustomers');
   }, [firestore, client.path]);
 
-  const { data: arCustomers, isLoading } = useCollection<ARCustomer>(arCustomersCollectionRef);
+  const { data: arCustomers, isLoading: areCustomersLoading } = useCollection<ARCustomer>(arCustomersCollectionRef);
+
+  useEffect(() => {
+    if (areCustomersLoading || !arCustomers || !firestore || !client.path) {
+        if (!areCustomersLoading) setIsProcessing(false);
+        return;
+    }
+
+    const processCustomers = async () => {
+        setIsProcessing(true);
+        const enriched = await Promise.all(arCustomers.map(async customer => {
+            const paymentsRef = collection(firestore, client.path!, 'arCustomers', customer.id, 'payments');
+            const penaltiesRef = collection(firestore, client.path!, 'arCustomers', customer.id, 'penalties');
+            
+            const paymentsSnap = await getDocs(paymentsRef);
+            const penaltiesSnap = await getDocs(penaltiesRef);
+            
+            const payments = paymentsSnap.docs.map(d => d.data() as ARPayment);
+            const penalties = penaltiesSnap.docs.map(d => d.data() as ARPenalty);
+            
+            const totalPaid = payments.reduce((acc, p) => acc + p.amount, 0);
+            const totalPenalties = penalties.reduce((acc, p) => acc + p.amount, 0);
+            
+            const totalOwed = customer.initialBalance + totalPenalties;
+            const currentBalance = totalOwed - totalPaid;
+            const progress = totalOwed > 0 ? (totalPaid / totalOwed) * 100 : 0;
+            const daysSinceBuild = customer.buildCompleteDate ? differenceInDays(new Date(), customer.buildCompleteDate.toDate()) : null;
+
+            return {
+                ...customer,
+                totalPaid,
+                totalOwed,
+                currentBalance,
+                progress,
+                daysSinceBuild
+            };
+        }));
+        setEnrichedCustomers(enriched);
+        setIsProcessing(false);
+    };
+
+    processCustomers();
+  }, [arCustomers, firestore, client.path, areCustomersLoading]);
+
+
+  const filteredAndSortedCustomers = useMemo(() => {
+      if (!enrichedCustomers) return [];
+
+      const filtered = enrichedCustomers.filter(c =>
+          c.customerName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      return filtered.sort((a, b) => {
+          let valA: any = a[sortKey];
+          let valB: any = b[sortKey];
+
+          if (valA === null) valA = sortDirection === 'asc' ? Infinity : -Infinity;
+          if (valB === null) valB = sortDirection === 'asc' ? Infinity : -Infinity;
+
+          if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+          if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+      });
+  }, [enrichedCustomers, searchQuery, sortKey, sortDirection]);
+
+  const totalProgress = useMemo(() => {
+      if (!enrichedCustomers) return { totalPaid: 0, totalOwed: 0, progress: 0 };
+      
+      const totalPaid = enrichedCustomers.reduce((acc, c) => acc + c.totalPaid, 0);
+      const totalOwed = enrichedCustomers.reduce((acc, c) => acc + c.totalOwed, 0);
+      const progress = totalOwed > 0 ? (totalPaid / totalOwed) * 100 : 0;
+
+      return { totalPaid, totalOwed, progress };
+  }, [enrichedCustomers]);
+  
+  const handleSort = (key: SortKey) => {
+      if (sortKey === key) {
+          setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      } else {
+          setSortKey(key);
+          setSortDirection('asc');
+      }
+  };
+
 
   const leadsCollectionRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
@@ -159,50 +237,82 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
       deleteDocumentNonBlocking(doc(arCustomersCollectionRef, customerId));
       toast({ title: 'Customer Removed', variant: 'destructive' });
   }
+  
+  const isLoading = areCustomersLoading || isProcessing;
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold font-headline tracking-tight flex items-center gap-3"><DollarSign />A/R Collections Hub</DialogTitle>
             <DialogDescription>Manage accounts receivable for {client.firmName}.</DialogDescription>
           </DialogHeader>
           <div className="flex-grow flex flex-col min-h-0 pt-4 gap-4">
-            <div className="flex justify-end">
+            
+             <Card>
+                <CardHeader>
+                    <CardTitle>Total Collections Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Progress value={totalProgress.progress} className={totalProgress.progress >= 100 ? 'bg-green-500' : ''}/>
+                    <div className="flex justify-between text-sm text-muted-foreground mt-1">
+                        <span>${totalProgress.totalPaid.toLocaleString()} Paid</span>
+                        <span>Total Owed: ${totalProgress.totalOwed.toLocaleString()}</span>
+                    </div>
+                </CardContent>
+             </Card>
+
+            <div className="flex justify-between items-center">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search customers..."
+                        className="pl-8 w-64"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
                 <Button onClick={() => setIsAddCustomerOpen(true)}>
                     <PlusCircle className="mr-2"/> Add A/R Customer
                 </Button>
             </div>
             <Card className="flex-grow flex flex-col">
-                <CardHeader>
-                    <CardTitle>Collections Accounts</CardTitle>
-                    <CardDescription>Click an account to manage payments, penalties, and activity.</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow relative">
+                <CardContent className="flex-grow relative p-0">
                     <div className="absolute inset-0 overflow-auto">
                         {isLoading ? (
                             <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin"/></div>
-                        ) : !arCustomers || arCustomers.length === 0 ? (
+                        ) : !filteredAndSortedCustomers || filteredAndSortedCustomers.length === 0 ? (
                             <p className="text-center text-muted-foreground pt-12">No A/R customers found.</p>
                         ) : (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Customer</TableHead>
+                                        <TableHead>
+                                             <Button variant="ghost" onClick={() => handleSort('customerName')}>
+                                                Customer <ArrowUpDown className="ml-2 h-4 w-4" />
+                                            </Button>
+                                        </TableHead>
                                         <TableHead>Build Complete</TableHead>
-                                        <TableHead>Initial Balance</TableHead>
+                                        <TableHead>
+                                             <Button variant="ghost" onClick={() => handleSort('currentBalance')}>
+                                                Initial Balance <ArrowUpDown className="ml-2 h-4 w-4" />
+                                            </Button>
+                                        </TableHead>
                                         <TableHead>Progress</TableHead>
-                                        <TableHead>Days Since Build</TableHead>
+                                        <TableHead>
+                                            <Button variant="ghost" onClick={() => handleSort('daysSinceBuild')}>
+                                                Days Since Build <ArrowUpDown className="ml-2 h-4 w-4" />
+                                            </Button>
+                                        </TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {arCustomers.map(customer => (
+                                    {filteredAndSortedCustomers.map(customer => (
                                          <ArCustomerRow 
                                             key={customer.id} 
-                                            customer={customer} 
-                                            clientPath={client.path!}
+                                            customer={customer}
                                             onSelectCustomer={setSelectedCustomer}
                                             onDeleteCustomer={handleDeleteCustomer}
                                         />
@@ -241,3 +351,4 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
     </>
   );
 }
+
