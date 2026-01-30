@@ -99,9 +99,9 @@ export function AiCollectionsAssistant({ customers }: { customers: EnrichedARCus
                             </CardTitle>
                              <CardDescription>A short list of the top customers to focus on now.</CardDescription>
                         </CardHeader>
-                        <CardContent className="grid gap-4 md:grid-cols-3">
+                        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {insights.priorityActions.map((action, index) => (
-                                <div key={index} className="p-4 rounded-lg border bg-background/50 flex flex-col gap-2">
+                                <div key={index} className="min-w-0 p-4 rounded-lg border bg-background/50 flex flex-col gap-2">
                                     <h4 className="font-semibold">{action.customerName}</h4>
                                     <dl className="text-sm space-y-2">
                                         <div className="space-y-1">
