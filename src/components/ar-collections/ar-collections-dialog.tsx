@@ -37,6 +37,7 @@ import { format, differenceInDays } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
+import { AiCollectionsAssistant } from './ai-collections-assistant';
 
 type EnrichedARCustomer = ARCustomer & {
     totalPaid: number;
@@ -72,7 +73,7 @@ const ArCustomerRow = ({
   return (
      <TableRow>
         <TableCell className="font-medium">{customerName}</TableCell>
-        <TableCell>{buildCompleteDate ? format(buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
+        <TableCell>{buildCompleteDate?.toDate ? format(buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
         <TableCell>${initialBalance.toLocaleString()}</TableCell>
         <TableCell className="w-[200px]">
             <Progress value={progress} className={progress >= 100 ? 'bg-green-500' : ''}/>
@@ -160,7 +161,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
             const totalOwed = customer.initialBalance + totalPenalties;
             const currentBalance = totalOwed - totalPaid;
             const progress = totalOwed > 0 ? (totalPaid / totalOwed) * 100 : 0;
-            const daysSinceBuild = customer.buildCompleteDate ? differenceInDays(new Date(), customer.buildCompleteDate.toDate()) : null;
+            const daysSinceBuild = customer.buildCompleteDate?.toDate ? differenceInDays(new Date(), customer.buildCompleteDate.toDate()) : null;
 
             return {
                 ...customer,
@@ -249,6 +250,8 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
             <DialogDescription>Manage accounts receivable for {client.firmName}.</DialogDescription>
           </DialogHeader>
           <div className="flex-grow flex flex-col min-h-0 pt-4 gap-4">
+            
+            <AiCollectionsAssistant customers={enrichedCustomers} />
             
              <Card>
                 <CardHeader>
@@ -351,4 +354,3 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
     </>
   );
 }
-
