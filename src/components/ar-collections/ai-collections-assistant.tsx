@@ -43,7 +43,14 @@ export function AiCollectionsAssistant({ customers }: { customers: EnrichedARCus
         setInsights(null);
 
         try {
-            const result = await getArCollectionsInsights({ customers });
+            // Convert Firestore Timestamps to serializable ISO strings before passing to the server action.
+            const serializableCustomers = customers.map(customer => ({
+                ...customer,
+                buildCompleteDate: customer.buildCompleteDate?.toDate ? customer.buildCompleteDate.toDate().toISOString() : null,
+                createdAt: customer.createdAt?.toDate ? customer.createdAt.toDate().toISOString() : null,
+            }));
+
+            const result = await getArCollectionsInsights({ customers: serializableCustomers as any });
             setInsights(result);
         } catch (error: any) {
             toast({ title: "Analysis Failed", description: error.message, variant: "destructive" });
