@@ -80,12 +80,12 @@ export function AiCollectionsAssistant({ customers }: { customers: EnrichedARCus
                         <Alert>
                             <Target className="h-4 w-4" />
                             <AlertTitle>Key Insight</AlertTitle>
-                            <AlertDescription>{insights.keyInsight}</AlertDescription>
+                            <AlertDescription className="break-words">{insights.keyInsight}</AlertDescription>
                         </Alert>
                          <Alert>
                             <BarChart className="h-4 w-4" />
                             <AlertTitle>Collection Health Score: {insights.collectionHealthScore}/100</AlertTitle>
-                            <AlertDescription>
+                            <AlertDescription className="break-words">
                                 A score representing the overall health of your collections process.
                             </AlertDescription>
                         </Alert>
@@ -93,17 +93,26 @@ export function AiCollectionsAssistant({ customers }: { customers: EnrichedARCus
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
+                            <CardTitle className="text-lg flex items-center gap-2">
                                 <Activity />
                                 Priority Actions
                             </CardTitle>
+                             <CardDescription>A short list of the top customers to focus on now.</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-3">
+                        <CardContent className="grid gap-4 md:grid-cols-3">
                             {insights.priorityActions.map((action, index) => (
-                                <div key={index} className="p-3 rounded-md border bg-background/50">
-                                    <p className="font-semibold">{action.customerName}</p>
-                                    <p className="text-sm text-muted-foreground"><strong className="text-foreground">Reason:</strong> {action.reason}</p>
-                                    <p className="text-sm text-amber-600"><strong className="text-foreground">Suggestion:</strong> {action.suggestedAction}</p>
+                                <div key={index} className="p-4 rounded-lg border bg-background/50 flex flex-col gap-2">
+                                    <h4 className="font-semibold">{action.customerName}</h4>
+                                    <dl className="text-sm space-y-2">
+                                        <div className="space-y-1">
+                                            <dt className="font-medium text-muted-foreground">Reason</dt>
+                                            <dd className="break-words">{action.reason}</dd>
+                                        </div>
+                                         <div className="space-y-1">
+                                            <dt className="font-medium text-muted-foreground">Suggestion</dt>
+                                            <dd className="font-semibold text-amber-600 break-words">{action.suggestedAction}</dd>
+                                        </div>
+                                    </dl>
                                 </div>
                             ))}
                         </CardContent>
