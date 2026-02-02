@@ -55,12 +55,12 @@ const ActivityLogTooltip = ({ log }: { log?: ARActivityLog[] }) => {
         return <span className="text-muted-foreground text-xs">No activity</span>;
     }
     const sortedLog = [...log].sort((a, b) => {
-        const dateA = (a.date as any)?.toDate ? (a.date as any).toDate() : new Date(0);
-        const dateB = (b.date as any)?.toDate ? (b.date as any).toDate() : new Date(0);
-        return dateB.getTime() - dateA.getTime();
+        const dateA = a.date ? (a.date as any).toDate ? (a.date as any).toDate().getTime() : new Date(a.date as any).getTime() : 0;
+        const dateB = b.date ? (b.date as any).toDate ? (b.date as any).toDate().getTime() : new Date(b.date as any).getTime() : 0;
+        return dateB - dateA;
     });
     const latestLog = sortedLog[0];
-    const latestDate = (latestLog.date as any)?.toDate ? (latestLog.date as any).toDate() : null;
+    const latestDate = latestLog?.date ? ((latestLog.date as any).toDate ? (latestLog.date as any).toDate() : new Date(latestLog.date as any)) : null;
 
     return (
         <TooltipProvider>
@@ -68,21 +68,21 @@ const ActivityLogTooltip = ({ log }: { log?: ARActivityLog[] }) => {
                 <TooltipTrigger asChild>
                     <div className="flex items-center gap-2 cursor-pointer">
                         <Activity className="h-4 w-4 text-blue-500" />
-                        {latestDate && <span className="text-xs text-muted-foreground">{formatDistanceToNow(latestDate, { addSuffix: true })}</span>}
+                        {latestDate && !isNaN(latestDate.getTime()) && <span className="text-xs text-muted-foreground">{formatDistanceToNow(latestDate, { addSuffix: true })}</span>}
                     </div>
                 </TooltipTrigger>
                 <TooltipContent className='max-w-xs'>
                     <p className="font-bold mb-2">Activity Log</p>
                     <ul className='space-y-2'>
-                        {sortedLog.slice(0, 5).map((log, index) => {
-                             const date = (log.date as any)?.toDate ? (log.date as any).toDate() : new Date(log.date as any);
+                        {sortedLog.slice(0, 5).map((logItem, index) => {
+                             const date = logItem.date ? ((logItem.date as any).toDate ? (logItem.date as any).toDate() : new Date(logItem.date as any)) : null;
                              return (
                                 <li key={index} className='text-xs'>
                                     <p className='font-medium'>
-                                        <span className="font-bold">{log.user || 'System'}:</span> {log.note}
+                                        <span className="font-bold">{logItem.user || 'System'}:</span> {logItem.note}
                                     </p>
                                     <p className='text-muted-foreground'>
-                                        {formatDistanceToNow(date, { addSuffix: true })} ({log.type})
+                                        {date && !isNaN(date.getTime()) ? formatDistanceToNow(date, { addSuffix: true }) : '...'} ({logItem.type})
                                     </p>
                                 </li>
                              )
@@ -240,15 +240,17 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
           let valA: any, valB: any;
 
           if (sortKey === 'lastActivity') {
-            valA = a.lastActivity?.toDate() || new Date(0);
-            valB = b.lastActivity?.toDate() || new Date(0);
+            const lastActivityA = a.activityLog?.[a.activityLog.length - 1];
+            const lastActivityB = b.activityLog?.[b.activityLog.length - 1];
+            valA = lastActivityA?.date ? (lastActivityA.date as any).toDate ? (lastActivityA.date as any).toDate() : new Date(lastActivityA.date as any) : new Date(0);
+            valB = lastActivityB?.date ? (lastActivityB.date as any).toDate ? (lastActivityB.date as any).toDate() : new Date(lastActivityB.date as any) : new Date(0);
           } else {
             valA = a[sortKey as keyof EnrichedARCustomer];
             valB = b[sortKey as keyof EnrichedARCustomer];
           }
 
-          if (valA === null) valA = sortDirection === 'asc' ? Infinity : -Infinity;
-          if (valB === null) valB = sortDirection === 'asc' ? Infinity : -Infinity;
+          if (valA === null || valA === undefined) valA = sortDirection === 'asc' ? Infinity : -Infinity;
+          if (valB === null || valB === undefined) valB = sortDirection === 'asc' ? Infinity : -Infinity;
 
           if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
           if (valA > valB) return sortDirection === 'asc' ? 1 : -1;

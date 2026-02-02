@@ -73,9 +73,9 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   const activityLog = useMemo(() => {
     if (!customer.activityLog) return [];
     return [...customer.activityLog].sort((a, b) => {
-        const dateA = (a.date as any)?.toDate ? (a.date as any).toDate() : new Date(0);
-        const dateB = (b.date as any)?.toDate ? (b.date as any).toDate() : new Date(0);
-        return dateB.getTime() - dateA.getTime();
+        const dateA = a.date ? (a.date as any).toDate ? (a.date as any).toDate().getTime() : new Date(a.date as any).getTime() : 0;
+        const dateB = b.date ? (b.date as any).toDate ? (b.date as any).toDate().getTime() : new Date(b.date as any).getTime() : 0;
+        return dateB - dateA;
     });
   }, [customer.activityLog]);
 
@@ -189,7 +189,9 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                                 <p className="text-center text-muted-foreground pt-8">No activity yet.</p>
                             ) : (
                                 <ul className="space-y-4">
-                                    {activityLog.map((log, index) => (
+                                    {activityLog.map((log, index) => {
+                                        const logDate = log.date ? ((log.date as any).toDate ? (log.date as any).toDate() : new Date(log.date as any)) : null;
+                                        return (
                                         <li key={index} className="flex gap-3">
                                             <div className="flex-shrink-0">
                                                 {log.type === 'Phone Call' && <Phone className="h-4 w-4 text-muted-foreground"/>}
@@ -200,11 +202,11 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                                             <div className="flex-grow">
                                                 <p className="text-sm font-medium">{log.note}</p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {log.user} - {log.date?.toDate ? formatDistanceToNow(log.date.toDate(), { addSuffix: true }) : '...'}
+                                                    {log.user} - {logDate && !isNaN(logDate.getTime()) ? formatDistanceToNow(logDate, { addSuffix: true }) : '...'}
                                                 </p>
                                             </div>
                                         </li>
-                                    ))}
+                                    )})}
                                 </ul>
                             )}
                          </ScrollArea>
