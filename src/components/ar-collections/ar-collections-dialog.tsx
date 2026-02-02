@@ -25,19 +25,20 @@ import {
   } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import type { Client, Lead, ARCustomer, ARPayment, ARPenalty } from '@/types/client';
+import type { Client, Lead, ARCustomer, ARPayment, ARPenalty, ARActivityLog } from '@/types/client';
 import type { AccessKey } from '@/types/session';
-import { DollarSign, PlusCircle, Trash2, Loader2, Edit, ArrowUpDown, Search } from 'lucide-react';
+import { DollarSign, PlusCircle, Trash2, Loader2, Edit, ArrowUpDown, Search, Activity } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { AddArCustomerDialog } from './add-ar-customer-dialog';
 import { ManageArCustomerDialog } from './manage-ar-customer-dialog';
-import { format, differenceInDays } from 'date-fns';
+import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
 import { AiCollectionsAssistant } from './ai-collections-assistant';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type EnrichedARCustomer = ARCustomer & {
     totalPaid: number;
@@ -46,8 +47,52 @@ type EnrichedARCustomer = ARCustomer & {
     progress: number;
     daysSinceBuild: number | null;
 };
-type SortKey = 'customerName' | 'daysSinceBuild' | 'currentBalance';
+type SortKey = 'customerName' | 'daysSinceBuild' | 'currentBalance' | 'lastActivity';
 type SortDirection = 'asc' | 'desc';
+
+const ActivityLogTooltip = ({ log }: { log?: ARActivityLog[] }) => {
+    if (!log || log.length === 0) {
+        return <span className="text-muted-foreground text-xs">No activity</span>;
+    }
+    const sortedLog = [...log].sort((a, b) => {
+        const dateA = (a.date as any)?.toDate ? (a.date as any).toDate() : new Date(0);
+        const dateB = (b.date as any)?.toDate ? (b.date as any).toDate() : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+    });
+    const latestLog = sortedLog[0];
+    const latestDate = (latestLog.date as any)?.toDate ? (latestLog.date as any).toDate() : null;
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer">
+                        <Activity className="h-4 w-4 text-blue-500" />
+                        {latestDate && <span className="text-xs text-muted-foreground">{formatDistanceToNow(latestDate, { addSuffix: true })}</span>}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent className='max-w-xs'>
+                    <p className="font-bold mb-2">Activity Log</p>
+                    <ul className='space-y-2'>
+                        {sortedLog.slice(0, 5).map((log, index) => {
+                             const date = (log.date as any)?.toDate ? (log.date as any).toDate() : new Date(log.date as any);
+                             return (
+                                <li key={index} className='text-xs'>
+                                    <p className='font-medium'>
+                                        <span className="font-bold">{log.user || 'System'}:</span> {log.note}
+                                    </p>
+                                    <p className='text-muted-foreground'>
+                                        {formatDistanceToNow(date, { addSuffix: true })} ({log.type})
+                                    </p>
+                                </li>
+                             )
+                        })}
+                    </ul>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+};
 
 
 const ArCustomerRow = ({
@@ -67,7 +112,8 @@ const ArCustomerRow = ({
     totalPaid, 
     totalOwed, 
     progress, 
-    daysSinceBuild 
+    daysSinceBuild,
+    activityLog
   } = customer;
 
   return (
@@ -80,6 +126,9 @@ const ArCustomerRow = ({
             <span className="text-xs text-muted-foreground">${totalPaid.toLocaleString()} of ${totalOwed.toLocaleString()}</span>
         </TableCell>
         <TableCell>{daysSinceBuild !== null ? `${daysSinceBuild} days` : 'N/A'}</TableCell>
+        <TableCell>
+            <ActivityLogTooltip log={activityLog} />
+        </TableCell>
         <TableCell className="text-right">
              <Button variant="ghost" size="icon" onClick={() => onSelectCustomer(customer)}>
                 <Edit className="h-4 w-4" />
@@ -93,7 +142,7 @@ const ArCustomerRow = ({
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently remove {customer.customerName} from A/R.</AlertDialogDescription>
+                        <AlertDialogDescription>This will permanently remove {customerName} from A/R.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -125,7 +174,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ARCustomer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('daysSinceBuild');
+  const [sortKey, setSortKey] = useState<SortKey>('lastActivity');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [enrichedCustomers, setEnrichedCustomers] = useState<EnrichedARCustomer[] | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
@@ -188,8 +237,15 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
       );
 
       return filtered.sort((a, b) => {
-          let valA: any = a[sortKey];
-          let valB: any = b[sortKey];
+          let valA: any, valB: any;
+
+          if (sortKey === 'lastActivity') {
+            valA = a.lastActivity?.toDate() || new Date(0);
+            valB = b.lastActivity?.toDate() || new Date(0);
+          } else {
+            valA = a[sortKey as keyof EnrichedARCustomer];
+            valB = b[sortKey as keyof EnrichedARCustomer];
+          }
 
           if (valA === null) valA = sortDirection === 'asc' ? Infinity : -Infinity;
           if (valB === null) valB = sortDirection === 'asc' ? Infinity : -Infinity;
@@ -215,7 +271,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
           setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
           setSortKey(key);
-          setSortDirection('asc');
+          setSortDirection(key === 'lastActivity' ? 'desc' : 'asc');
       }
   };
 
@@ -229,7 +285,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
   
   const handleAddCustomer = (customerData: Omit<ARCustomer, 'id' | 'createdAt'>) => {
     if (!arCustomersCollectionRef) return;
-    addDocumentNonBlocking(arCustomersCollectionRef, { ...customerData, createdAt: serverTimestamp() });
+    addDocumentNonBlocking(arCustomersCollectionRef, { ...customerData, createdAt: serverTimestamp(), activityLog: [] });
     toast({ title: 'A/R Customer Created', description: `${customerData.customerName} has been added to collections.` });
   };
   
@@ -244,7 +300,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-7xl h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold font-headline tracking-tight flex items-center gap-3"><DollarSign />A/R Collections Hub</DialogTitle>
             <DialogDescription>Manage accounts receivable for {client.firmName}.</DialogDescription>
@@ -306,6 +362,11 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
                                         <TableHead>
                                             <Button variant="ghost" onClick={() => handleSort('daysSinceBuild')}>
                                                 Days Since Build <ArrowUpDown className="ml-2 h-4 w-4" />
+                                            </Button>
+                                        </TableHead>
+                                        <TableHead>
+                                             <Button variant="ghost" onClick={() => handleSort('lastActivity')}>
+                                                Last Activity <ArrowUpDown className="ml-2 h-4 w-4" />
                                             </Button>
                                         </TableHead>
                                         <TableHead className="text-right">Actions</TableHead>

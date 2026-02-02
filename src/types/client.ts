@@ -227,6 +227,8 @@ export type ARCustomer = {
     buildCompleteDate: any; // Firestore Timestamp
     initialBalance: number;
     createdAt: any; // Firestore Timestamp
+    activityLog?: ARActivityLog[];
+    lastActivity?: any;
 };
 
 export type ARPayment = {
@@ -252,4 +254,3 @@ export type ARActivityLog = {
     user: string;
 };
     
-

@@ -177,7 +177,7 @@
         "extraInfo": { "type": "string" },
         "notes": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "contractPresentationDate": { "type": "string", "format": "date" },
+        "contractPresentationDate": { "type": "string", "format": "date", "description": "Date of the inspection." },
         "nextStepDueDate": { "type": "string", "format": "date" }
       },
       "required": ["id", "firstName", "lastName", "createdAt"]
@@ -274,9 +274,10 @@
         "dueDate": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["current", "overdue"] },
         "agent": { "type": "string" },
-        "notes": { "type": "array", "items": { "type": "string" } }
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "clientPath": { "type": "string", "description": "The Firestore path to the client for this lead's task." }
       },
-      "required": ["id", "leadId", "leadName", "nextStep", "dueDate", "status", "agent"]
+      "required": ["id", "leadId", "leadName", "nextStep", "dueDate", "status", "agent", "clientPath"]
     },
     "Contract": {
         "title": "Contract",
@@ -311,6 +312,69 @@
             "label": { "type": "string" }
         },
         "required": ["id", "label"]
+    },
+    "ARCustomer": {
+      "title": "AR Customer",
+      "type": "object",
+      "description": "Represents an Accounts Receivable customer for collections tracking.",
+      "properties": {
+        "id": { "type": "string" },
+        "leadId": { "type": "string", "description": "Optional reference to the original Lead." },
+        "customerName": { "type": "string" },
+        "buildCompleteDate": { "type": "string", "format": "date" },
+        "initialBalance": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "activityLog": {
+          "type": "array",
+          "description": "A log of collection activities for this customer.",
+          "items": {
+              "$ref": "#/backend/entities/ARActivityLog"
+          }
+        },
+        "lastActivity": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of the last recorded activity."
+        }
+      },
+      "required": ["id", "customerName", "buildCompleteDate", "initialBalance", "createdAt"]
+    },
+    "ARPayment": {
+      "title": "AR Payment",
+      "type": "object",
+      "description": "A payment made by an AR customer.",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "user": { "type": "string" }
+      },
+      "required": ["id", "amount", "date", "user"]
+    },
+    "ARPenalty": {
+      "title": "AR Penalty",
+      "type": "object",
+      "description": "A penalty applied to an AR customer's balance.",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "reason": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "user": { "type": "string" }
+      },
+      "required": ["id", "amount", "reason", "date", "user"]
+    },
+    "ARActivityLog": {
+      "title": "AR Activity Log",
+      "type": "object",
+      "description": "A log of collection activities for an AR customer.",
+      "properties": {
+        "type": { "type": "string", "enum": ["Phone Call", "Email", "Text Message", "Other"] },
+        "note": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "user": { "type": "string" }
+      },
+      "required": ["type", "note", "date", "user"]
     }
   },
   "auth": {
@@ -427,6 +491,32 @@
                       "entityName": "ClientContractTemplate",
                       "schema": { "$ref": "#/backend/entities/ClientContractTemplate" },
                       "description": "Custom contract templates created by a client."
+                    }
+                  },
+                  {
+                    "path": "/arCustomers/{arCustomerId}",
+                    "definition": {
+                      "entityName": "ARCustomer",
+                      "schema": { "$ref": "#/backend/entities/ARCustomer" },
+                      "description": "AR Collections customers for a client.",
+                      "subcollections": [
+                        {
+                          "path": "/payments/{paymentId}",
+                          "definition": {
+                            "entityName": "ARPayment",
+                            "schema": { "$ref": "#/backend/entities/ARPayment" },
+                            "description": "Payments made by an AR customer."
+                          }
+                        },
+                        {
+                          "path": "/penalties/{penaltyId}",
+                          "definition": {
+                            "entityName": "ARPenalty",
+                            "schema": { "$ref": "#/backend/entities/ARPenalty" },
+                            "description": "Penalties applied to an AR customer's balance."
+                          }
+                        }
+                      ]
                     }
                   }
                 ]

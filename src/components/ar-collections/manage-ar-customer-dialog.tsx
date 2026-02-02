@@ -29,8 +29,8 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, orderBy, query, CollectionReference } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, serverTimestamp, orderBy, query, CollectionReference, doc, arrayUnion } from 'firebase/firestore';
 import type { ARCustomer, ARPayment, ARPenalty, ARActivityLog } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -66,20 +66,19 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
     return collection(arCustomersCollectionRef, customer.id, 'penalties');
   }, [firestore, arCustomersCollectionRef, customer.id]);
   
-  const activityLogCollectionRef = useMemoFirebase(() => {
-    if (!firestore || !arCustomersCollectionRef) return null;
-    return collection(arCustomersCollectionRef, customer.id, 'activityLog');
-  }, [firestore, arCustomersCollectionRef, customer.id]);
-  
-  const activityLogQuery = useMemoFirebase(() => {
-    if (!activityLogCollectionRef) return null;
-    return query(activityLogCollectionRef, orderBy('date', 'desc'));
-  }, [activityLogCollectionRef]);
 
   const { data: payments, isLoading: arePaymentsLoading } = useCollection<ARPayment>(paymentsCollectionRef);
   const { data: penalties, isLoading: arePenaltiesLoading } = useCollection<ARPenalty>(penaltiesCollectionRef);
-  const { data: activityLog, isLoading: isActivityLogLoading } = useCollection<ARActivityLog>(activityLogQuery);
   
+  const activityLog = useMemo(() => {
+    if (!customer.activityLog) return [];
+    return [...customer.activityLog].sort((a, b) => {
+        const dateA = (a.date as any)?.toDate ? (a.date as any).toDate() : new Date(0);
+        const dateB = (b.date as any)?.toDate ? (b.date as any).toDate() : new Date(0);
+        return dateB.getTime() - dateA.getTime();
+    });
+  }, [customer.activityLog]);
+
   const totalPaid = useMemo(() => payments?.reduce((acc, p) => acc + p.amount, 0) || 0, [payments]);
   const totalPenalties = useMemo(() => penalties?.reduce((acc, p) => acc + p.amount, 0) || 0, [penalties]);
   const initialBalance = customer.initialBalance;
@@ -87,7 +86,7 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   const currentBalance = totalOwed - totalPaid;
   const progress = totalOwed > 0 ? (totalPaid / totalOwed) * 100 : 0;
   
-  const isLoading = arePaymentsLoading || arePenaltiesLoading || isActivityLogLoading;
+  const isLoading = arePaymentsLoading || arePenaltiesLoading;
 
   const handleAddPayment = () => {
     if (!paymentsCollectionRef || paymentAmount <= 0) return;
@@ -114,13 +113,21 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   };
   
   const handleLogActivity = () => {
-    if (!activityLogCollectionRef || !activityNote.trim()) return;
-    addDocumentNonBlocking(activityLogCollectionRef, {
+    if (!arCustomersCollectionRef || !activityNote.trim()) return;
+    const customerDocRef = doc(arCustomersCollectionRef, customer.id);
+    
+    const newActivity = {
         type: activityType,
         note: activityNote,
-        date: serverTimestamp(),
+        date: new Date(),
         user: activeUser?.displayName || 'Unknown'
+    };
+
+    updateDocumentNonBlocking(customerDocRef, {
+        activityLog: arrayUnion(newActivity),
+        lastActivity: serverTimestamp(),
     });
+
     toast({ title: 'Activity Logged' });
     setActivityNote('');
   };
@@ -182,8 +189,8 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                                 <p className="text-center text-muted-foreground pt-8">No activity yet.</p>
                             ) : (
                                 <ul className="space-y-4">
-                                    {activityLog.map(log => (
-                                        <li key={log.id} className="flex gap-3">
+                                    {activityLog.map((log, index) => (
+                                        <li key={index} className="flex gap-3">
                                             <div className="flex-shrink-0">
                                                 {log.type === 'Phone Call' && <Phone className="h-4 w-4 text-muted-foreground"/>}
                                                 {log.type === 'Email' && <Mail className="h-4 w-4 text-muted-foreground"/>}
