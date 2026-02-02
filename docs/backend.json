@@ -323,7 +323,19 @@
         "customerName": { "type": "string" },
         "buildCompleteDate": { "type": "string", "format": "date" },
         "initialBalance": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "activityLog": {
+          "type": "array",
+          "description": "A log of collection activities for this customer.",
+          "items": {
+              "$ref": "#/backend/entities/ARActivityLog"
+          }
+        },
+        "lastActivity": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of the last recorded activity."
+        }
       },
       "required": ["id", "customerName", "buildCompleteDate", "initialBalance", "createdAt"]
     },
@@ -357,13 +369,12 @@
       "type": "object",
       "description": "A log of collection activities for an AR customer.",
       "properties": {
-        "id": { "type": "string" },
         "type": { "type": "string", "enum": ["Phone Call", "Email", "Text Message", "Other"] },
         "note": { "type": "string" },
         "date": { "type": "string", "format": "date-time" },
         "user": { "type": "string" }
       },
-      "required": ["id", "type", "note", "date", "user"]
+      "required": ["type", "note", "date", "user"]
     }
   },
   "auth": {
@@ -504,14 +515,6 @@
                             "schema": { "$ref": "#/backend/entities/ARPenalty" },
                             "description": "Penalties applied to an AR customer's balance."
                           }
-                        },
-                        {
-                          "path": "/activityLog/{logId}",
-                          "definition": {
-                            "entityName": "ARActivityLog",
-                            "schema": { "$ref": "#/backend/entities/ARActivityLog" },
-                            "description": "Activity log for an AR customer."
-                          }
                         }
                       ]
                     }
@@ -542,4 +545,3 @@
     "reasoning": "The Firestore structure nests clients, assets, and time punches under the user who created them. This is a common pattern for multi-tenant applications where user data should be isolated."
   }
 }
-

@@ -247,7 +247,6 @@ export type ARPenalty = {
 };
 
 export type ARActivityLog = {
-    id: string;
     type: 'Phone Call' | 'Email' | 'Text Message' | 'Other';
     note: string;
     date: any; // Firestore Timestamp
