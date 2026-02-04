@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -35,6 +34,12 @@ import { Loader2 } from 'lucide-react';
 import { format, formatDistanceToNowStrict } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '../ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 type QueueDialogProps = {
   open: boolean;
@@ -60,19 +65,94 @@ const Countdown = ({ dueDate }: { dueDate: any }) => {
     return <span className={color}>{distance}</span>;
 }
 
-const IncompleteNoteDialog = ({ open, onOpenChange, onSubmit }: { open: boolean, onOpenChange: (open: boolean) => void, onSubmit: (note: string) => void }) => {
-    const [note, setNote] = useState('');
+const incompleteFormSchema = z.object({
+  note: z.string().min(1, 'A reason for incompletion is required.'),
+  reminderValue: z.coerce.number().min(1, 'Must be at least 1.'),
+  reminderUnit: z.enum(['days', 'weeks']),
+});
+type IncompleteFormValues = z.infer<typeof incompleteFormSchema>;
+
+const IncompleteNoteDialog = ({ open, onOpenChange, onSubmit }: { open: boolean, onOpenChange: (open: boolean) => void, onSubmit: (data: IncompleteFormValues) => void }) => {
+    const form = useForm<IncompleteFormValues>({
+        resolver: zodResolver(incompleteFormSchema),
+        defaultValues: {
+            note: '',
+            reminderValue: 1,
+            reminderUnit: 'days',
+        },
+    });
+
+    useEffect(() => {
+        if (open) {
+            form.reset({
+                note: '',
+                reminderValue: 1,
+                reminderUnit: 'days',
+            });
+        }
+    }, [open, form]);
+
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Task Incomplete</AlertDialogTitle>
-                    <AlertDialogDescription>Please provide a reason why this follow-up task was not completed.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g., Client did not answer the phone..." />
-                <AlertDialogFooter>
+                <Form {...form}>
+                    <form id="incomplete-note-form-queue" onSubmit={form.handleSubmit(onSubmit)}>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Task Incomplete</AlertDialogTitle>
+                            <AlertDialogDescription>Provide a reason and set a new reminder for this task.</AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <div className="py-4 space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="note"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Reason for Incompletion</FormLabel>
+                                        <FormControl>
+                                            <Textarea {...field} placeholder="e.g., Client did not answer the phone..." />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            
+                            <div>
+                                <FormLabel>Set New Reminder</FormLabel>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="reminderValue"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl><Input className="w-24" type="number" min="1" {...field} /></FormControl>
+                                                 <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="reminderUnit"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger className="w-32"><SelectValue /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="days">Days</SelectItem>
+                                                        <SelectItem value="weeks">Weeks</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </Form>
+                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onSubmit(note)} disabled={!note.trim()}>Save & Reset Clock</AlertDialogAction>
+                    <Button type="submit" form="incomplete-note-form-queue">Save & Set Reminder</Button>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
@@ -158,19 +238,23 @@ export function QueueDialog({ open, onOpenChange, client, activeUser }: QueueDia
     setTaskForIncomplete(task);
   };
 
-  const submitIncompleteNote = (note: string) => {
+  const submitIncompleteNote = (data: IncompleteFormValues) => {
     if (!firestore || !taskForIncomplete) return;
     
     const newDueDate = new Date();
-    newDueDate.setHours(newDueDate.getHours() + 24);
+    if (data.reminderUnit === 'days') {
+        newDueDate.setDate(newDueDate.getDate() + data.reminderValue);
+    } else if (data.reminderUnit === 'weeks') {
+        newDueDate.setDate(newDueDate.getDate() + data.reminderValue * 7);
+    }
 
     const taskRef = doc(firestore, 'queueTasks', taskForIncomplete.id);
     updateDocumentNonBlocking(taskRef, {
         dueDate: Timestamp.fromDate(newDueDate),
-        notes: arrayUnion(`[${new Date().toLocaleString()}] ${note}`),
+        notes: arrayUnion(`[${new Date().toLocaleString()}] ${data.note}`),
     });
 
-    toast({ title: "Timer Reset", description: "The 24-hour countdown has been reset for this task." });
+    toast({ title: "Reminder Set", description: "The timer has been reset for this task." });
     setTaskForIncomplete(null);
   };
 
