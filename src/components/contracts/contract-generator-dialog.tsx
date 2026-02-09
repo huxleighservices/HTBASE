@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,11 +12,11 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import type { Client, Lead, ContractTemplate, ClientContractTemplate } from '@/types/client';
+import type { Client, Lead, ContractTemplate, ClientContractTemplate, SyncedLead } from '@/types/client';
 import type { AccessKey } from '@/types/session';
-import { FileText, ChevronRight, Loader2, Download, UserCheck } from 'lucide-react';
+import { FileText, ChevronRight, Loader2, Download, UserCheck, PlusCircle } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, serverTimestamp, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
 import { ScrollArea } from '../ui/scroll-area';
@@ -24,6 +25,17 @@ import { Checkbox } from '../ui/checkbox';
 import { contractItems as defaultContractItems } from './contract-items';
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 
 type ContractGeneratorDialogProps = {
@@ -33,7 +45,19 @@ type ContractGeneratorDialogProps = {
   activeUser: AccessKey | null;
 };
 
-type Stage = 'select-lead' | 'configure' | 'download';
+type Stage = 'select-lead' | 'create-lead' | 'configure' | 'download';
+
+const newLeadFormSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  homeAddress: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  email: z.string().email({ message: "Invalid email address." }).optional().or(z.literal('')),
+  jobType: z.string().optional(),
+  projectedRevenue: z.string().optional(),
+});
+type NewLeadFormValues = z.infer<typeof newLeadFormSchema>;
+
 
 export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser }: ContractGeneratorDialogProps) {
   const { toast } = useToast();
@@ -69,6 +93,19 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
   }, [firestore, client.path]);
 
   const { data: customContractItems, isLoading: areCustomItemsLoading } = useCollection<ClientContractTemplate>(clientTemplatesCollectionRef);
+  
+  const newLeadForm = useForm<NewLeadFormValues>({
+    resolver: zodResolver(newLeadFormSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      homeAddress: '',
+      phoneNumber: '',
+      email: '',
+      jobType: '',
+      projectedRevenue: '',
+    },
+  });
 
   const allContractItems = useMemo(() => {
     const combined = [...defaultContractItems];
@@ -93,6 +130,69 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
   const handleLeadSelect = (lead: Lead) => {
     setSelectedLead(lead);
     setStage('configure');
+  };
+  
+  const handleCreateLead: SubmitHandler<NewLeadFormValues> = async (data) => {
+    if (!leadsCollectionRef || !firestore || !activeUser) {
+        toast({ title: "Error", description: "Cannot create lead, database connection not ready.", variant: "destructive" });
+        return;
+    };
+    
+    setIsGenerating(true);
+
+    try {
+      const maxSortOrder = Math.max(-1, ...(leads?.map(l => l.sortOrder ?? -1) ?? []));
+      const newSortOrder = maxSortOrder + 1;
+      const newLeadId = `lead-${String(newSortOrder).padStart(3, '0')}`;
+
+      const newLeadData: Lead = {
+        id: newLeadId,
+        agent: activeUser.username,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        homeAddress: data.homeAddress,
+        phoneNumber: data.phoneNumber,
+        email: data.email,
+        jobType: data.jobType,
+        projectedRevenue: data.projectedRevenue,
+        currentStep: 'Pending Signature',
+        createdAt: serverTimestamp(),
+        sortOrder: newSortOrder,
+      };
+
+      const leadDocRef = doc(leadsCollectionRef, newLeadId);
+      await setDoc(leadDocRef, newLeadData);
+
+      const syncedLeadData: SyncedLead = {
+          agent: newLeadData.agent,
+          name: `${newLeadData.firstName} ${newLeadData.lastName}`,
+          source: 'Manual Contract Entry',
+          contactDate: format(new Date(), 'yyyy-MM-dd'),
+          currentStep: 'Pending Signature',
+          contractPres: '',
+          nextStepDue: '',
+          jobType: newLeadData.jobType || '',
+          phone: newLeadData.phoneNumber || '',
+          email: newLeadData.email || '',
+          address: newLeadData.homeAddress || '',
+          revenue: newLeadData.projectedRevenue || '',
+          companyCam: false,
+          pendingNotes: 'Created via Contract Generator.',
+          sortOrder: newSortOrder,
+      };
+      const syncedLeadRef = doc(firestore, 'syncedLeads', newLeadId);
+      await setDoc(syncedLeadRef, syncedLeadData);
+
+      toast({ title: "Lead Created", description: "You can now configure the contract." });
+      
+      setSelectedLead(newLeadData);
+      setStage('configure');
+
+    } catch (error: any) {
+        toast({ title: "Failed to create lead", description: error.message, variant: "destructive" });
+    } finally {
+        setIsGenerating(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -251,6 +351,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         setSelectedItems({});
         setGeneratedContractId(null);
         setIsGenerating(false);
+        newLeadForm.reset();
     }, 200);
   };
 
@@ -261,14 +362,21 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2"><UserCheck /> Step 1: Select a Lead</DialogTitle>
-              <DialogDescription>Choose the lead you want to generate a contract for.</DialogDescription>
+              <DialogDescription>Choose an existing lead or create a new one.</DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
-              <Input
-                placeholder="Search leads by name or address..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search existing leads..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-grow"
+                />
+                <Button variant="outline" onClick={() => setStage('create-lead')}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Lead
+                </Button>
+              </div>
               <ScrollArea className="h-72">
                 <div className="space-y-2 pr-4">
                   {areLeadsLoading && <div className="flex justify-center items-center"><Loader2 className="animate-spin" /></div>}
@@ -289,6 +397,54 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
               </ScrollArea>
             </div>
           </>
+        );
+
+      case 'create-lead':
+        return (
+            <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><PlusCircle /> Step 1b: Create a New Lead</DialogTitle>
+                  <DialogDescription>Enter the details for the new lead. This will also create a new lead record.</DialogDescription>
+                </DialogHeader>
+                <Form {...newLeadForm}>
+                    <form onSubmit={newLeadForm.handleSubmit(handleCreateLead)} className="py-4 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={newLeadForm.control} name="firstName" render={({ field }) => (
+                                <FormItem><FormLabel>First Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={newLeadForm.control} name="lastName" render={({ field }) => (
+                                <FormItem><FormLabel>Last Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                        </div>
+                        <FormField control={newLeadForm.control} name="homeAddress" render={({ field }) => (
+                            <FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        )}/>
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField control={newLeadForm.control} name="phoneNumber" render={({ field }) => (
+                                <FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input type="tel" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={newLeadForm.control} name="email" render={({ field }) => (
+                                <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                        </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <FormField control={newLeadForm.control} name="jobType" render={({ field }) => (
+                                <FormItem><FormLabel>Job Type</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={newLeadForm.control} name="projectedRevenue" render={({ field }) => (
+                                <FormItem><FormLabel>Projected Revenue</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                        </div>
+                        <DialogFooter className="pt-4">
+                            <Button type="button" variant="outline" onClick={() => setStage('select-lead')} disabled={isGenerating}>Back</Button>
+                            <Button type="submit" disabled={isGenerating}>
+                                {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Create & Continue
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </>
         );
 
       case 'configure':
