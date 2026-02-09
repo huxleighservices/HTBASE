@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -559,7 +560,7 @@ export default function ClientLaunchPage() {
                           <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
                         </CardHeader>
                         <CardFooter>
-                          <Button onClick={() => setIsLeadsTrackerOpen(true)}>Open Leads</Button>
+                          <Button onClick={() => setIsLeadsTrackerOpen(true)} disabled>Open Leads</Button>
                         </CardFooter>
                       </Card>
                     )}
