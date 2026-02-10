@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -230,7 +229,7 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
   };
   
   const handleDownload = async () => {
-    if (!selectedLead || !templatesCollectionRef || !clientTemplatesCollectionRef) {
+    if (!selectedLead || !templatesCollectionRef) {
         toast({ title: 'Error', description: 'Missing lead or template data.', variant: 'destructive' });
         return;
     }
@@ -239,22 +238,16 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
     try {
         const includedItemLabels = Object.keys(selectedItems).filter(key => selectedItems[key]);
 
-        const defaultTemplatesQuery = query(templatesCollectionRef, where('title', 'in', includedItemLabels));
-        const customTemplatesQuery = query(clientTemplatesCollectionRef, where('label', 'in', includedItemLabels));
+        const templatesQuery = query(templatesCollectionRef, where('title', 'in', includedItemLabels));
 
-        const [defaultSnapshot, customSnapshot] = await Promise.all([
-            getDocs(defaultTemplatesQuery),
-            getDocs(customTemplatesQuery),
-        ]);
+        const templatesSnapshot = await getDocs(templatesQuery);
 
         const templatesMap = new Map<string, string>();
-        defaultSnapshot.forEach(doc => {
+        templatesSnapshot.forEach(doc => {
             const data = doc.data() as ContractTemplate;
-            templatesMap.set(data.title, data.content);
-        });
-        customSnapshot.forEach(doc => {
-            const data = doc.data() as {label: string, content: string}; // Client templates have `label` and `content`
-            templatesMap.set(data.label, data.content);
+            if (data.content) {
+                templatesMap.set(data.title, data.content);
+            }
         });
 
         const leadFullName = `${selectedLead.firstName} ${selectedLead.lastName}`;
