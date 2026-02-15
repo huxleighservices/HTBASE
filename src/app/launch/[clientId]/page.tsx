@@ -74,7 +74,7 @@ export default function ClientLaunchPage() {
   const clientId = params.clientId as string;
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const [cardVisibility, setCardVisibility] = useLocalStorage('cardVisibility-4WK21Y', {
+  const [cardVisibility, setCardVisibility] = useLocalStorage(`cardVisibility-${clientId}`, {
     messenger: true,
     coldCall: true,
     builds: true,
@@ -365,7 +365,7 @@ export default function ClientLaunchPage() {
           <div className="mx-auto max-w-4xl w-full">
             <Card className="relative">
               <CardHeader className="items-center text-center">
-                {is4WK21Y && (
+                {(is4WK21Y || isSunmmuClient) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="absolute top-2 right-2">
@@ -378,10 +378,14 @@ export default function ClientLaunchPage() {
                       <DropdownMenuCheckboxItem checked={cardVisibility.messenger} onCheckedChange={(c) => handleVisibilityChange('messenger', !!c)}>Messenger Scenario</DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={cardVisibility.coldCall} onCheckedChange={(c) => handleVisibilityChange('coldCall', !!c)}>Cold Call Simulator</DropdownMenuCheckboxItem>
                       <DropdownMenuCheckboxItem checked={cardVisibility.trainingResults} onCheckedChange={(c) => handleVisibilityChange('trainingResults', !!c)}>Training Results</DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem checked={cardVisibility.builds} onCheckedChange={(c) => handleVisibilityChange('builds', !!c)}>Builds Tracker</DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem checked={cardVisibility.leads} onCheckedChange={(c) => handleVisibilityChange('leads', !!c)}>Leads Tracker</DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem checked={cardVisibility.forms} onCheckedChange={(c) => handleVisibilityChange('forms', !!c)}>Forms</DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem checked={cardVisibility.contractGenerator} onCheckedChange={(c) => handleVisibilityChange('contractGenerator', !!c)}>Contract Generator</DropdownMenuCheckboxItem>
+                      {is4WK21Y && (
+                        <>
+                          <DropdownMenuCheckboxItem checked={cardVisibility.builds} onCheckedChange={(c) => handleVisibilityChange('builds', !!c)}>Builds Tracker</DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem checked={cardVisibility.leads} onCheckedChange={(c) => handleVisibilityChange('leads', !!c)}>Leads Tracker</DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem checked={cardVisibility.forms} onCheckedChange={(c) => handleVisibilityChange('forms', !!c)}>Forms</DropdownMenuCheckboxItem>
+                          <DropdownMenuCheckboxItem checked={cardVisibility.contractGenerator} onCheckedChange={(c) => handleVisibilityChange('contractGenerator', !!c)}>Contract Generator</DropdownMenuCheckboxItem>
+                        </>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
