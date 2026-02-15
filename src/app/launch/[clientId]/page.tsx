@@ -58,6 +58,7 @@ import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
 import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
 import { ARCollectionsDialog } from '@/components/ar-collections/ar-collections-dialog';
+import { SeoToolDialog } from '@/components/seo-tool/seo-tool-dialog';
 
 
 type Stage = 'login' | 'trainer';
@@ -108,6 +109,7 @@ export default function ClientLaunchPage() {
   const [isContractGeneratorOpen, setIsContractGeneratorOpen] = useState(false);
   const [isManageTemplatesOpen, setIsManageTemplatesOpen] = useState(false);
   const [isArCollectionsOpen, setIsArCollectionsOpen] = useState(false);
+  const [isSeoToolOpen, setIsSeoToolOpen] = useState(false);
 
 
   // If a regular user is already logged in, redirect them away.
@@ -287,6 +289,7 @@ export default function ClientLaunchPage() {
         if (title.includes('Time Punch')) return <Timer className="size-6" />;
         if (title.includes('Project Hub')) return <GanttChartSquare className="size-6" />;
         if (title.includes('SOP Bot')) return <Bot className="size-6" />;
+        if (title.includes('SEO Tool')) return <Wrench className="size-6" />;
         return <Code className="size-6" />;
     };
     
@@ -295,6 +298,7 @@ export default function ClientLaunchPage() {
         if (asset.title.includes('Time Punch')) return () => setIsTimePunchOpen(true);
         if (asset.title.includes('Project Hub')) return () => setIsProjectHubOpen(true);
         if (asset.title.includes('SOP Bot')) return () => setIsSopBotOpen(true);
+        if (asset.title.includes('SEO Tool')) return () => setIsSeoToolOpen(true);
         return () => {};
     };
 
@@ -303,6 +307,7 @@ export default function ClientLaunchPage() {
         if (title.includes('Time Punch')) return 'Open Time Punch';
         if (title.includes('Project Hub')) return 'Open Hub';
         if (title.includes('SOP Bot')) return 'Open SOP Bot';
+        if (title.includes('SEO Tool')) return 'Open Tool';
         return 'Open';
     }
 
@@ -396,7 +401,7 @@ export default function ClientLaunchPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 
-                {(isSalesClient || is4WK21Y) && (
+                {(isSalesClient || is4WK21Y || isSunmmuClient) && (
                     <div className="space-y-4">
                         <h3 className="font-headline text-xl font-semibold">Sales Training</h3>
                         <div className="grid gap-6 md:grid-cols-2">
@@ -576,8 +581,8 @@ export default function ClientLaunchPage() {
               </CardFooter>
             </Card>
           </div>
-          {isSalesClient && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
-          {isSalesClient && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
+          {(isSalesClient || is4WK21Y || isSunmmuClient) && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
+          {(isSalesClient || is4WK21Y || isSunmmuClient) && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
           {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
           {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
           {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
@@ -603,6 +608,7 @@ export default function ClientLaunchPage() {
           {client && <ContractGeneratorDialog open={isContractGeneratorOpen} onOpenChange={setIsContractGeneratorOpen} client={client} activeUser={activeUser} />}
           {client && <ManageTemplatesDialog open={isManageTemplatesOpen} onOpenChange={setIsManageTemplatesOpen} client={client} activeUser={activeUser} />}
           {client && <ARCollectionsDialog open={isArCollectionsOpen} onOpenChange={setIsArCollectionsOpen} client={client} activeUser={activeUser} />}
+          {client && <SeoToolDialog open={isSeoToolOpen} onOpenChange={setIsSeoToolOpen} client={client} activeUser={activeUser} />}
         </>
       );
     }
