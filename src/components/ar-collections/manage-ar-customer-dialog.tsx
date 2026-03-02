@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -181,34 +180,36 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
             <div className="flex flex-col gap-4 min-h-0">
                 <Card className="flex-grow flex flex-col">
                     <CardHeader><CardTitle>Activity Log</CardTitle></CardHeader>
-                    <CardContent className="flex-grow relative">
-                         <ScrollArea className="absolute inset-0 pr-4">
-                            {isLoading ? (
-                                <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>
-                            ) : !activityLog || activityLog.length === 0 ? (
-                                <p className="text-center text-muted-foreground pt-8">No activity yet.</p>
-                            ) : (
-                                <ul className="space-y-4">
-                                    {activityLog.map((log, index) => {
-                                        const logDate = log.date ? ((log.date as any).toDate ? (log.date as any).toDate() : new Date(log.date as any)) : null;
-                                        return (
-                                        <li key={index} className="flex gap-3">
-                                            <div className="flex-shrink-0">
-                                                {log.type === 'Phone Call' && <Phone className="h-4 w-4 text-muted-foreground"/>}
-                                                {log.type === 'Email' && <Mail className="h-4 w-4 text-muted-foreground"/>}
-                                                {log.type === 'Text Message' && <MessageSquare className="h-4 w-4 text-muted-foreground"/>}
-                                                {log.type === 'Other' && <MenuSquare className="h-4 w-4 text-muted-foreground"/>}
-                                            </div>
-                                            <div className="flex-grow">
-                                                <p className="text-sm font-medium">{log.note}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {log.user} - {logDate && !isNaN(logDate.getTime()) ? formatDistanceToNow(logDate, { addSuffix: true }) : '...'}
-                                                </p>
-                                            </div>
-                                        </li>
-                                    )})}
-                                </ul>
-                            )}
+                    <CardContent className="flex-grow relative p-0">
+                         <ScrollArea className="absolute inset-0">
+                            <div className="p-4">
+                                {isLoading ? (
+                                    <div className="flex justify-center items-center h-full"><Loader2 className="animate-spin" /></div>
+                                ) : !activityLog || activityLog.length === 0 ? (
+                                    <p className="text-center text-muted-foreground pt-8">No activity yet.</p>
+                                ) : (
+                                    <ul className="space-y-4">
+                                        {activityLog.map((log, index) => {
+                                            const logDate = log.date ? ((log.date as any).toDate ? (log.date as any).toDate() : new Date(log.date as any)) : null;
+                                            return (
+                                            <li key={index} className="flex gap-3">
+                                                <div className="flex-shrink-0">
+                                                    {log.type === 'Phone Call' && <Phone className="h-4 w-4 text-muted-foreground"/>}
+                                                    {log.type === 'Email' && <Mail className="h-4 w-4 text-muted-foreground"/>}
+                                                    {log.type === 'Text Message' && <MessageSquare className="h-4 w-4 text-muted-foreground"/>}
+                                                    {log.type === 'Other' && <MenuSquare className="h-4 w-4 text-muted-foreground"/>}
+                                                </div>
+                                                <div className="flex-grow">
+                                                    <p className="text-sm font-medium">{log.note}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {log.user} - {logDate && !isNaN(logDate.getTime()) ? formatDistanceToNow(logDate, { addSuffix: true }) : '...'}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        )})}
+                                    </ul>
+                                )}
+                            </div>
                          </ScrollArea>
                     </CardContent>
                 </Card>
