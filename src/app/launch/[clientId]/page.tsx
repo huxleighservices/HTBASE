@@ -1,16 +1,7 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   collection,
@@ -19,10 +10,20 @@ import {
   getDocs,
   doc,
   getDoc,
+  setDoc,
+  addDoc,
   collectionGroup,
+  serverTimestamp,
 } from 'firebase/firestore';
-import type { Client, BrandCustomization, Asset } from '@/types/client';
-import { Loader2, MessageSquare, Phone, LogIn, Code, Database, LogOut, Timer, GanttChartSquare, Bot, Users, Wrench, Settings, FileSignature, FileText, DollarSign } from 'lucide-react';
+import type { Client, BrandCustomization } from '@/types/client';
+import type { AccessKey } from '@/types/session';
+import type { Widget, WidgetRequest } from '@/types/widget';
+import type { WidgetType } from '@/lib/widget-catalog';
+import { WIDGET_CATALOG, WIDGET_CATALOG_MAP, WIDGET_CATEGORIES } from '@/lib/widget-catalog';
+import {
+  Loader2, LogIn, LogOut, Settings2, LayoutGrid, Pencil,
+  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal,
+} from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -34,6 +35,8 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { ColdCallSimulatorDialog } from '@/components/trainer/cold-call-simulator-dialog';
 import Image from 'next/image';
 import { MessengerScenarioDialog } from '@/components/trainer/messenger-scenario-dialog';
@@ -43,14 +46,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { OpacTrackerDialog } from '@/components/opac/opac-tracker-dialog';
 import { signInAnonymously, signOut } from 'firebase/auth';
-import type { AccessKey } from '@/types/session';
 import { ProjectHubDialog } from '@/components/project-hub/project-hub-dialog';
 import { TimePunchDialog } from '@/components/time-punch/time-punch-dialog';
 import { SopBotDialog } from '@/components/sop-bot/sop-bot-dialog';
 import { LeadsTrackerDialog } from '@/components/leads/leads-tracker-dialog';
 import { BuildsTrackerDialog } from '@/components/builds/builds-tracker-dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import { FormManagementDialog } from '@/components/forms/form-management-dialog';
 import { QueueDialog } from '@/components/queue/queue-dialog';
 import { MasterQueuePasscodeDialog } from '@/components/queue/master-queue-passcode-dialog';
@@ -58,97 +58,110 @@ import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
 import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
 import { ARCollectionsDialog } from '@/components/ar-collections/ar-collections-dialog';
+import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
+import { WidgetEditDialog } from '@/components/portal/widget-edit-dialog';
+import { WidgetBrowserDialog } from '@/components/portal/widget-browser-dialog';
+import { WidgetRequestDialog } from '@/components/portal/widget-request-dialog';
+import { UserWidgetEditorSheet, type UserWidgetPrefs } from '@/components/portal/user-widget-editor-sheet';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useToast } from '@/hooks/use-toast';
+import type { Asset } from '@/types/client';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Types & constants
+// ─────────────────────────────────────────────────────────────────────────────
 
-type Stage = 'login' | 'trainer';
+type Stage = 'login' | 'portal';
 
-const loginFormSchema = z.object({
+const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
 });
-type LoginFormValues = z.infer<typeof loginFormSchema>;
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+/** Default widget list for any client that hasn't configured their widgets in
+ *  Firestore yet. Returns every widget in the catalog so all portals start
+ *  fully-featured — admins can then hide what they don't need via Edit Portal. */
+function buildDefaultWidgets(): Widget[] {
+  return WIDGET_CATALOG.map((def, i) => ({
+    id: def.type,
+    type: def.type,
+    title: def.defaultTitle,
+    description: def.defaultDescription,
+    enabled: true,
+    order: i,
+    category: def.category,
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main component
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function ClientLaunchPage() {
-  const params = useParams();
-  const router = useRouter();
-  const clientId = params.clientId as string;
+  const params    = useParams();
+  const router    = useRouter();
+  const clientId  = params.clientId as string;
   const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  const [cardVisibility, setCardVisibility] = useLocalStorage(`cardVisibility-${clientId}`, {
-    messenger: true,
-    coldCall: true,
-    builds: true,
-    leads: true,
-    trainingResults: true,
-    forms: true,
-    contractGenerator: true,
-  });
+  const auth      = useAuth();
+  const firestore = useFirestore();
+  const { toast } = useToast();
 
-  const [stage, setStage] = useState<Stage>('login');
-  const [client, setClient] = useState<Client | null>(null);
+  // ── Core state ─────────────────────────────────────────────────────────────
+  const [stage, setStage]           = useState<Stage>('login');
+  const [client, setClient]         = useState<Client | null>(null);
   const [customization, setCustomization] = useState<BrandCustomization | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading]   = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [activeUser, setActiveUser] = useState<AccessKey | null>(null);
 
-  const firestore = useFirestore();
+  // ── Admin / edit-mode state ─────────────────────────────────────────────────
+  const isPortalAdmin = activeUser?.role === 'admin';
+  const [editMode, setEditMode]     = useState(false);
+  const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false);
+  const [isRequestOpen, setIsRequestOpen] = useState(false);
 
-  const [isMessengerScenarioOpen, setIsMessengerScenarioOpen] = useState(false);
-  const [isColdCallOpen, setIsColdCallOpen] = useState(false);
-  const [isOpacTrackerOpen, setIsOpacTrackerOpen] = useState(false);
-  const [isTimePunchOpen, setIsTimePunchOpen] = useState(false);
-  const [isProjectHubOpen, setIsProjectHubOpen] = useState(false);
-  const [isSopBotOpen, setIsSopBotOpen] = useState(false);
-  const [isLeadsTrackerOpen, setIsLeadsTrackerOpen] = useState(false);
-  const [isBuildsTrackerOpen, setIsBuildsTrackerOpen] = useState(false);
-  const [isFormManagementOpen, setIsFormManagementOpen] = useState(false);
-  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  // ── User personal widget preferences (localStorage, per user+client) ────────
+  const [userWidgetPrefs, setUserWidgetPrefs] = useLocalStorage<UserWidgetPrefs>(
+    `userWidgetPrefs-${clientId}-${activeUser?.username ?? 'guest'}`,
+    { hidden: [] }
+  );
+  const [isUserEditorOpen, setIsUserEditorOpen] = useState(false);
+
+  // ── Widget dialog state (one boolean per widget type) ──────────────────────
+  const [openDialog, setOpenDialog] = useState<WidgetType | null>(null);
   const [isMasterQueuePasscodeOpen, setIsMasterQueuePasscodeOpen] = useState(false);
-  const [isMasterQueueOpen, setIsMasterQueueOpen] = useState(false);
-  const [isContractGeneratorOpen, setIsContractGeneratorOpen] = useState(false);
-  const [isManageTemplatesOpen, setIsManageTemplatesOpen] = useState(false);
-  const [isArCollectionsOpen, setIsArCollectionsOpen] = useState(false);
+  const [isMasterQueueOpen, setIsMasterQueueOpen]                 = useState(false);
+  const [isManageTemplatesOpen, setIsManageTemplatesOpen]         = useState(false);
 
-
-  // If a regular user is already logged in, redirect them away.
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Redirect already-logged-in non-anonymous users
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // If a non-anonymous user is logged in, they should not be on a launch page.
-    if (user && !isUserLoading && !user.isAnonymous) {
-      router.push('/dashboard');
-    }
+    if (user && !isUserLoading && !user.isAnonymous) router.push('/dashboard');
   }, [user, isUserLoading, router]);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Load client + customization
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const fetchClientAndCustomization = async () => {
+    const fetch = async () => {
       if (!firestore || !clientId) return;
       setIsLoading(true);
       try {
-        const clientQuery = query(
-          collectionGroup(firestore, 'clients'),
-          where('displayId', '==', clientId)
+        const snap = await getDocs(
+          query(collectionGroup(firestore, 'clients'), where('displayId', '==', clientId))
         );
-        const querySnapshot = await getDocs(clientQuery);
+        if (!snap.empty) {
+          const d = snap.docs[0];
+          const fetched = { ...(d.data() as Omit<Client, 'id' | 'path'>), id: d.id, path: d.ref.path };
+          setClient(fetched);
 
-        if (!querySnapshot.empty) {
-          const clientDoc = querySnapshot.docs[0];
-          const fetchedClient = {
-            ...(clientDoc.data() as Omit<Client, 'id' | 'path'>),
-            id: clientDoc.id,
-            path: clientDoc.ref.path,
-          };
-          setClient(fetchedClient);
-
-          const customizationRef = doc(firestore, fetchedClient.path, 'customization', 'config');
-          const customizationSnap = await getDoc(customizationRef);
-
-          if (customizationSnap.exists()) {
-            setCustomization(customizationSnap.data() as BrandCustomization);
-          } else {
-            setCustomization(null); // Reset if no customization found
-          }
+          const customSnap = await getDoc(doc(firestore, fetched.path, 'customization', 'config'));
+          setCustomization(customSnap.exists() ? (customSnap.data() as BrandCustomization) : null);
         } else {
-          setClient(null);
-          setCustomization(null);
+          setClient(null); setCustomization(null);
         }
       } catch (e) {
         console.error('Error fetching client data:', e);
@@ -157,71 +170,86 @@ export default function ClientLaunchPage() {
         setIsLoading(false);
       }
     };
-
-    fetchClientAndCustomization();
+    fetch();
   }, [firestore, clientId]);
-  
-  const assetsCollectionRef = useMemoFirebase(() => {
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Assets (legacy – used for default widget seeding)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const assetsRef = useMemoFirebase(() => {
     if (!firestore || !client?.path) return null;
     return collection(firestore, client.path, 'assets');
   }, [firestore, client?.path]);
+  const { data: assets } = useCollection<Asset>(assetsRef);
 
-  const { data: assets } = useCollection<Asset>(assetsCollectionRef);
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Widgets collection
+  // ─────────────────────────────────────────────────────────────────────────────
+  const widgetsRef = useMemoFirebase(() => {
+    if (!firestore || !client?.path) return null;
+    return collection(firestore, client.path, 'widgets');
+  }, [firestore, client?.path]);
+  const { data: firestoreWidgets } = useCollection<Widget>(widgetsRef);
 
+  // Effective widgets: Firestore → fall back to full catalog defaults
+  const effectiveWidgets = useMemo<Widget[]>(() => {
+    if (firestoreWidgets && firestoreWidgets.length > 0) return firestoreWidgets;
+    return buildDefaultWidgets();
+  }, [firestoreWidgets]);
 
+  // All widgets marked enabled by admin
+  const adminEnabledWidgets = useMemo(
+    () => effectiveWidgets.filter((w) => w.enabled).sort((a, b) => a.order - b.order),
+    [effectiveWidgets]
+  );
+  // Further filtered by user's personal hidden prefs
+  const enabledWidgets = useMemo(
+    () => adminEnabledWidgets.filter((w) => !userWidgetPrefs.hidden.includes(w.type)),
+    [adminEnabledWidgets, userWidgetPrefs.hidden]
+  );
+  const activeWidgetIds = useMemo(() => effectiveWidgets.map((w) => w.type), [effectiveWidgets]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Apply brand customization to CSS vars
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (customization) {
-      const root = document.documentElement;
-      if (customization.primaryColor) {
-        root.style.setProperty('--primary', customization.primaryColor);
-        const lightness = parseFloat(customization.primaryColor.split(' ')[2]);
-        if (lightness < 40) {
-          root.style.setProperty('--primary-foreground', 'var(--primary-foreground-light)');
-        } else {
-          root.style.setProperty('--primary-foreground', '210 10% 23%');
-        }
-      }
-      if (customization.backgroundColor) {
-        root.style.setProperty('--background', customization.backgroundColor);
-        root.style.setProperty('--card', customization.backgroundColor);
-      }
-      if (customization.accentColor) root.style.setProperty('--accent', customization.accentColor);
-      if (customization.foregroundColor) {
-        root.style.setProperty('--foreground', customization.foregroundColor);
-        root.style.setProperty('--muted-foreground', customization.foregroundColor);
-        root.style.setProperty('--card-foreground', customization.foregroundColor);
-      }
-      if (customization.fontFamily) {
-        const fontName = customization.fontFamily.replace(/ /g, '+');
-        const link = document.createElement('link');
-        link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;700&display=swap`;
-        link.rel = 'stylesheet';
-        document.head.appendChild(link);
-        root.style.setProperty('--font-headline', `'${customization.fontFamily}', sans-serif`);
-      }
+    if (!customization) return;
+    const root = document.documentElement;
+    if (customization.primaryColor) {
+      root.style.setProperty('--primary', customization.primaryColor);
+      const l = parseFloat(customization.primaryColor.split(' ')[2]);
+      root.style.setProperty('--primary-foreground', l < 40 ? 'var(--primary-foreground-light)' : '210 10% 23%');
+    }
+    if (customization.backgroundColor) {
+      root.style.setProperty('--background', customization.backgroundColor);
+      root.style.setProperty('--card', customization.backgroundColor);
+    }
+    if (customization.accentColor)    root.style.setProperty('--accent', customization.accentColor);
+    if (customization.foregroundColor) {
+      root.style.setProperty('--foreground', customization.foregroundColor);
+      root.style.setProperty('--muted-foreground', customization.foregroundColor);
+      root.style.setProperty('--card-foreground', customization.foregroundColor);
+    }
+    if (customization.fontFamily) {
+      const name = customization.fontFamily.replace(/ /g, '+');
+      const link = document.createElement('link');
+      link.href = `https://fonts.googleapis.com/css2?family=${name}:wght@400;700&display=swap`;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+      root.style.setProperty('--font-headline', `'${customization.fontFamily}', sans-serif`);
     }
     return () => {
-      const root = document.documentElement;
-      root.style.removeProperty('--primary');
-      root.style.removeProperty('--primary-foreground');
-      root.style.removeProperty('--background');
-      root.style.removeProperty('--card');
-      root.style.removeProperty('--accent');
-      root.style.removeProperty('--foreground');
-      root.style.removeProperty('--muted-foreground');
-      root.style.removeProperty('--card-foreground');
-      root.style.removeProperty('--font-headline');
+      ['--primary','--primary-foreground','--background','--card','--accent',
+       '--foreground','--muted-foreground','--card-foreground','--font-headline']
+        .forEach((v) => root.style.removeProperty(v));
     };
   }, [customization]);
 
-
-  const getClientDocPath = (client: Client | undefined | null): string | null => {
-    if (!client || !client.path) return null;
-    return client.path;
-  };
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Login
+  // ─────────────────────────────────────────────────────────────────────────────
   const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginFormSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: { username: '', password: '' },
   });
 
@@ -229,413 +257,650 @@ export default function ClientLaunchPage() {
     if (!firestore || !client?.path || !auth) return;
     setIsLoggingIn(true);
     loginForm.clearErrors();
-
     try {
-      const accessKeysRef = collection(firestore, client.path, 'accessKeys');
       const q = query(
-        accessKeysRef,
+        collection(firestore, client.path, 'accessKeys'),
         where('username', '==', data.username),
         where('password', '==', data.password)
       );
-
-      const querySnapshot = await getDocs(q);
-
-      if (querySnapshot.empty) {
+      const snap = await getDocs(q);
+      if (snap.empty) {
         loginForm.setError('root', { message: 'Invalid credentials. Please try again.' });
       } else {
-        const accessKeyDoc = querySnapshot.docs[0];
-        const accessKeyData = { ...accessKeyDoc.data(), id: accessKeyDoc.id } as AccessKey;
+        const keyData = { ...snap.docs[0].data(), id: snap.docs[0].id } as AccessKey;
         await signInAnonymously(auth);
-        
-        setActiveUser(accessKeyData);
-        setStage('trainer');
+        setActiveUser(keyData);
+        setStage('portal');
       }
-    } catch (error: any) {
-        loginForm.setError('root', { message: 'An unexpected error occurred during validation.' });
-        console.error("Error validating access key:", error);
+    } catch {
+      loginForm.setError('root', { message: 'An unexpected error occurred during validation.' });
     } finally {
-        setIsLoggingIn(false);
+      setIsLoggingIn(false);
     }
   };
 
   const handleLogout = async () => {
     if (!auth) return;
-    try {
-        await signOut(auth);
-        setStage('login');
-        setActiveUser(null);
-    } catch (error) {
-        console.error("Error signing out: ", error);
-    }
+    try { await signOut(auth); } catch {}
+    setStage('login');
+    setActiveUser(null);
+    setEditMode(false);
   };
 
-  const renderContent = () => {
-    const commonCardClass = 'w-full max-w-sm';
-    const logoSrc = customization?.logoUrl || '/logo.png';
-    const isSalesClient = client?.isEdu !== true;
-    const hasAssets = assets && assets.length > 0;
-    const is4WK21Y = clientId === '4WK21Y';
-    const isSunmmuClient = clientId === 'SUNMMU';
-    
-    const handleVisibilityChange = (card: keyof typeof cardVisibility, checked: boolean) => {
-        setCardVisibility(prev => ({ ...prev, [card]: checked }));
-    };
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Widget Firestore helpers
+  // ─────────────────────────────────────────────────────────────────────────────
 
-
-    const getAssetIcon = (title: string) => {
-        if (title.includes('OPAC')) return <Database className="size-6" />;
-        if (title.includes('Time Punch')) return <Timer className="size-6" />;
-        if (title.includes('Project Hub')) return <GanttChartSquare className="size-6" />;
-        if (title.includes('SOP Bot')) return <Bot className="size-6" />;
-        return <Code className="size-6" />;
-    };
-    
-    const getAssetAction = (asset: Asset) => {
-        if (asset.title.includes('OPAC')) return () => setIsOpacTrackerOpen(true);
-        if (asset.title.includes('Time Punch')) return () => setIsTimePunchOpen(true);
-        if (asset.title.includes('Project Hub')) return () => setIsProjectHubOpen(true);
-        if (asset.title.includes('SOP Bot')) return () => setIsSopBotOpen(true);
-        return () => {};
-    };
-
-    const getAssetButtonText = (title: string) => {
-        if (title.includes('OPAC')) return 'Open Tracker';
-        if (title.includes('Time Punch')) return 'Open Time Punch';
-        if (title.includes('Project Hub')) return 'Open Hub';
-        if (title.includes('SOP Bot')) return 'Open SOP Bot';
-        return 'Open';
+  /** Write (or overwrite) a widget document to Firestore */
+  const saveWidget = useCallback(async (widget: Widget) => {
+    if (!firestore || !client?.path) return;
+    // If we're writing the first Firestore widget, seed the entire default set first
+    if (!firestoreWidgets || firestoreWidgets.length === 0) {
+      const defaults = buildDefaultWidgets();
+      await Promise.all(
+        defaults.map((w) => setDoc(doc(firestore, client.path!, 'widgets', w.id), w))
+      );
     }
+    await setDoc(doc(firestore, client.path, 'widgets', widget.id), widget);
+  }, [firestore, client, firestoreWidgets]);
 
+  const handleWidgetSave = useCallback(async (
+    widget: Widget,
+    updates: Pick<Widget, 'title' | 'description' | 'enabled'>
+  ) => {
+    await saveWidget({ ...widget, ...updates });
+    toast({ title: 'Widget updated', description: `"${updates.title}" saved.` });
+  }, [saveWidget, toast]);
 
-    if (stage === 'login') {
-      return (
-        <Card className={commonCardClass}>
-            <CardHeader className="items-center text-center">
-              {customization?.logoUrl ? (
-                <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized/>
-              ) : (
-                <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{client?.firmName || 'Client Portal'}</CardTitle>
+  const handleWidgetToggle = useCallback(async (widget: Widget, enabled: boolean) => {
+    await saveWidget({ ...widget, enabled });
+  }, [saveWidget]);
+
+  const handleAddWidget = useCallback(async (type: WidgetType) => {
+    if (!firestore || !client?.path) return;
+    const def = WIDGET_CATALOG_MAP[type];
+    const newWidget: Widget = {
+      id: type,
+      type,
+      title: def.defaultTitle,
+      description: def.defaultDescription,
+      enabled: true,
+      order: effectiveWidgets.length,
+      category: def.category,
+    };
+    await saveWidget(newWidget);
+    toast({ title: 'Widget added', description: `"${def.defaultTitle}" added to your portal.` });
+  }, [firestore, client, effectiveWidgets.length, saveWidget, toast]);
+
+  const handleWidgetRequest = useCallback(async (widgetName: string, widgetDescription: string) => {
+    if (!firestore || !client?.path) return;
+    const request: Omit<WidgetRequest, 'id'> = {
+      clientDisplayId: clientId,
+      clientName: client.firmName,
+      requestedByUsername: activeUser?.username ?? 'unknown',
+      requestedByName: activeUser?.displayName ?? 'Unknown',
+      widgetName,
+      widgetDescription,
+      status: 'pending',
+      createdAt: serverTimestamp(),
+    };
+    // Store under client path (queryable by master admin via collectionGroup)
+    await addDoc(collection(firestore, client.path, 'widgetRequests'), request);
+    toast({
+      title: 'Request sent!',
+      description: `Your request for "${widgetName}" has been submitted to the HTBase admin team.`,
+    });
+  }, [firestore, client, clientId, activeUser, toast]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Derived helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const getClientDocPath = () => client?.path ?? null;
+  const logoSrc = customization?.logoUrl || '/HTBASELOGO.png';
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Loading / not-found screens
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-hero bg-dot">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 scale-150 rounded-full bg-primary/20 blur-2xl animate-pulse-glow" />
+            <Loader2 className="relative z-10 h-12 w-12 animate-spin text-primary" />
+          </div>
+          <p className="animate-pulse text-sm text-muted-foreground">Loading portal...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!client) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-hero bg-dot p-4">
+        <div className="glass-card rounded-2xl p-8 text-center max-w-sm">
+          <h2 className="font-headline text-xl font-bold mb-2">Portal Not Found</h2>
+          <p className="text-sm text-muted-foreground">
+            The client portal <span className="font-mono text-primary">{clientId}</span> could not be located.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LOGIN STAGE
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (stage === 'login') {
+    return (
+      <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-hero bg-dot p-4">
+        {/* Background orbs */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div
+            className="animate-float-1 absolute -top-32 -right-32 h-[500px] w-[500px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(0,235,255,0.14) 0%, transparent 70%)', filter: 'blur(60px)', opacity: 0.8 }}
+          />
+          <div
+            className="animate-float-2 absolute -bottom-40 -left-32 h-[600px] w-[600px] rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.14) 0%, transparent 70%)', filter: 'blur(70px)', opacity: 0.7 }}
+          />
+        </div>
+
+        <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-5">
+          {/* Logo + company name */}
+          <div className="flex flex-col items-center gap-5 text-center animate-fade-up">
+            <div className="relative">
+              {/* Layered glow rings */}
+              <div className="absolute inset-0 scale-[2.2] rounded-3xl bg-primary/15 blur-3xl animate-pulse-glow" />
+              <div className="absolute inset-0 scale-[1.6] rounded-3xl bg-secondary/10 blur-2xl" />
+              <div className="relative rounded-3xl border border-primary/25 bg-background/50 p-6 glass-card">
+                <Image
+                  src={logoSrc}
+                  alt={`${client.firmName} Logo`}
+                  width={140}
+                  height={140}
+                  className="relative z-10 object-contain"
+                  unoptimized={!!customization?.logoUrl}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-4xl font-extrabold font-headline tracking-tight text-gradient leading-none">
+                {client.firmName}
+              </h1>
+              {customization?.tagline && (
+                <p className="text-sm text-muted-foreground">{customization.tagline}</p>
               )}
-              <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>
-                Enter your access key credentials to begin.
-              </CardDescription>
-            </CardHeader>
+            </div>
+          </div>
+
+          {/* Login card */}
+          <div className="w-full glass-card-strong rounded-2xl p-6 animate-fade-up" style={{ animationDelay: '100ms' }}>
+            <div className="mb-5 flex items-center gap-2">
+              <LogIn className="h-3.5 w-3.5 text-primary/60" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                Portal Access
+              </span>
+            </div>
+
             <Form {...loginForm}>
-            <form onSubmit={loginForm.handleSubmit(handleLogin)}>
-              <CardContent className="space-y-4">
-                 <FormField
+              <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                <FormField
                   control={loginForm.control}
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Username</FormLabel>
-                      <FormControl><Input {...field} disabled={isLoggingIn} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} /></FormControl>
+                      <FormLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                        Username
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={isLoggingIn}
+                          className="border-border/60 bg-background/50 backdrop-blur-sm focus:border-primary/50"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                 <FormField
+                <FormField
                   control={loginForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className={cn(customization?.foregroundColor && 'text-foreground')}>Password</FormLabel>
-                      <FormControl><Input type="password" {...field} disabled={isLoggingIn} className={cn(customization?.foregroundColor && 'placeholder:text-foreground/50')} /></FormControl>
+                      <FormLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                        Password
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          {...field}
+                          disabled={isLoggingIn}
+                          className="border-border/60 bg-background/50 backdrop-blur-sm focus:border-primary/50"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                {loginForm.formState.errors.root && <p className="text-sm text-destructive">{loginForm.formState.errors.root.message}</p>}
-              </CardContent>
-              <CardFooter>
-                 <Button type="submit" className="w-full" disabled={isLoggingIn}>
-                    {isLoggingIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <LogIn className="mr-2"/>}
-                    {isLoggingIn ? 'Verifying...' : 'Sign In'}
+                {loginForm.formState.errors.root && (
+                  <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {loginForm.formState.errors.root.message}
+                  </p>
+                )}
+                <Button type="submit" className="mt-1 h-11 w-full btn-gradient" disabled={isLoggingIn}>
+                  {isLoggingIn ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</>
+                  ) : (
+                    <><LogIn className="mr-2 h-4 w-4" />Sign In</>
+                  )}
                 </Button>
-              </CardFooter>
-            </form>
+              </form>
             </Form>
-          </Card>
-      );
-    }
-          
-    if (stage === 'trainer') {
-      return (
-        <>
-          <div className="mx-auto max-w-4xl w-full">
-            <Card className="relative">
-              <CardHeader className="items-center text-center">
-                {(is4WK21Y || isSunmmuClient) && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="absolute top-2 right-2">
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Visible Modules</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuCheckboxItem checked={cardVisibility.messenger} onCheckedChange={(c) => handleVisibilityChange('messenger', !!c)}>Messenger Scenario</DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem checked={cardVisibility.coldCall} onCheckedChange={(c) => handleVisibilityChange('coldCall', !!c)}>Cold Call Simulator</DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem checked={cardVisibility.trainingResults} onCheckedChange={(c) => handleVisibilityChange('trainingResults', !!c)}>Training Results</DropdownMenuCheckboxItem>
-                      {is4WK21Y && (
-                        <>
-                          <DropdownMenuCheckboxItem checked={cardVisibility.builds} onCheckedChange={(c) => handleVisibilityChange('builds', !!c)}>Builds Tracker</DropdownMenuCheckboxItem>
-                          <DropdownMenuCheckboxItem checked={cardVisibility.leads} onCheckedChange={(c) => handleVisibilityChange('leads', !!c)}>Leads Tracker</DropdownMenuCheckboxItem>
-                          <DropdownMenuCheckboxItem checked={cardVisibility.forms} onCheckedChange={(c) => handleVisibilityChange('forms', !!c)}>Forms</DropdownMenuCheckboxItem>
-                          <DropdownMenuCheckboxItem checked={cardVisibility.contractGenerator} onCheckedChange={(c) => handleVisibilityChange('contractGenerator', !!c)}>Contract Generator</DropdownMenuCheckboxItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                <Image src={logoSrc} alt="Company Logo" width={120} height={120} className="mb-4" unoptimized />
-                <CardTitle className={cn("font-headline text-2xl", customization?.foregroundColor && 'text-foreground')}>{customization?.tagline || 'Training Portal'}</CardTitle>
-                <CardDescription className={cn(customization?.foregroundColor && 'text-foreground opacity-70')}>
-                   {is4WK21Y ? 'Welcome to your portal.' : (isSalesClient ? 'Select a training module to begin.' : 'Welcome to your portal.')}
-                </CardDescription>
-                {activeUser?.displayName && (
-                    <p className={cn("text-muted-foreground pt-2", customization?.foregroundColor && 'text-foreground opacity-90')}>Welcome, {activeUser.displayName}!</p>
-                )}
-              </CardHeader>
-              <CardContent className="space-y-6">
-                
-                {(isSalesClient || is4WK21Y || isSunmmuClient) && (
-                    <div className="space-y-4">
-                        <h3 className="font-headline text-xl font-semibold">Sales Training</h3>
-                        <div className="grid gap-6 md:grid-cols-2">
-                            {cardVisibility.messenger && (
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="size-6" /></div>
-                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Messenger Scenario Runner</CardTitle>
-                                        </div>
-                                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Practice real-world conversations with an AI-powered chat simulator.</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => setIsMessengerScenarioOpen(true)}>Start Scenario</Button>
-                                    </CardFooter>
-                                </Card>
-                            )}
-                            {cardVisibility.coldCall && (
-                                <Card>
-                                    <CardHeader>
-                                        <div className="flex items-center gap-3">
-                                        <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Phone className="size-6" /></div>
-                                        <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Cold Call Simulator</CardTitle>
-                                        </div>
-                                        <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Hone your sales skills by practicing cold calls with an AI prospect.</CardDescription>
-                                    </CardHeader>
-                                    <CardFooter>
-                                        <Button onClick={() => setIsColdCallOpen(true)}>Start Simulation</Button>
-                                    </CardFooter>
-                                </Card>
-                            )}
-                        </div>
-                        {cardVisibility.trainingResults && (
-                            <div className="pt-6">
-                                <SessionManager clientPath={getClientDocPath(client)} customization={customization} activeSessionId={activeUser?.username || null} />
-                            </div>
-                        )}
-                    </div>
-                )}
-                
-                <div className="space-y-4">
-                  <h3 className="font-headline text-xl font-semibold">Operations</h3>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {isSunmmuClient && (
-                         <Card>
-                            <CardHeader>
-                                <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Database className="size-6" /></div>
-                                <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>OPAC Tracker</CardTitle>
-                                </div>
-                                <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Globe Life Liberty National Customer Tracker.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                                <Button onClick={() => setIsOpacTrackerOpen(true)}>Open Tracker</Button>
-                            </CardFooter>
-                        </Card>
-                    )}
-                    {assets?.filter(asset => (!isSunmmuClient || !asset.title.includes('OPAC')) && asset.title !== 'AR Collections Hub').map(asset => (
-                      <Card key={asset.id}>
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                              {getAssetIcon(asset.title)}
-                            </div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>{asset.title}</CardTitle>
-                          </div>
-                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>{asset.description}</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                          <Button onClick={getAssetAction(asset)}>
-                            {getAssetButtonText(asset.title)}
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                    {is4WK21Y && (
-                       <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><GanttChartSquare className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Queue</CardTitle>
-                          </div>
-                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Automated follow-up reminders for leads.</CardDescription>
-                        </CardHeader>
-                        <CardFooter className="flex gap-2">
-                          <Button onClick={() => setIsQueueOpen(true)}>Open Queue</Button>
-                           <Button variant="outline" onClick={() => setIsMasterQueuePasscodeOpen(true)}>Master Queue</Button>
-                        </CardFooter>
-                      </Card>
-                    )}
-                    {is4WK21Y && cardVisibility.builds && (
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Wrench className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Builds Tracker</CardTitle>
-                          </div>
-                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your build projects.</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                          <Button onClick={() => setIsBuildsTrackerOpen(true)}>Open Builds</Button>
-                        </CardFooter>
-                      </Card>
-                    )}
-                    {is4WK21Y && cardVisibility.forms && (
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileSignature className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Forms</CardTitle>
-                          </div>
-                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage public data entry forms.</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                          <Button onClick={() => setIsFormManagementOpen(true)}>Manage Forms</Button>
-                        </CardFooter>
-                      </Card>
-                    )}
-                     {is4WK21Y && cardVisibility.contractGenerator && (
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><FileText className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Contract Generator</CardTitle>
-                          </div>
-                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Generate contracts for your leads.</CardDescription>
-                        </CardHeader>
-                        <CardFooter className="flex gap-2">
-                           <Button onClick={() => setIsManageTemplatesOpen(true)} variant="secondary">Manage Templates</Button>
-                          <Button onClick={() => setIsContractGeneratorOpen(true)}>Open Generator</Button>
-                        </CardFooter>
-                      </Card>
-                    )}
-                    {is4WK21Y && (
-                        <Card>
-                            <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><DollarSign className="size-6" /></div>
-                                <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>A/R Collections</CardTitle>
-                            </div>
-                            <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage customer balances and collections.</CardDescription>
-                            </CardHeader>
-                            <CardFooter>
-                            <Button onClick={() => setIsArCollectionsOpen(true)}>Open Hub</Button>
-                            </CardFooter>
-                        </Card>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-headline text-xl font-semibold">Leads</h3>
-                  <div className="grid gap-6 md:grid-cols-1">
-                    {is4WK21Y && cardVisibility.leads && (
-                      <Card>
-                        <CardHeader>
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Users className="size-6" /></div>
-                            <CardTitle className={cn("font-headline text-lg", customization?.foregroundColor && 'text-foreground')}>Leads Tracker</CardTitle>
-                          </div>
-                          <CardDescription className={cn('pt-2', customization?.foregroundColor && 'text-foreground opacity-70')}>Manage and track your sales leads.</CardDescription>
-                        </CardHeader>
-                        <CardFooter>
-                          <Button onClick={() => setIsLeadsTrackerOpen(true)} disabled>Open Leads</Button>
-                        </CardFooter>
-                      </Card>
-                    )}
-                  </div>
-                </div>
-                
-              </CardContent>
-              <CardFooter className="justify-center">
-                 <Button variant="link" onClick={handleLogout} className={cn(customization?.foregroundColor && 'text-foreground')}>
-                     <LogOut className="mr-2 h-4 w-4"/>
-                     Log Out
-                 </Button>
-              </CardFooter>
-            </Card>
           </div>
-          {(isSalesClient || is4WK21Y || isSunmmuClient) && <MessengerScenarioDialog open={isMessengerScenarioOpen} onOpenChange={setIsMessengerScenarioOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
-          {(isSalesClient || is4WK21Y || isSunmmuClient) && <ColdCallSimulatorDialog open={isColdCallOpen} onOpenChange={setIsColdCallOpen} activeSessionId={activeUser?.username || null} clientPath={getClientDocPath(client)} trainingData={client?.trainingData}/>}
-          {client && <OpacTrackerDialog open={isOpacTrackerOpen} onOpenChange={setIsOpacTrackerOpen} client={client} activeUser={activeUser} />}
-          {client && assets && <TimePunchDialog open={isTimePunchOpen} onOpenChange={setIsTimePunchOpen} client={client} activeUser={activeUser} asset={assets.find(a => a.title.includes('Time Punch'))} />}
-          {client && <ProjectHubDialog open={isProjectHubOpen} onOpenChange={setIsProjectHubOpen} client={client} activeUser={activeUser} />}
-          {client && <SopBotDialog open={isSopBotOpen} onOpenChange={setIsSopBotOpen} client={client} activeUser={activeUser} />}
-          {client && <LeadsTrackerDialog open={isLeadsTrackerOpen} onOpenChange={setIsLeadsTrackerOpen} client={client} activeUser={activeUser} />}
-          {client && <BuildsTrackerDialog open={isBuildsTrackerOpen} onOpenChange={setIsBuildsTrackerOpen} client={client} activeUser={activeUser} />}
-          {client && <FormManagementDialog open={isFormManagementOpen} onOpenChange={setIsFormManagementOpen} client={client} activeUser={activeUser} />}
-          {client && <QueueDialog open={isQueueOpen} onOpenChange={setIsQueueOpen} client={client} activeUser={activeUser} />}
-          {client && (
-            <MasterQueuePasscodeDialog 
-                open={isMasterQueuePasscodeOpen} 
-                onOpenChange={setIsMasterQueuePasscodeOpen}
-                onSuccess={() => setIsMasterQueueOpen(true)}
-            />
-          )}
-          {client && (
-            <MasterQueueDialog
-                open={isMasterQueueOpen}
-                onOpenChange={setIsMasterQueueOpen}
-                client={client}
-            />
-          )}
-          {client && <ContractGeneratorDialog open={isContractGeneratorOpen} onOpenChange={setIsContractGeneratorOpen} client={client} activeUser={activeUser} />}
-          {client && <ManageTemplatesDialog open={isManageTemplatesOpen} onOpenChange={setIsManageTemplatesOpen} client={client} activeUser={activeUser} />}
-          {client && <ARCollectionsDialog open={isArCollectionsOpen} onOpenChange={setIsArCollectionsOpen} client={client} activeUser={activeUser} />}
-        </>
-      );
-    }
-      
-    return null;
-  };
-  
-    if (isLoading) {
-        return (
-            <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            </main>
-        );
-    }
-    
-    if (!client && !isLoading) {
-        return (
-            <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
-                <Card className="w-full max-w-sm text-center">
-                    <CardHeader><CardTitle>Client Not Found</CardTitle></CardHeader>
-                    <CardContent><p>The requested client could not be found.</p></CardContent>
-                </Card>
-            </main>
-        );
-    }
+
+          <p className="text-center text-xs text-muted-foreground/50 animate-fade-up" style={{ animationDelay: '200ms' }}>
+            Powered by{' '}
+            <span className="text-primary/70 font-medium">HTBase</span>
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PORTAL STAGE
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const widgetsByCategory = WIDGET_CATEGORIES.map((cat) => ({
+    category: cat,
+    widgets: enabledWidgets.filter((w) => w.category === cat),
+  })).filter((g) => g.widgets.length > 0);
+
+  // In edit mode also show disabled widgets so admin can toggle them back on
+  const allWidgetsByCategory = WIDGET_CATEGORIES.map((cat) => ({
+    category: cat,
+    widgets: effectiveWidgets.filter((w) => w.category === cat).sort((a, b) => a.order - b.order),
+  })).filter((g) => g.widgets.length > 0);
+
+  const displayGroups = editMode ? allWidgetsByCategory : widgetsByCategory;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
-      {renderContent()}
-    </main>
+    <div className="flex min-h-screen flex-col bg-hero bg-dot">
+
+      {/* ── Sticky scroll-context nav (logo only, thin) ────────────────────────── */}
+      <header className="sticky top-0 z-40 glass-nav">
+        <div className="mx-auto flex max-w-7xl items-center gap-2.5 px-4 py-2 md:px-6">
+          <div className="relative h-6 w-6 shrink-0 rounded-md overflow-hidden border border-primary/20 bg-background/40">
+            <Image src={logoSrc} alt="" fill sizes="24px" className="object-contain p-0.5" unoptimized={!!customization?.logoUrl} />
+          </div>
+          <span className="text-xs font-bold font-headline text-gradient-cyan truncate max-w-[180px]">
+            {client.firmName}
+          </span>
+          {isPortalAdmin && (
+            <Badge variant="outline" className="ml-1 items-center gap-0.5 border-primary/30 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0 hidden sm:flex">
+              <ShieldCheck className="h-2.5 w-2.5" />Admin
+            </Badge>
+          )}
+        </div>
+      </header>
+
+      {/* ── Hero Banner ────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden border-b border-border/20">
+        <div aria-hidden className="pointer-events-none absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse at 50% 110%, rgba(0,235,255,0.08) 0%, transparent 65%)' }}
+        />
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-5 px-4 py-10 text-center md:px-6">
+          {/* Logo — BIG */}
+          <div className="relative">
+            <div className="absolute inset-0 scale-[2.2] rounded-[2rem] bg-primary/12 blur-3xl animate-pulse-glow" />
+            <div className="absolute inset-0 scale-[1.6] rounded-[2rem] bg-secondary/08 blur-2xl" />
+            <div className="relative rounded-[1.75rem] border border-primary/20 bg-background/40 p-5 glass-card">
+              <Image
+                src={logoSrc}
+                alt={`${client.firmName} Logo`}
+                width={160}
+                height={160}
+                className="relative z-10 object-contain"
+                unoptimized={!!customization?.logoUrl}
+                priority
+              />
+            </div>
+          </div>
+
+          {/* Company name + tagline */}
+          <div className="space-y-1.5">
+            <h1 className="text-4xl font-extrabold font-headline tracking-tight text-gradient leading-none md:text-5xl">
+              {client.firmName}
+            </h1>
+            {customization?.tagline && (
+              <p className="text-sm text-muted-foreground md:text-base">{customization.tagline}</p>
+            )}
+            {activeUser?.displayName && (
+              <p className="text-xs text-muted-foreground/60 pt-0.5">
+                Welcome back, <span className="text-foreground/80 font-medium">{activeUser.displayName}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Action Bar — always visible, all controls here ─────────────────────── */}
+      <div className="border-b border-border/25 bg-background/30 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-6">
+
+          {/* Left: section label */}
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Your Portal
+          </p>
+
+          {/* Right: action buttons */}
+          <div className="flex items-center gap-2">
+            {/* My Widgets — available to every user */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUserEditorOpen(true)}
+              className={cn(
+                'h-8 gap-2 rounded-xl border text-xs font-semibold transition-all',
+                userWidgetPrefs.hidden.length > 0
+                  ? 'border-secondary/50 bg-secondary/10 text-secondary/90 hover:bg-secondary/15'
+                  : 'border-border/60 text-muted-foreground hover:border-border hover:text-foreground'
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              My Widgets
+              {userWidgetPrefs.hidden.length > 0 && (
+                <span className="rounded-full bg-secondary/30 px-1.5 text-[10px] font-bold">
+                  {userWidgetPrefs.hidden.length} hidden
+                </span>
+              )}
+            </Button>
+
+            {/* Manage Widgets — ADMIN ONLY: edits shared portal config */}
+            {isPortalAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditMode((v) => !v)}
+                className={cn(
+                  'h-8 gap-2 rounded-xl border text-xs font-semibold transition-all',
+                  editMode
+                    ? 'border-primary/50 bg-primary/15 text-primary hover:bg-primary/20'
+                    : 'border-border/60 text-muted-foreground hover:border-primary/40 hover:text-primary/80'
+                )}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                {editMode ? 'Done Managing' : 'Manage Widgets'}
+              </Button>
+            )}
+
+            {/* Log Out — always visible */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="h-8 gap-2 rounded-xl border border-border/60 text-xs font-semibold text-muted-foreground transition-all hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Log Out
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Admin Widget Management Panel (admin only, when edit mode active) ───── */}
+      {isPortalAdmin && editMode && (
+        <div className="border-b border-primary/20 bg-primary/5 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 md:px-6">
+            <div className="flex items-center gap-1.5">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-xs font-bold text-primary/80 uppercase tracking-wider">Widget Management Mode</span>
+            </div>
+            <p className="text-xs text-muted-foreground hidden sm:block">
+              Pencil icon = edit title &amp; description · Toggle = show/hide for all users
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsBrowserOpen(true)}
+                className="h-8 gap-1.5 rounded-xl border-border/60 text-xs font-semibold hover:border-primary/40"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Browse Catalog
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setIsRequestOpen(true)}
+                className="h-8 gap-1.5 rounded-xl btn-gradient text-xs font-semibold"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Request Widget
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Widget Grid ────────────────────────────────────────────────────────── */}
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 md:px-6">
+        {displayGroups.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="mb-4 rounded-2xl border border-border/40 bg-background/30 p-6 glass">
+              <LayoutGrid className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="font-semibold text-foreground">No widgets configured</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {isPortalAdmin
+                  ? 'Enable Edit Mode to browse and add widgets to this portal.'
+                  : 'Contact your administrator to set up widgets.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {displayGroups.map(({ category, widgets }) => (
+              <section key={category}>
+                <h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {category}
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {widgets.map((widget) => (
+                    <WidgetCard
+                      key={widget.id}
+                      widget={widget}
+                      editMode={editMode}
+                      onEdit={() => setEditingWidget(widget)}
+                      onToggle={(enabled) => handleWidgetToggle(widget, enabled)}
+                      onAction={() => setOpenDialog(widget.type)}
+                      onSecondaryAction={
+                        widget.type === 'queue'     ? () => setIsMasterQueuePasscodeOpen(true)
+                        : widget.type === 'contracts' ? () => setIsManageTemplatesOpen(true)
+                        : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* ── All Dialogs ────────────────────────────────────────────────────────── */}
+      {client && <MessengerScenarioDialog     open={openDialog === 'messenger'}       onOpenChange={(o) => !o && setOpenDialog(null)} activeSessionId={activeUser?.username ?? null} clientPath={getClientDocPath()} trainingData={client.trainingData} />}
+      {client && <ColdCallSimulatorDialog     open={openDialog === 'cold-call'}       onOpenChange={(o) => !o && setOpenDialog(null)} activeSessionId={activeUser?.username ?? null} clientPath={getClientDocPath()} trainingData={client.trainingData} />}
+      {client && <OpacTrackerDialog           open={openDialog === 'opac'}            onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && assets && <TimePunchDialog   open={openDialog === 'time-punch'}      onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} asset={assets.find((a) => a.title.includes('Time Punch'))} />}
+      {client && <ProjectHubDialog           open={openDialog === 'project-hub'}     onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <SopBotDialog               open={openDialog === 'sop-bot'}         onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <LeadsTrackerDialog         open={openDialog === 'leads'}           onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <BuildsTrackerDialog        open={openDialog === 'builds'}          onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <FormManagementDialog       open={openDialog === 'forms'}           onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <QueueDialog                open={openDialog === 'queue'}           onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <ContractGeneratorDialog    open={openDialog === 'contracts'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <ARCollectionsDialog        open={openDialog === 'ar-collections'}  onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {/* Session manager is rendered inline in Sales Training section for the session-manager widget */}
+
+      {client && (
+        <MasterQueuePasscodeDialog
+          open={isMasterQueuePasscodeOpen}
+          onOpenChange={setIsMasterQueuePasscodeOpen}
+          onSuccess={() => setIsMasterQueueOpen(true)}
+        />
+      )}
+      {client && (
+        <MasterQueueDialog
+          open={isMasterQueueOpen}
+          onOpenChange={setIsMasterQueueOpen}
+          client={client}
+        />
+      )}
+      {client && (
+        <ManageTemplatesDialog
+          open={isManageTemplatesOpen}
+          onOpenChange={setIsManageTemplatesOpen}
+          client={client}
+          activeUser={activeUser}
+        />
+      )}
+
+      {/* Admin dialogs */}
+      {editingWidget && (
+        <WidgetEditDialog
+          widget={editingWidget}
+          open={!!editingWidget}
+          onOpenChange={(o) => { if (!o) setEditingWidget(null); }}
+          onSave={(updates) => handleWidgetSave(editingWidget, updates)}
+        />
+      )}
+      <WidgetBrowserDialog
+        open={isBrowserOpen}
+        onOpenChange={setIsBrowserOpen}
+        activeWidgetIds={activeWidgetIds}
+        onAdd={handleAddWidget}
+      />
+      <WidgetRequestDialog
+        open={isRequestOpen}
+        onOpenChange={setIsRequestOpen}
+        clientName={client.firmName}
+        onSubmit={handleWidgetRequest}
+      />
+      {/* User personal widget preferences */}
+      <UserWidgetEditorSheet
+        open={isUserEditorOpen}
+        onOpenChange={setIsUserEditorOpen}
+        widgets={adminEnabledWidgets}
+        prefs={userWidgetPrefs}
+        onPrefsChange={setUserWidgetPrefs}
+      />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WidgetCard sub-component
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface WidgetCardProps {
+  widget: Widget;
+  editMode: boolean;
+  onEdit: () => void;
+  onToggle: (enabled: boolean) => void;
+  onAction: () => void;
+  onSecondaryAction?: () => void;
+}
+
+function WidgetCard({ widget, editMode, onEdit, onToggle, onAction, onSecondaryAction }: WidgetCardProps) {
+  const def = WIDGET_CATALOG_MAP[widget.type];
+  const isDisabled = !widget.enabled;
+
+  return (
+    <div
+      className={cn(
+        'relative flex flex-col gap-4 rounded-2xl border p-5 transition-all duration-200',
+        isDisabled && editMode
+          ? 'border-border/30 bg-background/20 opacity-60'
+          : 'glass-card hover:border-primary/30 hover:shadow-[0_0_24px_rgba(0,235,255,0.07)]'
+      )}
+    >
+      {/* Edit mode controls */}
+      {editMode && (
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <Switch
+            checked={widget.enabled}
+            onCheckedChange={onToggle}
+            className="scale-75 origin-right"
+          />
+          <button
+            onClick={onEdit}
+            className="flex h-6 w-6 items-center justify-center rounded-md border border-border/50 bg-background/50 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Icon + title */}
+      <div className="flex items-start gap-3 pr-16">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/15">
+          <WidgetIcon iconName={def?.iconName ?? 'Bot'} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold font-headline text-sm leading-tight">{widget.title}</h3>
+          <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wide">
+            {widget.category}
+          </span>
+        </div>
+      </div>
+
+      {/* Description */}
+      <p className="flex-1 text-xs text-muted-foreground leading-relaxed line-clamp-2">
+        {widget.description}
+      </p>
+
+      {/* Session manager rendered inline */}
+      {widget.type === 'session-manager' ? (
+        <div className="mt-auto">
+          {/* Session manager is a special widget that renders inline — handled by portal */}
+          <Button size="sm" className="w-full btn-gradient text-xs" onClick={onAction}>
+            {def?.actionLabel ?? 'Open'}
+          </Button>
+        </div>
+      ) : (
+        /* Action button(s) */
+        <div className={cn('mt-auto flex gap-2', onSecondaryAction ? 'flex-col sm:flex-row' : '')}>
+          {onSecondaryAction && def?.secondaryActionLabel && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 border-border/50 text-xs hover:border-primary/40"
+              onClick={onSecondaryAction}
+              disabled={isDisabled && !editMode}
+            >
+              {def.secondaryActionLabel}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            className={cn('text-xs', onSecondaryAction ? 'flex-1' : 'w-full', 'btn-gradient')}
+            onClick={onAction}
+            disabled={isDisabled && !editMode}
+          >
+            {def?.actionLabel ?? 'Open'}
+          </Button>
+        </div>
+      )}
+
+      {/* Hidden badge when disabled */}
+      {isDisabled && editMode && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-2xl pointer-events-none">
+          <span className="flex items-center gap-1 rounded-full border border-border/50 bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur-sm">
+            <EyeOff className="h-3 w-3" /> Hidden
+          </span>
+        </div>
+      )}
+    </div>
   );
 }

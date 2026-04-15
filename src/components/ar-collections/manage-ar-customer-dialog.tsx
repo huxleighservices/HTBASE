@@ -12,16 +12,6 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-  } from "@/components/ui/alert-dialog"
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -162,7 +152,7 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                         <CardHeader><CardTitle>Add Payment</CardTitle></CardHeader>
                         <CardContent className="space-y-2">
                              <Label htmlFor="payment-amount">Amount</Label>
-                             <Input id="payment-amount" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(parseFloat(e.target.value))} />
+                             <Input id="payment-amount" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)} />
                              <Button className="w-full" onClick={handleAddPayment} disabled={paymentAmount <= 0}><PlusCircle className="mr-2"/>Add Payment</Button>
                         </CardContent>
                     </Card>
@@ -170,7 +160,7 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                         <CardHeader><CardTitle>Add Penalty</CardTitle></CardHeader>
                         <CardContent className="space-y-2">
                              <Label htmlFor="penalty-amount">Amount</Label>
-                             <Input id="penalty-amount" type="number" value={penaltyAmount} onChange={(e) => setPenaltyAmount(parseFloat(e.target.value))} />
+                             <Input id="penalty-amount" type="number" value={penaltyAmount} onChange={(e) => setPenaltyAmount(parseFloat(e.target.value) || 0)} />
                               <Label htmlFor="penalty-reason">Reason</Label>
                              <Input id="penalty-reason" value={penaltyReason} onChange={(e) => setPenaltyReason(e.target.value)} />
                              <Button variant="destructive" className="w-full" onClick={handleAddPenalty} disabled={penaltyAmount <= 0 || !penaltyReason.trim()}><MinusCircle className="mr-2"/>Add Penalty</Button>

@@ -101,7 +101,7 @@ export default function PublicFormPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-dot p-4">
       <Card className="w-full max-w-lg">
         <CardHeader className="items-center text-center">
-            <Image src="/logo.png" alt="HTBase Logo" width={48} height={48} className="text-primary" />
+            <Image src="/HTBASELOGO.png" alt="HTBase Logo" width={48} height={48} />
             <CardTitle className="font-headline text-2xl">{formDef?.title}</CardTitle>
             <CardDescription>
               Please fill out the details below.

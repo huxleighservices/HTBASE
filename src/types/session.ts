@@ -6,6 +6,7 @@ export type AccessKey = {
   displayName: string;
   createdAt: any;
   phoneNumber?: string;
+  role?: 'admin' | 'user'; // 'admin' can edit widgets and request new ones
 };
 
 // The Session type is now effectively obsolete for the new flow,

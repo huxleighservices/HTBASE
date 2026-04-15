@@ -22,8 +22,13 @@ const inter = Inter({
 
 
 export const metadata: Metadata = {
-  title: "HTBase",
-  description: "White-label AI Trainer by Huxleigh",
+  title: "HTBase — AI-First ERP",
+  description: "AI-First ERP for any business. Powered by HTBase.",
+  icons: {
+    icon: '/HTBASEICON.png',
+    shortcut: '/HTBASEICON.png',
+    apple: '/HTBASEICON.png',
+  },
 };
 
 export default function RootLayout({

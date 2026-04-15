@@ -34,8 +34,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-dashboard">
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <div className="absolute inset-0 scale-150 rounded-full bg-primary/20 blur-xl animate-pulse-glow" />
+            <Loader2 className="relative z-10 h-10 w-10 animate-spin text-primary" />
+          </div>
+          <p className="animate-pulse text-xs text-muted-foreground tracking-wider uppercase">Loading</p>
+        </div>
       </div>
     );
   }
@@ -47,7 +53,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-dashboard">
       <Header />
       <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
     </div>

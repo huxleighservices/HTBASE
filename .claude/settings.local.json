@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":9002\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(taskkill /PID 39032 /F)",
+      "Bash(cmd /c \"taskkill /PID 39032 /F\")"
+    ]
+  }
+}

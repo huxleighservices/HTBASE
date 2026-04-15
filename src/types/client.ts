@@ -218,6 +218,7 @@ export type AccessKey = {
   displayName: string;
   createdAt: any;
   phoneNumber?: string;
+  role?: 'admin' | 'user'; // 'admin' can edit widgets and request new ones
 };
 
 export type ARCustomer = {

@@ -244,7 +244,7 @@ export default function MyTrainerPage() {
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
         <div className="text-center">
           <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-muted-foreground">Loading your trainer...</p>
+          <p className="mt-4 text-muted-foreground">Loading your ERP...</p>
         </div>
       </div>
     );
@@ -257,10 +257,10 @@ export default function MyTrainerPage() {
       <div className="mt-16 flex flex-col items-center gap-8 text-center">
         <div className="max-w-md rounded-lg border bg-card p-8">
           <h1 className="font-headline text-2xl font-bold tracking-tight">
-            No Trainer Assigned
+            No ERP Assigned
           </h1>
           <p className="mt-2 text-muted-foreground">
-            You are not assigned to a client trainer. Please contact an
+            You are not assigned to a client ERP. Please contact an
             administrator for assistance.
           </p>
         </div>
@@ -273,7 +273,7 @@ export default function MyTrainerPage() {
       <div className="flex flex-col gap-8">
         <div>
           <h1 className="font-headline text-3xl font-bold tracking-tight">
-            My Trainer: {client.firmName}
+            My ERP: {client.firmName}
           </h1>
           <div className="mt-1 flex items-center gap-2">
             <p className="text-muted-foreground">Managing Client:</p>
@@ -286,7 +286,7 @@ export default function MyTrainerPage() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>AI Trainer Setup</CardTitle>
+                <CardTitle>AI ERP Setup</CardTitle>
                 <CardDescription>
                   Configure the training data and materials for this client.
                 </CardDescription>
@@ -297,7 +297,7 @@ export default function MyTrainerPage() {
               >
                 <Button>
                   <Wrench className="mr-2" />
-                  Setup Trainer
+                  Setup ERP
                 </Button>
               </SetupTrainerDialog>
             </CardHeader>
