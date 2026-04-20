@@ -49,6 +49,7 @@ export function Header() {
     const links = [{ href: "/dashboard", label: "Home" }];
     if (isAdmin) links.push({ href: "/dashboard/clients", label: "Clients" });
     if (isManager) links.push({ href: "/dashboard/my-trainer", label: "My ERP" });
+    if (isManager || isAdmin) links.push({ href: "/dashboard/marketplace", label: "Marketplace" });
     links.push({ href: "/dashboard/settings", label: "Settings" });
     return links;
   }, [isManager, isAdmin]);

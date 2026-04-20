@@ -17,21 +17,32 @@ export type Widget = {
 };
 
 /**
- * A request for a custom widget, stored at:
- *   {clientPath}/widgetRequests/{requestId}
+ * A request for a custom widget, stored at top-level:
+ *   widgetRequests/{requestId}
  *
- * The master admin (service@huxleigh.com) monitors these via a
- * collectionGroup('widgetRequests') query in the admin dashboard.
+ * The master admin (service@huxleigh.com) monitors these in the marketplace.
  */
 export type WidgetRequest = {
   id: string;
   clientDisplayId: string;
   clientName: string;
-  requestedByUsername: string;
-  requestedByName: string;
+  requestedByEmail: string;
   widgetName: string;
   widgetDescription: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: any;
   notes?: string;
+};
+
+/**
+ * Marketplace-level settings for a widget type, stored at:
+ *   widgetMarketplace/{widgetType}
+ *
+ * Super admin controls availability and display overrides.
+ */
+export type MarketplaceListing = {
+  type: import('@/lib/widget-catalog').WidgetType;
+  enabled: boolean;
+  nameOverride?: string;
+  descriptionOverride?: string;
 };

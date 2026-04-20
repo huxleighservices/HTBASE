@@ -25,8 +25,11 @@ export const metadata: Metadata = {
   title: "HTBase — AI-First ERP",
   description: "AI-First ERP for any business. Powered by HTBase.",
   icons: {
-    icon: '/HTBASEICON.png',
-    shortcut: '/HTBASEICON.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/HTBASEICON.png', sizes: '750x750' },
+    ],
+    shortcut: '/favicon.ico',
     apple: '/HTBASEICON.png',
   },
 };
