@@ -225,11 +225,21 @@ export type ARCustomer = {
     id: string;
     leadId?: string;
     customerName: string;
+    email?: string;
+    phone?: string;
     buildCompleteDate: any; // Firestore Timestamp
     initialBalance: number;
     createdAt: any; // Firestore Timestamp
     activityLog?: ARActivityLog[];
     lastActivity?: any;
+};
+
+export type AREmailTemplate = {
+    id: string;
+    name: string;
+    subject: string;
+    body: string;
+    createdAt: any;
 };
 
 export type ARPayment = {

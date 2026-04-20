@@ -24,8 +24,9 @@ import { collection, serverTimestamp, orderBy, query, CollectionReference, doc, 
 import type { ARCustomer, ARPayment, ARPenalty, ARActivityLog } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Loader2, PlusCircle, MinusCircle, Phone, Mail, MessageSquare, MenuSquare } from 'lucide-react';
+import { Loader2, PlusCircle, MinusCircle, Phone, Mail, MessageSquare, MenuSquare, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { EmailComposerDialog } from './email-composer-dialog';
 
 type ManageArCustomerDialogProps = {
   open: boolean;
@@ -40,6 +41,7 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   const { toast } = useToast();
   const firestore = useFirestore();
 
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [penaltyAmount, setPenaltyAmount] = useState(0);
   const [penaltyReason, setPenaltyReason] = useState('');
@@ -123,13 +125,33 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   };
 
   const daysSinceCompletion = customer.buildCompleteDate?.toDate ? formatDistanceToNow(customer.buildCompleteDate.toDate(), { addSuffix: true }) : 'N/A';
+  const daysSinceBuildNum = customer.buildCompleteDate?.toDate ? Math.floor((Date.now() - customer.buildCompleteDate.toDate().getTime()) / 86400000) : null;
+
+  const copyPhone = () => {
+    if (!customer.phone) return;
+    navigator.clipboard.writeText(customer.phone);
+    toast({ title: 'Copied!', description: `${customer.phone} copied to clipboard.` });
+  };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage A/R for {customer.customerName}</DialogTitle>
-          <DialogDescription>Build completed {daysSinceCompletion}.</DialogDescription>
+          <DialogDescription className="flex items-center gap-3 flex-wrap">
+            <span>Build completed {daysSinceCompletion}.</span>
+            {customer.phone && (
+              <button onClick={copyPhone} className="flex items-center gap-1 text-xs hover:text-primary transition-colors">
+                <Phone className="h-3 w-3" />{customer.phone}<Copy className="h-2.5 w-2.5 opacity-50 ml-0.5" />
+              </button>
+            )}
+            {customer.email && (
+              <button onClick={() => setIsEmailOpen(true)} className="flex items-center gap-1 text-xs hover:text-primary transition-colors">
+                <Mail className="h-3 w-3" />{customer.email}
+              </button>
+            )}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex-grow grid md:grid-cols-2 gap-6 min-h-0 py-4">
             <div className="space-y-6">
@@ -227,5 +249,17 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {isEmailOpen && (
+      <EmailComposerDialog
+        open={isEmailOpen}
+        onOpenChange={setIsEmailOpen}
+        customer={customer}
+        clientPath={clientPath}
+        currentBalance={currentBalance}
+        daysSinceBuild={daysSinceBuildNum}
+      />
+    )}
+    </>
   );
 }

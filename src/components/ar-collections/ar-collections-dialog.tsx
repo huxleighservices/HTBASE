@@ -27,12 +27,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import type { Client, Lead, ARCustomer, ARPayment, ARPenalty, ARActivityLog } from '@/types/client';
 import type { AccessKey } from '@/types/session';
-import { DollarSign, PlusCircle, Trash2, Loader2, Edit, ArrowUpDown, Search, Activity } from 'lucide-react';
+import { DollarSign, PlusCircle, Trash2, Loader2, Edit, ArrowUpDown, Search, Activity, Phone, Mail, Copy } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, serverTimestamp, doc, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { AddArCustomerDialog } from './add-ar-customer-dialog';
 import { ManageArCustomerDialog } from './manage-ar-customer-dialog';
+import { EmailComposerDialog } from './email-composer-dialog';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '../ui/skeleton';
@@ -99,26 +100,48 @@ const ArCustomerRow = ({
   customer,
   onSelectCustomer,
   onDeleteCustomer,
+  onEmailCustomer,
 }: {
   customer: EnrichedARCustomer;
   onSelectCustomer: (customer: ARCustomer) => void;
   onDeleteCustomer: (customerId: string) => void;
+  onEmailCustomer: (customer: ARCustomer) => void;
 }) => {
-  const { 
-    id, 
-    customerName, 
-    buildCompleteDate, 
-    initialBalance, 
-    totalPaid, 
-    totalOwed, 
-    progress, 
-    daysSinceBuild,
-    activityLog
-  } = customer;
+  const { id, customerName, buildCompleteDate, initialBalance, totalPaid, totalOwed, progress, daysSinceBuild, activityLog, phone, email } = customer;
+  const { toast } = useToast();
+
+  const copyPhone = () => {
+    if (!phone) return;
+    navigator.clipboard.writeText(phone);
+    toast({ title: 'Copied!', description: `${phone} copied to clipboard.` });
+  };
 
   return (
      <TableRow>
-        <TableCell className="font-medium">{customerName}</TableCell>
+        <TableCell>
+          <div className="font-medium">{customerName}</div>
+          <div className="flex items-center gap-2 mt-1">
+            {phone && (
+              <button
+                onClick={copyPhone}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                title="Click to copy phone number"
+              >
+                <Phone className="h-3 w-3" />{phone}
+                <Copy className="h-2.5 w-2.5 opacity-50" />
+              </button>
+            )}
+            {email && (
+              <button
+                onClick={() => onEmailCustomer(customer)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                title="Send email"
+              >
+                <Mail className="h-3 w-3" />{email}
+              </button>
+            )}
+          </div>
+        </TableCell>
         <TableCell>{buildCompleteDate?.toDate ? format(buildCompleteDate.toDate(), 'PPP') : 'N/A'}</TableCell>
         <TableCell>${initialBalance.toLocaleString()}</TableCell>
         <TableCell className="w-[200px]">
@@ -173,6 +196,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
 
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<ARCustomer | null>(null);
+  const [emailCustomer, setEmailCustomer] = useState<ARCustomer | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('lastActivity');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -376,11 +400,12 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
                                 </TableHeader>
                                 <TableBody>
                                     {filteredAndSortedCustomers.map(customer => (
-                                         <ArCustomerRow 
-                                            key={customer.id} 
+                                         <ArCustomerRow
+                                            key={customer.id}
                                             customer={customer}
                                             onSelectCustomer={setSelectedCustomer}
                                             onDeleteCustomer={handleDeleteCustomer}
+                                            onEmailCustomer={setEmailCustomer}
                                         />
                                     ))}
                                 </TableBody>
@@ -405,7 +430,7 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
       />
       
       {selectedCustomer && client.path && arCustomersCollectionRef && (
-        <ManageArCustomerDialog 
+        <ManageArCustomerDialog
             open={!!selectedCustomer}
             onOpenChange={(isOpen) => !isOpen && setSelectedCustomer(null)}
             customer={selectedCustomer}
@@ -414,6 +439,20 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
             arCustomersCollectionRef={arCustomersCollectionRef}
         />
       )}
+
+      {emailCustomer && client.path && (() => {
+        const enriched = enrichedCustomers?.find((c) => c.id === emailCustomer.id);
+        return (
+          <EmailComposerDialog
+            open={!!emailCustomer}
+            onOpenChange={(isOpen) => !isOpen && setEmailCustomer(null)}
+            customer={emailCustomer}
+            clientPath={client.path!}
+            currentBalance={enriched?.currentBalance ?? emailCustomer.initialBalance}
+            daysSinceBuild={enriched?.daysSinceBuild ?? null}
+          />
+        );
+      })()}
     </>
   );
 }

@@ -24,6 +24,8 @@ import type { ARCustomer, Lead } from '@/types/client';
 
 const formSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
+  phone: z.string().optional(),
   buildCompleteDate: z.string().min(1, 'Date is required'),
   initialBalance: z.coerce.number().min(0, 'Balance must be a positive number'),
   leadId: z.string().optional(),
@@ -44,7 +46,7 @@ export function AddArCustomerDialog({ open, onOpenChange, onAddCustomer, leads }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { customerName: '', buildCompleteDate: '', initialBalance: 0, leadId: '' },
+    defaultValues: { customerName: '', email: '', phone: '', buildCompleteDate: '', initialBalance: 0, leadId: '' },
   });
 
   const filteredLeads = useMemo(() => {
@@ -145,6 +147,30 @@ export function AddArCustomerDialog({ open, onOpenChange, onAddCustomer, leads }
                         </FormItem>
                     )}
                 />
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl><Input type="email" placeholder="customer@email.com" {...field} /></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                  <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl><Input type="tel" placeholder="(555) 000-0000" {...field} /></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )}
+                  />
+                </div>
                 <FormField
                     control={form.control}
                     name="buildCompleteDate"
