@@ -24,7 +24,7 @@ import { collection, serverTimestamp, orderBy, query, CollectionReference, doc, 
 import type { ARCustomer, ARPayment, ARPenalty, ARActivityLog } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Loader2, PlusCircle, MinusCircle, Phone, Mail, MessageSquare, MenuSquare, Copy } from 'lucide-react';
+import { Loader2, PlusCircle, MinusCircle, Phone, Mail, MessageSquare, MenuSquare, Copy, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmailComposerDialog } from './email-composer-dialog';
 
@@ -42,6 +42,11 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   const firestore = useFirestore();
 
   const [isEmailOpen, setIsEmailOpen] = useState(false);
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [editName, setEditName] = useState(customer.customerName);
+  const [editEmail, setEditEmail] = useState(customer.email ?? '');
+  const [editPhone, setEditPhone] = useState(customer.phone ?? '');
+  const [isSavingContact, setIsSavingContact] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [penaltyAmount, setPenaltyAmount] = useState(0);
   const [penaltyReason, setPenaltyReason] = useState('');
@@ -127,6 +132,22 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
   const daysSinceCompletion = customer.buildCompleteDate?.toDate ? formatDistanceToNow(customer.buildCompleteDate.toDate(), { addSuffix: true }) : 'N/A';
   const daysSinceBuildNum = customer.buildCompleteDate?.toDate ? Math.floor((Date.now() - customer.buildCompleteDate.toDate().getTime()) / 86400000) : null;
 
+  const handleSaveContact = async () => {
+    if (!arCustomersCollectionRef) return;
+    setIsSavingContact(true);
+    try {
+      await updateDocumentNonBlocking(doc(arCustomersCollectionRef, customer.id), {
+        customerName: editName.trim() || customer.customerName,
+        email: editEmail.trim(),
+        phone: editPhone.trim(),
+      });
+      toast({ title: 'Contact updated' });
+      setIsEditingContact(false);
+    } finally {
+      setIsSavingContact(false);
+    }
+  };
+
   const copyPhone = () => {
     if (!customer.phone) return;
     navigator.clipboard.writeText(customer.phone);
@@ -139,22 +160,63 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage A/R for {customer.customerName}</DialogTitle>
-          <DialogDescription className="flex items-center gap-3 flex-wrap">
-            <span>Build completed {daysSinceCompletion}.</span>
-            {customer.phone && (
-              <button onClick={copyPhone} className="flex items-center gap-1 text-xs hover:text-primary transition-colors">
-                <Phone className="h-3 w-3" />{customer.phone}<Copy className="h-2.5 w-2.5 opacity-50 ml-0.5" />
-              </button>
-            )}
-            {customer.email && (
-              <button onClick={() => setIsEmailOpen(true)} className="flex items-center gap-1 text-xs hover:text-primary transition-colors">
-                <Mail className="h-3 w-3" />{customer.email}
-              </button>
-            )}
+          <DialogDescription>
+            Build completed {daysSinceCompletion}.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-grow grid md:grid-cols-2 gap-6 min-h-0 py-4">
             <div className="space-y-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-3">
+                        <CardTitle>Contact Info</CardTitle>
+                        {!isEditingContact && (
+                            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={() => setIsEditingContact(true)}>
+                                <Pencil className="h-3 w-3" />Edit
+                            </Button>
+                        )}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {isEditingContact ? (
+                            <>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Name</Label>
+                                    <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Email</Label>
+                                    <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="customer@email.com" className="h-8 text-sm" />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-muted-foreground">Phone</Label>
+                                    <Input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="(555) 000-0000" className="h-8 text-sm" />
+                                </div>
+                                <div className="flex gap-2 pt-1">
+                                    <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs border border-border/40" onClick={() => setIsEditingContact(false)}>Cancel</Button>
+                                    <Button size="sm" className="flex-1 h-7 text-xs btn-gradient" onClick={handleSaveContact} disabled={isSavingContact}>
+                                        {isSavingContact ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Save'}
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="space-y-2 text-sm">
+                                {customer.email ? (
+                                    <button onClick={() => setIsEmailOpen(true)} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors w-full text-left">
+                                        <Mail className="h-3.5 w-3.5 shrink-0" />{customer.email}
+                                    </button>
+                                ) : (
+                                    <p className="flex items-center gap-2 text-muted-foreground/50 text-xs italic"><Mail className="h-3.5 w-3.5" />No email — click Edit to add</p>
+                                )}
+                                {customer.phone ? (
+                                    <button onClick={copyPhone} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors w-full text-left">
+                                        <Phone className="h-3.5 w-3.5 shrink-0" />{customer.phone}<Copy className="h-2.5 w-2.5 opacity-40 ml-auto" />
+                                    </button>
+                                ) : (
+                                    <p className="flex items-center gap-2 text-muted-foreground/50 text-xs italic"><Phone className="h-3.5 w-3.5" />No phone — click Edit to add</p>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
                 <Card>
                     <CardHeader><CardTitle>Balance</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
