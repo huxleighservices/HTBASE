@@ -9,8 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -306,9 +304,6 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
                 </div>
             </div>
         </div>
-        <DialogFooter>
-          <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
 
