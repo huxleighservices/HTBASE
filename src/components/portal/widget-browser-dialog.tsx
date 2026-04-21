@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import {
   MessageSquare, Phone, BarChart2, Database, Timer,
   GanttChartSquare, Bot, ListTodo, Wrench, FileSignature,
-  FileText, DollarSign, Users, Search, Plus, Check,
+  FileText, DollarSign, Users, Search, Plus, Check, MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -41,6 +41,7 @@ export function WidgetIcon({ iconName, className }: { iconName: string; classNam
     FileText:      <FileText      className={cn('h-5 w-5', className)} />,
     DollarSign:    <DollarSign    className={cn('h-5 w-5', className)} />,
     Users:         <Users         className={cn('h-5 w-5', className)} />,
+    MapPin:        <MapPin        className={cn('h-5 w-5', className)} />,
   };
   return <>{icons[iconName] ?? <Bot className={cn('h-5 w-5', className)} />}</>;
 }

@@ -58,6 +58,7 @@ import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
 import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
 import { ARCollectionsDialog } from '@/components/ar-collections/ar-collections-dialog';
+import { KnockProDialog } from '@/components/knock-pro/knock-pro-dialog';
 import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
 import { WidgetEditDialog } from '@/components/portal/widget-edit-dialog';
 import { WidgetBrowserDialog } from '@/components/portal/widget-browser-dialog';
@@ -741,6 +742,7 @@ export default function ClientLaunchPage() {
       {client && <QueueDialog                open={openDialog === 'queue'}           onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <ContractGeneratorDialog    open={openDialog === 'contracts'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <ARCollectionsDialog        open={openDialog === 'ar-collections'}  onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <KnockProDialog             open={openDialog === 'knock-pro'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {/* Session manager is rendered inline in Sales Training section for the session-manager widget */}
 
       {client && (

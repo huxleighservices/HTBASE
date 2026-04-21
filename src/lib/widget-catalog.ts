@@ -21,7 +21,8 @@ export type WidgetType =
   | 'forms'
   | 'contracts'
   | 'ar-collections'
-  | 'leads';
+  | 'leads'
+  | 'knock-pro';
 
 export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads';
 
@@ -139,6 +140,16 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     iconName: 'DollarSign',
     category: 'Operations',
     actionLabel: 'Open Hub',
+  },
+
+  // ── Knock Pro ────────────────────────────────────────────────────────────────
+  {
+    type: 'knock-pro',
+    defaultTitle: 'Knock Pro',
+    defaultDescription: 'Track and manage door-to-door sales knocks with live map pins.',
+    iconName: 'MapPin',
+    category: 'Leads',
+    actionLabel: 'Open Knock Pro',
   },
 
   // ── Leads ────────────────────────────────────────────────────────────────────
