@@ -375,7 +375,7 @@ export function KnockProDialog({ open, onOpenChange, client, activeUser }: Knock
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '',
-    libraries: ['places', 'geocoding'],
+    libraries: ['places'],
   });
 
   // Load access keys for visibility panel
@@ -462,7 +462,10 @@ export function KnockProDialog({ open, onOpenChange, client, activeUser }: Knock
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ location: { lat, lng } });
       address = result.results[0]?.formatted_address;
-    } catch { /* use coords */ }
+      console.log('[KnockPro] geocode result:', result.results[0]);
+    } catch (err) {
+      console.error('[KnockPro] geocode error:', err);
+    }
 
     setPending({ lat, lng, address });
     setSelectedPin(null);

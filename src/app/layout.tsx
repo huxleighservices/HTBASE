@@ -4,6 +4,7 @@ import { Space_Grotesk, Montserrat, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from "@/firebase";
+import { SiteFooter } from "@/components/common/site-footer";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -47,7 +48,12 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&family=Montserrat:wght@400;700&family=Inter:wght@400;700&family=Georgia&family=Times+New+Roman&family=Arial&display=swap" rel="stylesheet" />
       </head>
       <body className={`font-body antialiased ${spaceGrotesk.variable} ${montserrat.variable} ${inter.variable}`}>
-        <FirebaseClientProvider>{children}</FirebaseClientProvider>
+        <FirebaseClientProvider>
+          <div className="flex min-h-screen flex-col">
+            <div className="flex-1">{children}</div>
+            <SiteFooter />
+          </div>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
