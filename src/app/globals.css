@@ -122,6 +122,45 @@
   border-bottom: 1px solid rgba(0, 235, 255, 0.1);
 }
 
+/* ── Light mode glass overrides ─────────────────────────────────────────── */
+.light .glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.light .glass-card-strong {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.light .glass-nav {
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.light .btn-gradient {
+  background: linear-gradient(135deg, hsl(181, 100%, 35%) 0%, hsl(270, 55%, 50%) 100%);
+  color: #fff;
+}
+
+.light .bg-dot {
+  background-image: radial-gradient(rgba(0, 150, 160, 0.08) 1px, transparent 1px);
+  background-size: 1.5rem 1.5rem;
+}
+
+.light .bg-hero {
+  background:
+    radial-gradient(ellipse at 15% 40%, rgba(0, 180, 190, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 20%, rgba(120, 60, 180, 0.06) 0%, transparent 55%),
+    hsl(var(--background));
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    GRADIENT TEXT
 ═══════════════════════════════════════════════════════════════════════════ */

@@ -42,6 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const fontOptions = ["Space Grotesk", "Montserrat", "Arial", "Times New Roman", "Inter", "Georgia"];
 
 const formSchema = z.object({
+  colorScheme: z.enum(['dark', 'light']),
   primaryColor: z.string(),
   backgroundColor: z.string(),
   accentColor: z.string(),
@@ -178,6 +179,7 @@ export function BrandCustomizationDialog({
   const [isSaving, setIsSaving] = useState(false);
 
   const defaultValues: FormValues = {
+      colorScheme: 'dark',
       primaryColor: '181 100% 74%',
       backgroundColor: '180 100% 97%',
       accentColor: '181 100% 74%',
@@ -277,6 +279,28 @@ export function BrandCustomizationDialog({
                       )}
                     />
                     
+                    <FormField
+                      control={form.control}
+                      name="colorScheme"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Color Scheme</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger disabled={isLoading}>
+                                <SelectValue placeholder="Select scheme" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="dark">Dark</SelectItem>
+                              <SelectItem value="light">Light</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="fontFamily"

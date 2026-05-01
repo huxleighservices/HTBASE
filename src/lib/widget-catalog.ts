@@ -22,9 +22,17 @@ export type WidgetType =
   | 'contracts'
   | 'ar-collections'
   | 'leads'
-  | 'knock-pro';
+  | 'knock-pro'
+  | 'task-pipeline'
+  | 'team-overview'
+  | 'performance-analytics'
+  | 'ai-assistant'
+  | 'deal-tracker'
+  | 'schedule'
+  | 'resource-library'
+  | 'communications';
 
-export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads';
+export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads' | 'Essentials';
 
 export interface WidgetDefinition {
   type: WidgetType;
@@ -161,6 +169,72 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     category: 'Leads',
     actionLabel: 'Open Leads',
   },
+
+  // ── Essentials ───────────────────────────────────────────────────────────────
+  {
+    type: 'task-pipeline',
+    defaultTitle: 'Task Pipeline',
+    defaultDescription: 'Kanban and list-view task boards with priority levels, due dates, and assignees.',
+    iconName: 'KanbanSquare',
+    category: 'Essentials',
+    actionLabel: 'Open Pipeline',
+  },
+  {
+    type: 'team-overview',
+    defaultTitle: 'Team Overview',
+    defaultDescription: "See every team member's status, active tasks, and recent activity in one glanceable widget.",
+    iconName: 'Users2',
+    category: 'Essentials',
+    actionLabel: 'Open Overview',
+  },
+  {
+    type: 'performance-analytics',
+    defaultTitle: 'Performance Analytics',
+    defaultDescription: 'Live KPI tracking, custom metric charts, and goal progress — no spreadsheets required.',
+    iconName: 'TrendingUp',
+    category: 'Essentials',
+    actionLabel: 'Open Analytics',
+  },
+  {
+    type: 'ai-assistant',
+    defaultTitle: 'AI Smart Assistant',
+    defaultDescription: 'An always-on AI layer that surfaces suggestions, flags bottlenecks, and answers questions about your own data.',
+    iconName: 'Sparkles',
+    category: 'Essentials',
+    actionLabel: 'Open Assistant',
+  },
+  {
+    type: 'deal-tracker',
+    defaultTitle: 'Deal & Pipeline Tracker',
+    defaultDescription: 'Visualize your sales pipeline from prospect to close with stage-by-stage conversion tracking.',
+    iconName: 'CircleDollarSign',
+    category: 'Essentials',
+    actionLabel: 'Open Deals',
+  },
+  {
+    type: 'schedule',
+    defaultTitle: 'Schedule & Deadlines',
+    defaultDescription: 'Calendar widget with milestone markers, deadline countdowns, and team schedule visibility.',
+    iconName: 'CalendarDays',
+    category: 'Essentials',
+    actionLabel: 'Open Schedule',
+  },
+  {
+    type: 'resource-library',
+    defaultTitle: 'Resource Library',
+    defaultDescription: 'Centralized file storage, shared links, and team assets — searchable and always accessible.',
+    iconName: 'FolderOpen',
+    category: 'Essentials',
+    actionLabel: 'Open Library',
+  },
+  {
+    type: 'communications',
+    defaultTitle: 'Communications',
+    defaultDescription: 'In-platform messaging threads pinned to tasks, deals, or team members so context is never lost.',
+    iconName: 'Hash',
+    category: 'Essentials',
+    actionLabel: 'Open Comms',
+  },
 ];
 
 /** Quick lookup by type */
@@ -168,4 +242,4 @@ export const WIDGET_CATALOG_MAP = Object.fromEntries(
   WIDGET_CATALOG.map((w) => [w.type, w])
 ) as Record<WidgetType, WidgetDefinition>;
 
-export const WIDGET_CATEGORIES: WidgetCategory[] = ['Sales Training', 'Operations', 'Leads'];
+export const WIDGET_CATEGORIES: WidgetCategory[] = ['Sales Training', 'Operations', 'Leads', 'Essentials'];

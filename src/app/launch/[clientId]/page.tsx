@@ -22,7 +22,7 @@ import type { WidgetType } from '@/lib/widget-catalog';
 import { WIDGET_CATALOG, WIDGET_CATALOG_MAP, WIDGET_CATEGORIES } from '@/lib/widget-catalog';
 import {
   Loader2, LogIn, LogOut, Settings2, LayoutGrid, Pencil,
-  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal,
+  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal, Tag, X,
 } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,6 +59,14 @@ import { ContractGeneratorDialog } from '@/components/contracts/contract-generat
 import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
 import { ARCollectionsDialog } from '@/components/ar-collections/ar-collections-dialog';
 import { KnockProDialog } from '@/components/knock-pro/knock-pro-dialog';
+import { TaskPipelineDialog } from '@/components/task-pipeline/task-pipeline-dialog';
+import { TeamOverviewDialog } from '@/components/team-overview/team-overview-dialog';
+import { PerformanceAnalyticsDialog } from '@/components/performance-analytics/performance-analytics-dialog';
+import { AiAssistantDialog } from '@/components/ai-assistant/ai-assistant-dialog';
+import { DealTrackerDialog } from '@/components/deal-tracker/deal-tracker-dialog';
+import { ScheduleDialog } from '@/components/schedule/schedule-dialog';
+import { ResourceLibraryDialog } from '@/components/resource-library/resource-library-dialog';
+import { CommunicationsDialog } from '@/components/communications/communications-dialog';
 import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
 import { WidgetEditDialog } from '@/components/portal/widget-edit-dialog';
 import { WidgetBrowserDialog } from '@/components/portal/widget-browser-dialog';
@@ -122,6 +130,9 @@ export default function ClientLaunchPage() {
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [isRequestOpen, setIsRequestOpen] = useState(false);
+
+  // ── Global tag filter ────────────────────────────────────────────────────────
+  const [globalTagFilter, setGlobalTagFilter] = useState('');
 
   // ── User personal widget preferences (localStorage, per user+client) ────────
   const [userWidgetPrefs, setUserWidgetPrefs] = useLocalStorage<UserWidgetPrefs>(
@@ -216,6 +227,12 @@ export default function ClientLaunchPage() {
   useEffect(() => {
     if (!customization) return;
     const root = document.documentElement;
+    if (customization.colorScheme === 'light') {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    } else {
+      root.classList.remove('light');
+    }
     if (customization.primaryColor) {
       root.style.setProperty('--primary', customization.primaryColor);
       const l = parseFloat(customization.primaryColor.split(' ')[2]);
@@ -240,6 +257,7 @@ export default function ClientLaunchPage() {
       root.style.setProperty('--font-headline', `'${customization.fontFamily}', sans-serif`);
     }
     return () => {
+      root.classList.remove('light');
       ['--primary','--primary-foreground','--background','--card','--accent',
        '--foreground','--muted-foreground','--card-foreground','--font-headline']
         .forEach((v) => root.style.removeProperty(v));
@@ -307,7 +325,7 @@ export default function ClientLaunchPage() {
 
   const handleWidgetSave = useCallback(async (
     widget: Widget,
-    updates: Pick<Widget, 'title' | 'description' | 'enabled'>
+    updates: Pick<Widget, 'title' | 'description' | 'enabled' | 'tags'>
   ) => {
     await saveWidget({ ...widget, ...updates });
     toast({ title: 'Widget updated', description: `"${updates.title}" saved.` });
@@ -591,10 +609,35 @@ export default function ClientLaunchPage() {
       <div className="border-b border-border/25 bg-background/30 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-6">
 
-          {/* Left: section label */}
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Your Portal
-          </p>
+          {/* Left: label + global tag filter */}
+          <div className="flex items-center gap-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground hidden sm:block">
+              Your Portal
+            </p>
+            <div className="relative">
+              <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Filter by tag…"
+                value={globalTagFilter}
+                onChange={(e) => setGlobalTagFilter(e.target.value)}
+                className="h-8 w-36 rounded-xl border border-border/40 bg-background/30 pl-7 pr-3 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 focus:bg-background/50 transition-all"
+              />
+              {globalTagFilter && (
+                <button
+                  onClick={() => setGlobalTagFilter('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+            {globalTagFilter && (
+              <span className="rounded-full border border-primary/40 bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                #{globalTagFilter}
+              </span>
+            )}
+          </div>
 
           {/* Right: action buttons */}
           <div className="flex items-center gap-2">
@@ -742,7 +785,15 @@ export default function ClientLaunchPage() {
       {client && <QueueDialog                open={openDialog === 'queue'}           onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <ContractGeneratorDialog    open={openDialog === 'contracts'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <ARCollectionsDialog        open={openDialog === 'ar-collections'}  onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
-      {client && <KnockProDialog             open={openDialog === 'knock-pro'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <KnockProDialog             open={openDialog === 'knock-pro'}            onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <TaskPipelineDialog         open={openDialog === 'task-pipeline'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} tagFilter={globalTagFilter || undefined} />}
+      {client && <TeamOverviewDialog         open={openDialog === 'team-overview'}       onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <PerformanceAnalyticsDialog open={openDialog === 'performance-analytics'} onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <AiAssistantDialog          open={openDialog === 'ai-assistant'}        onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <DealTrackerDialog          open={openDialog === 'deal-tracker'}        onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <ScheduleDialog             open={openDialog === 'schedule'}            onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <ResourceLibraryDialog      open={openDialog === 'resource-library'}    onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} tagFilter={globalTagFilter || undefined} />}
+      {client && <CommunicationsDialog       open={openDialog === 'communications'}      onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {/* Session manager is rendered inline in Sales Training section for the session-manager widget */}
 
       {client && (

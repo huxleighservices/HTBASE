@@ -15,6 +15,8 @@ import {
   MessageSquare, Phone, BarChart2, Database, Timer,
   GanttChartSquare, Bot, ListTodo, Wrench, FileSignature,
   FileText, DollarSign, Users, Search, Plus, Check, MapPin,
+  KanbanSquare, Users2, TrendingUp, Sparkles, CircleDollarSign,
+  CalendarDays, FolderOpen, Hash,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -40,8 +42,16 @@ export function WidgetIcon({ iconName, className }: { iconName: string; classNam
     FileSignature: <FileSignature className={cn('h-5 w-5', className)} />,
     FileText:      <FileText      className={cn('h-5 w-5', className)} />,
     DollarSign:    <DollarSign    className={cn('h-5 w-5', className)} />,
-    Users:         <Users         className={cn('h-5 w-5', className)} />,
-    MapPin:        <MapPin        className={cn('h-5 w-5', className)} />,
+    Users:              <Users              className={cn('h-5 w-5', className)} />,
+    MapPin:             <MapPin             className={cn('h-5 w-5', className)} />,
+    KanbanSquare:       <KanbanSquare       className={cn('h-5 w-5', className)} />,
+    Users2:             <Users2             className={cn('h-5 w-5', className)} />,
+    TrendingUp:         <TrendingUp         className={cn('h-5 w-5', className)} />,
+    Sparkles:           <Sparkles           className={cn('h-5 w-5', className)} />,
+    CircleDollarSign:   <CircleDollarSign   className={cn('h-5 w-5', className)} />,
+    CalendarDays:       <CalendarDays       className={cn('h-5 w-5', className)} />,
+    FolderOpen:         <FolderOpen         className={cn('h-5 w-5', className)} />,
+    Hash:               <Hash               className={cn('h-5 w-5', className)} />,
   };
   return <>{icons[iconName] ?? <Bot className={cn('h-5 w-5', className)} />}</>;
 }
@@ -50,6 +60,7 @@ const CATEGORY_COLORS: Record<WidgetCategory, string> = {
   'Sales Training': 'bg-primary/15 text-primary border-primary/30',
   'Operations':     'bg-secondary/15 text-secondary border-secondary/30',
   'Leads':          'bg-accent/15 text-accent border-accent/30',
+  'Essentials':     'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
 interface WidgetBrowserDialogProps {

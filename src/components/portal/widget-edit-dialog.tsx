@@ -31,6 +31,7 @@ const schema = z.object({
   title: z.string().min(1, 'Title is required').max(60),
   description: z.string().min(1, 'Description is required').max(200),
   enabled: z.boolean(),
+  tagsRaw: z.string(),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -38,7 +39,7 @@ interface WidgetEditDialogProps {
   widget: Widget;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (updated: Pick<Widget, 'title' | 'description' | 'enabled'>) => Promise<void>;
+  onSave: (updated: Pick<Widget, 'title' | 'description' | 'enabled' | 'tags'>) => Promise<void>;
 }
 
 export function WidgetEditDialog({
@@ -53,20 +54,25 @@ export function WidgetEditDialog({
       title: widget.title,
       description: widget.description,
       enabled: widget.enabled,
+      tagsRaw: widget.tags?.join(', ') ?? '',
     },
   });
 
-  // Sync form when widget prop changes
   useEffect(() => {
     form.reset({
       title: widget.title,
       description: widget.description,
       enabled: widget.enabled,
+      tagsRaw: widget.tags?.join(', ') ?? '',
     });
   }, [widget, form]);
 
   const handleSubmit = async (values: FormValues) => {
-    await onSave(values);
+    const tags = values.tagsRaw
+      .split(',')
+      .map((t) => t.trim().toLowerCase())
+      .filter(Boolean);
+    await onSave({ title: values.title, description: values.description, enabled: values.enabled, tags });
     onOpenChange(false);
   };
 
@@ -121,6 +127,27 @@ export function WidgetEditDialog({
                       className="resize-none border-border/60 bg-background/50 backdrop-blur-sm"
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="tagsRaw"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground">
+                    Tags
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="e.g. sales, admin, roofing"
+                      className="border-border/60 bg-background/50 backdrop-blur-sm"
+                    />
+                  </FormControl>
+                  <p className="text-[10px] text-muted-foreground">Comma-separated. Used to filter widgets on the portal.</p>
                   <FormMessage />
                 </FormItem>
               )}

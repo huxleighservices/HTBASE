@@ -14,6 +14,7 @@ export type Widget = {
   enabled: boolean;
   order: number;
   category: WidgetCategory;
+  tags?: string[];
 };
 
 /**

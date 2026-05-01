@@ -78,6 +78,7 @@ const CATEGORY_COLORS: Record<WidgetCategory, string> = {
   'Sales Training': 'bg-primary/15 text-primary border-primary/30',
   'Operations':     'bg-secondary/15 text-secondary border-secondary/30',
   'Leads':          'bg-accent/15 text-accent border-accent/30',
+  'Essentials':     'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

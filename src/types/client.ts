@@ -19,6 +19,7 @@ export type Client = {
 
 export type BrandCustomization = {
   id: 'config';
+  colorScheme?: 'light' | 'dark';
   primaryColor?: string;
   backgroundColor?: string;
   accentColor?: string;
