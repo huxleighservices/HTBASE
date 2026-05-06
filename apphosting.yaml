@@ -12,6 +12,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
+  - variable: RESEND_API_KEY
+    value: re_CvNjKxJB_JU75Uz4frhaCsYBUL136HzAc
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: https://htbase.online
     availability:

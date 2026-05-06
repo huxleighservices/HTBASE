@@ -775,7 +775,7 @@ export function CompletionCertificateDialog({
   function renderStep4() {
     const url = newCertId ? certUrl(newCertId) : '';
     const isCopied = copiedId === (newCertId ?? '');
-    const mailtoHref = `mailto:${encodeURIComponent(customerEmail)}?subject=${encodeURIComponent(
+    const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(
       `Completion Certificate — ${selectedProject?.name ?? 'Your Project'}`,
     )}&body=${encodeURIComponent(
       `Hi ${customerName},\n\nYour completion certificate is ready for signing. Please click the link below to review and sign:\n\n${url}\n\nThank you!`,
@@ -820,7 +820,7 @@ export function CompletionCertificateDialog({
               )}
             </Button>
             <Button variant="outline" size="lg" className="flex-1 gap-2" asChild>
-              <a href={mailtoHref} target="_blank" rel="noreferrer">
+              <a href={gmailHref} target="_blank" rel="noreferrer">
                 <Mail className="h-4 w-4" />
                 Send via Email
               </a>
