@@ -23,6 +23,7 @@ export type WidgetType =
   | 'ar-collections'
   | 'leads'
   | 'knock-pro'
+  | 'completion-certificate'
   | 'task-pipeline'
   | 'team-overview'
   | 'performance-analytics'
@@ -168,6 +169,16 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     iconName: 'Users',
     category: 'Leads',
     actionLabel: 'Open Leads',
+  },
+
+  // ── Completion Certificate ───────────────────────────────────────────────────
+  {
+    type: 'completion-certificate',
+    defaultTitle: 'Completion Certificate',
+    defaultDescription: 'Generate CompanyCam-backed certificates of completion with digital customer signatures.',
+    iconName: 'ClipboardCheck',
+    category: 'Operations',
+    actionLabel: 'Open Certificates',
   },
 
   // ── Essentials ───────────────────────────────────────────────────────────────
