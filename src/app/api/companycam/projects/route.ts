@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     const url = new URL('https://api.companycam.com/v2/projects');
-    url.searchParams.set('per_page', '50');
-    url.searchParams.set('status', 'active');
+    url.searchParams.set('per_page', '500');
 
     const response = await fetch(url.toString(), {
       method: 'GET',
