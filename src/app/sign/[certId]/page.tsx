@@ -43,6 +43,7 @@ type CertData = {
   status: 'pending' | 'signed';
   createdAt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   signedAt?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  signatureDataUrl?: string;
 };
 
 type PageState = 'loading' | 'not-found' | 'already-signed' | 'ready' | 'submitting' | 'complete';
@@ -316,36 +317,123 @@ export default function SignCertPage({
     );
   }
 
-  if (pageState === 'already-signed') {
+  // Shared read-only document view for already-signed and just-completed states
+  if (pageState === 'already-signed' || pageState === 'complete') {
+    const signedData = cert;
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-sm w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-          <div className="text-4xl mb-4">✅</div>
-          <h1 className="text-xl font-semibold text-slate-800 mb-2">Already Signed</h1>
-          <p className="text-slate-500 text-sm">
-            This certificate was signed on{' '}
-            <span className="font-medium text-slate-700">
-              {cert?.signedAt ? formatTimestamp(cert.signedAt) : 'a previous date'}
-            </span>
-            .
-          </p>
-        </div>
-      </div>
-    );
-  }
+      <>
+        {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+        <div className="min-h-screen bg-gray-50">
+          <header className="bg-slate-800 text-white px-6 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">HTBase</p>
+              <p className="text-base font-semibold leading-tight">{signedData?.firmName}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">Document</p>
+              <p className="text-base font-semibold leading-tight">Certificate of Completion</p>
+            </div>
+          </header>
 
-  if (pageState === 'complete') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="max-w-sm w-full bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-          <div className="text-4xl mb-4">🎉</div>
-          <h1 className="text-xl font-semibold text-slate-800 mb-2">Thank You!</h1>
-          <p className="text-slate-500 text-sm">
-            Your Certificate of Completion has been signed and submitted successfully.
-            A copy has been sent to the project team.
-          </p>
+          <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+            {/* Signed banner */}
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+              <span className="text-2xl">✅</span>
+              <div>
+                <p className="font-semibold text-emerald-800 text-sm">Certificate Signed</p>
+                <p className="text-xs text-emerald-700 mt-0.5">
+                  Signed on {signedData?.signedAt ? formatTimestamp(signedData.signedAt) : 'a previous date'}
+                </p>
+              </div>
+            </div>
+
+            {/* Project details */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Project Details</h2>
+              </div>
+              <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Project</p>
+                  <p className="text-slate-800 font-medium">{signedData?.projectName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Customer</p>
+                  <p className="text-slate-800 font-medium">{signedData?.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Date Issued</p>
+                  <p className="text-slate-800">{signedData?.createdAt ? formatTimestamp(signedData.createdAt) : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Firm</p>
+                  <p className="text-slate-800">{signedData?.firmName}</p>
+                </div>
+              </div>
+              {signedData?.isInsuranceJob && (
+                <div className="mx-6 mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <span className="text-amber-500 text-lg leading-none">⚠</span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Insurance Job</p>
+                    <p className="text-xs text-amber-700 mt-0.5">This project is associated with an insurance claim.</p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Photos */}
+            {signedData?.photos && signedData.photos.length > 0 && (
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Completed Work Photos</h2>
+                </div>
+                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {signedData.photos.map((photo) => (
+                    <button
+                      key={photo.id}
+                      className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100 focus:outline-none"
+                      onClick={() => setLightboxSrc(photo.uri)}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photo.thumbUri || photo.uri} alt="Work photo" className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
+                        <span className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200">🔍</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Signature */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Customer Signature</h2>
+              </div>
+              <div className="px-6 py-5 space-y-2">
+                {signedData?.signatureDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={signedData.signatureDataUrl}
+                    alt="Customer signature"
+                    className="max-h-40 rounded border border-slate-200 bg-white"
+                  />
+                ) : (
+                  <p className="text-sm text-slate-400 italic">Signature not available.</p>
+                )}
+                <p className="text-xs text-slate-500">
+                  Signed by <span className="font-medium text-slate-700">{signedData?.customerName}</span> on{' '}
+                  {signedData?.signedAt ? formatTimestamp(signedData.signedAt) : '—'}
+                </p>
+              </div>
+            </section>
+
+            <p className="text-center text-xs text-slate-400 pb-4">
+              This document is legally binding once signed. Powered by HTBase.
+            </p>
+          </main>
         </div>
-      </div>
+      </>
     );
   }
 
