@@ -29,6 +29,7 @@ import {
   Link,
   ImageIcon,
   ExternalLink,
+  ZoomIn,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
@@ -176,6 +177,9 @@ export function CompletionCertificateDialog({
 
   // Step 4
   const [newCertId, setNewCertId] = useState<string | null>(null);
+
+  // Photo preview lightbox
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
 
   // ── Load certificates when list view opens ──────────────────────────────────
   useEffect(() => {
@@ -621,32 +625,44 @@ export function CompletionCertificateDialog({
               <p className="text-sm">No photos found for this project.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pr-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pr-4">
               {photos.map((photo) => {
                 const isSelected = selectedPhotoIds.has(photo.id);
                 return (
-                  <button
+                  <div
                     key={photo.id}
-                    type="button"
-                    onClick={() => togglePhoto(photo.id)}
-                    className="relative aspect-square rounded-lg overflow-hidden border-2 transition-all focus:outline-none"
-                    style={{
-                      borderColor: isSelected ? 'hsl(var(--primary))' : 'transparent',
-                    }}
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 transition-all"
+                    style={{ borderColor: isSelected ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.1)' }}
                   >
                     <img
                       src={getPhotoThumb(photo)}
                       alt="project photo"
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain bg-black/20"
+                    />
+                    {/* Selection overlay */}
+                    <button
+                      type="button"
+                      onClick={() => togglePhoto(photo.id)}
+                      className="absolute inset-0 focus:outline-none"
+                      aria-label={isSelected ? 'Deselect photo' : 'Select photo'}
                     />
                     {isSelected && (
-                      <div className="absolute inset-0 bg-primary/30 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-primary/30 pointer-events-none flex items-center justify-center">
                         <div className="rounded-full bg-primary p-1">
                           <Check className="h-3.5 w-3.5 text-primary-foreground" />
                         </div>
                       </div>
                     )}
-                  </button>
+                    {/* Preview button */}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setPreviewSrc(getPhotoFull(photo)); }}
+                      className="absolute top-1 right-1 rounded-md bg-black/60 p-1 text-white opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity z-10"
+                      aria-label="Preview photo"
+                    >
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -861,10 +877,33 @@ export function CompletionCertificateDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="glass-card-strong border-border/50 max-w-4xl h-[90vh] flex flex-col">
-        {renderContent()}
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="glass-card-strong border-border/50 max-w-4xl h-[90vh] flex flex-col">
+          {renderContent()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Photo preview lightbox */}
+      {previewSrc && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setPreviewSrc(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white text-3xl font-bold leading-none"
+            onClick={() => setPreviewSrc(null)}
+          >
+            &times;
+          </button>
+          <img
+            src={previewSrc}
+            alt="Preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
