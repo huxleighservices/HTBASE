@@ -16,8 +16,9 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Award,
+  FileText,
   Loader2,
   PlusCircle,
   Search,
@@ -35,7 +36,6 @@ import { useFirestore } from '@/firebase';
 import {
   collection,
   addDoc,
-  updateDoc,
   doc,
   serverTimestamp,
   getDocs,
@@ -84,14 +84,12 @@ interface CompanyCamPhoto {
   thumb_uri?: string;
 }
 
-interface CertificateRecord {
+interface AddendumRecord {
   id: string;
   projectName: string;
   customerName: string;
-  customerEmail: string;
-  status: 'pending' | 'signed';
-  createdAt: any;
-  signedAt?: any;
+  status: 'pending' | 'authorized' | 'declined';
+  createdAt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   clientPath: string;
 }
 
@@ -129,17 +127,26 @@ function getProjectThumb(project: CompanyCamProject): string | null {
   return thumb?.uri ?? null;
 }
 
-function toFirestoreDate(ts: any): Date | null {
+function toFirestoreDate(ts: any): Date | null { // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!ts) return null;
   if (ts.toDate) return ts.toDate();
   return new Date(ts);
+}
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function CompletionCertificateDialog({
+export function SupplementalAddendumDialog({
   open,
   onOpenChange,
   client,
@@ -152,8 +159,8 @@ export function CompletionCertificateDialog({
   const [step, setStep] = useState<Step>('list');
 
   // List view
-  const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
-  const [isCertsLoading, setIsCertsLoading] = useState(false);
+  const [addendums, setAddendums] = useState<AddendumRecord[]>([]);
+  const [isAddendumsLoading, setIsAddendumsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Step 1
@@ -167,40 +174,59 @@ export function CompletionCertificateDialog({
   const [photosLoading, setPhotosLoading] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
 
-  // Step 3
+  // Step 3 — details form
+  const [propertyAddress, setPropertyAddress] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [originalContractDate, setOriginalContractDate] = useState('');
+  const [buildDate, setBuildDate] = useState('');
+  const [workDescription, setWorkDescription] = useState('');
+  const [workReason, setWorkReason] = useState('');
+  const [materialCostStr, setMaterialCostStr] = useState('');
+  const [laborCostStr, setLaborCostStr] = useState('');
   const [isInsuranceJob, setIsInsuranceJob] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   // Step 4
-  const [newCertId, setNewCertId] = useState<string | null>(null);
+  const [newAddendumId, setNewAddendumId] = useState<string | null>(null);
 
-  // ── Load certificates when list view opens ──────────────────────────────────
+  // ── Computed totals ─────────────────────────────────────────────────────────
+  const materialCost = parseFloat(materialCostStr) || 0;
+  const laborCost = parseFloat(laborCostStr) || 0;
+  const totalCost = materialCost + laborCost;
+
+  // ── Load addendums when list view opens ─────────────────────────────────────
   useEffect(() => {
     if (open && step === 'list') {
-      loadCertificates();
+      loadAddendums();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, step]);
 
-  async function loadCertificates() {
+  async function loadAddendums() {
     if (!client.path) return;
-    setIsCertsLoading(true);
+    setIsAddendumsLoading(true);
     try {
       const q = query(
-        collection(firestore, 'completionCertificates'),
+        collection(firestore, 'supplementalAddendums'),
         where('clientPath', '==', client.path),
         orderBy('createdAt', 'desc'),
       );
       const snap = await getDocs(q);
-      const docs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CertificateRecord, 'id'>) }));
-      setCertificates(docs);
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message ?? 'Failed to load certificates.', variant: 'destructive' });
+      const docs = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as Omit<AddendumRecord, 'id'>),
+      }));
+      setAddendums(docs);
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      toast({
+        title: 'Error',
+        description: err.message ?? 'Failed to load addendums.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsCertsLoading(false);
+      setIsAddendumsLoading(false);
     }
   }
 
@@ -213,7 +239,7 @@ export function CompletionCertificateDialog({
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const data = await res.json();
       setProjects(Array.isArray(data) ? data : data.projects ?? []);
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       toast({ title: 'Failed to load projects', description: err.message, variant: 'destructive' });
     } finally {
       setProjectsLoading(false);
@@ -230,7 +256,7 @@ export function CompletionCertificateDialog({
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const data = await res.json();
       setPhotos(Array.isArray(data) ? data : data.photos ?? []);
-    } catch (err: any) {
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       toast({ title: 'Failed to load photos', description: err.message, variant: 'destructive' });
     } finally {
       setPhotosLoading(false);
@@ -247,12 +273,25 @@ export function CompletionCertificateDialog({
 
   async function goToStep2() {
     if (!selectedProject) return;
+
+    // Auto-populate address from project
+    const addr = [
+      selectedProject.address?.street_address_1,
+      selectedProject.address?.city,
+      selectedProject.address?.state,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    setPropertyAddress(addr);
+
     fetchPhotos(selectedProject.id);
     setStep('step2');
 
-    // Fetch contacts for this project and pre-populate Step 3 fields
+    // Fetch contacts and pre-populate Step 3 fields
     try {
-      const res = await fetch(`/api/companycam/contacts?projectId=${encodeURIComponent(selectedProject.id)}`);
+      const res = await fetch(
+        `/api/companycam/contacts?projectId=${encodeURIComponent(selectedProject.id)}`,
+      );
       if (res.ok) {
         const contacts: CompanyCamContact[] = await res.json();
         const contact = contacts[0];
@@ -271,7 +310,7 @@ export function CompletionCertificateDialog({
     setStep('step3');
   }
 
-  async function handleCreateCertificate() {
+  async function handleCreateAddendum() {
     if (!selectedProject || selectedPhotoIds.size === 0) return;
     if (!customerName.trim()) {
       toast({ title: 'Validation', description: 'Customer name is required.', variant: 'destructive' });
@@ -279,6 +318,30 @@ export function CompletionCertificateDialog({
     }
     if (!customerEmail.trim()) {
       toast({ title: 'Validation', description: 'Customer email is required.', variant: 'destructive' });
+      return;
+    }
+    if (!originalContractDate) {
+      toast({ title: 'Validation', description: 'Original contract date is required.', variant: 'destructive' });
+      return;
+    }
+    if (!buildDate) {
+      toast({ title: 'Validation', description: 'Build date is required.', variant: 'destructive' });
+      return;
+    }
+    if (!workDescription.trim()) {
+      toast({ title: 'Validation', description: 'Description of additional work is required.', variant: 'destructive' });
+      return;
+    }
+    if (!workReason.trim()) {
+      toast({ title: 'Validation', description: 'Reason for recommendation is required.', variant: 'destructive' });
+      return;
+    }
+    if (!materialCostStr || materialCost < 0) {
+      toast({ title: 'Validation', description: 'Additional material cost is required.', variant: 'destructive' });
+      return;
+    }
+    if (!laborCostStr || laborCost < 0) {
+      toast({ title: 'Validation', description: 'Additional labor cost is required.', variant: 'destructive' });
       return;
     }
 
@@ -293,9 +356,17 @@ export function CompletionCertificateDialog({
         firmName: client.firmName,
         projectId: selectedProject.id,
         projectName: selectedProject.name,
+        propertyAddress: propertyAddress.trim(),
         customerName: customerName.trim(),
         customerEmail: customerEmail.trim(),
         customerPhone: customerPhone.trim() || undefined,
+        originalContractDate,
+        buildDate,
+        workDescription: workDescription.trim(),
+        workReason: workReason.trim(),
+        materialCost,
+        laborCost,
+        totalCost,
         isInsuranceJob,
         photos: selectedPhotosData,
         status: 'pending' as const,
@@ -303,44 +374,54 @@ export function CompletionCertificateDialog({
         createdAt: serverTimestamp(),
       };
 
-      const docRef = await addDoc(collection(firestore, 'completionCertificates'), payload);
-      setNewCertId(docRef.id);
+      const docRef = await addDoc(
+        collection(firestore, 'supplementalAddendums'),
+        payload,
+      );
+      setNewAddendumId(docRef.id);
       setStep('step4');
-    } catch (err: any) {
-      toast({ title: 'Failed to create certificate', description: err.message, variant: 'destructive' });
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      toast({
+        title: 'Failed to create addendum',
+        description: err.message,
+        variant: 'destructive',
+      });
     } finally {
       setIsCreating(false);
     }
+  }
+
+  function resetForm() {
+    setSelectedProject(null);
+    setProjectSearch('');
+    setSelectedPhotoIds(new Set());
+    setPropertyAddress('');
+    setCustomerName('');
+    setCustomerEmail('');
+    setCustomerPhone('');
+    setOriginalContractDate('');
+    setBuildDate('');
+    setWorkDescription('');
+    setWorkReason('');
+    setMaterialCostStr('');
+    setLaborCostStr('');
+    setIsInsuranceJob(false);
+    setNewAddendumId(null);
+    setIsCreating(false);
+    setCopiedId(null);
   }
 
   function handleClose() {
     onOpenChange(false);
     setTimeout(() => {
       setStep('list');
-      setSelectedProject(null);
-      setProjectSearch('');
-      setSelectedPhotoIds(new Set());
-      setCustomerName('');
-      setCustomerEmail('');
-      setCustomerPhone('');
-      setIsInsuranceJob(false);
-      setNewCertId(null);
-      setIsCreating(false);
-      setCopiedId(null);
+      resetForm();
     }, 200);
   }
 
   function handleDone() {
     setStep('list');
-    setSelectedProject(null);
-    setProjectSearch('');
-    setSelectedPhotoIds(new Set());
-    setCustomerName('');
-    setCustomerEmail('');
-    setCustomerPhone('');
-    setIsInsuranceJob(false);
-    setNewCertId(null);
-    setIsCreating(false);
+    resetForm();
   }
 
   async function copyToClipboard(text: string, id: string) {
@@ -350,7 +431,11 @@ export function CompletionCertificateDialog({
       toast({ title: 'Copied!', description: 'Link copied to clipboard.' });
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      toast({ title: 'Copy failed', description: 'Please copy the link manually.', variant: 'destructive' });
+      toast({
+        title: 'Copy failed',
+        description: 'Please copy the link manually.',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -367,14 +452,14 @@ export function CompletionCertificateDialog({
     );
   }, [projects, projectSearch]);
 
-  // ── Public cert URL ─────────────────────────────────────────────────────────
-  function certUrl(id: string) {
+  // ── Public addendum URL ─────────────────────────────────────────────────────
+  function addendumUrl(id: string) {
     return typeof window !== 'undefined'
-      ? `${window.location.origin}/sign/${id}`
-      : `/sign/${id}`;
+      ? `${window.location.origin}/addendum/${id}`
+      : `/addendum/${id}`;
   }
 
-  // ── Toggle photo selection ───────────────────────────────────────────────────
+  // ── Toggle photo selection ──────────────────────────────────────────────────
   function togglePhoto(id: string) {
     setSelectedPhotoIds((prev) => {
       const next = new Set(prev);
@@ -387,6 +472,26 @@ export function CompletionCertificateDialog({
     });
   }
 
+  // ── Status badge helpers ────────────────────────────────────────────────────
+  function statusBadgeClass(status: AddendumRecord['status']) {
+    switch (status) {
+      case 'authorized':
+        return 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10';
+      case 'declined':
+        return 'border-red-500/50 text-red-400 bg-red-500/10';
+      default:
+        return 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10';
+    }
+  }
+
+  function statusLabel(status: AddendumRecord['status']) {
+    switch (status) {
+      case 'authorized': return 'Authorized';
+      case 'declined':   return 'Declined';
+      default:           return 'Pending';
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Render helpers
   // ─────────────────────────────────────────────────────────────────────────────
@@ -396,78 +501,67 @@ export function CompletionCertificateDialog({
       <>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-primary" />
-            Completion Certificates
+            <FileText className="h-5 w-5 text-primary" />
+            Supplemental Work Addendums
           </DialogTitle>
           <DialogDescription>
-            Certificates for {client.firmName}. Send signing links to customers.
+            Addendums for {client.firmName}. Send signing links to customers.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center justify-between py-2">
           <p className="text-sm text-muted-foreground">
-            {certificates.length} certificate{certificates.length !== 1 ? 's' : ''} found
+            {addendums.length} addendum{addendums.length !== 1 ? 's' : ''} found
           </p>
           <Button className="btn-gradient" size="sm" onClick={goToStep1}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            New Certificate
+            New Addendum
           </Button>
         </div>
 
         <ScrollArea className="flex-1 min-h-0">
-          {isCertsLoading ? (
+          {isAddendumsLoading ? (
             <div className="space-y-2 pr-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full rounded-lg" />
               ))}
             </div>
-          ) : certificates.length === 0 ? (
+          ) : addendums.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground gap-3">
-              <Award className="h-12 w-12 opacity-30" />
-              <p className="text-sm">No certificates yet. Create one to get started.</p>
+              <FileText className="h-12 w-12 opacity-30" />
+              <p className="text-sm">No addendums yet. Create one to get started.</p>
             </div>
           ) : (
             <div className="space-y-2 pr-4">
-              {certificates.map((cert) => {
-                const created = toFirestoreDate(cert.createdAt);
-                const signed = toFirestoreDate(cert.signedAt);
-                const url = certUrl(cert.id);
-                const isCopied = copiedId === cert.id;
+              {addendums.map((addendum) => {
+                const created = toFirestoreDate(addendum.createdAt);
+                const url = addendumUrl(addendum.id);
+                const isCopied = copiedId === addendum.id;
                 return (
                   <div
-                    key={cert.id}
+                    key={addendum.id}
                     className="flex items-center gap-3 rounded-lg border border-border/50 bg-background/40 p-3"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{cert.projectName}</p>
-                      <p className="text-xs text-muted-foreground truncate">{cert.customerName}</p>
+                      <p className="font-medium text-sm truncate">{addendum.projectName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{addendum.customerName}</p>
                       {created && (
                         <p className="text-xs text-muted-foreground">
                           {format(created, 'MMM d, yyyy')}
                         </p>
                       )}
-                      {cert.status === 'signed' && signed && (
-                        <p className="text-xs text-emerald-400">
-                          Signed {format(signed, 'MMM d, yyyy')}
-                        </p>
-                      )}
                     </div>
                     <Badge
                       variant="outline"
-                      className={cn(
-                        'shrink-0 text-xs',
-                        cert.status === 'signed'
-                          ? 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10'
-                          : 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10',
-                      )}
+                      className={cn('shrink-0 text-xs', statusBadgeClass(addendum.status))}
                     >
-                      {cert.status === 'signed' ? 'Signed' : 'Pending'}
+                      {statusLabel(addendum.status)}
                     </Badge>
                     <Button
                       size="sm"
                       variant="outline"
                       className="shrink-0 gap-1.5"
-                      onClick={() => copyToClipboard(url, cert.id)}
+                      onClick={() => copyToClipboard(url, addendum.id)}
                     >
                       {isCopied ? (
                         <Check className="h-3.5 w-3.5 text-emerald-400" />
@@ -496,7 +590,9 @@ export function CompletionCertificateDialog({
             </span>
             Select CompanyCam Project
           </DialogTitle>
-          <DialogDescription>Choose the project for this completion certificate.</DialogDescription>
+          <DialogDescription>
+            Choose the project for this supplemental addendum.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="relative py-2">
@@ -674,7 +770,15 @@ export function CompletionCertificateDialog({
   function renderStep3() {
     const nameValid = customerName.trim().length > 0;
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
-    const canProceed = nameValid && emailValid;
+    const canProceed =
+      nameValid &&
+      emailValid &&
+      !!originalContractDate &&
+      !!buildDate &&
+      workDescription.trim().length > 0 &&
+      workReason.trim().length > 0 &&
+      materialCostStr !== '' &&
+      laborCostStr !== '';
 
     return (
       <>
@@ -683,10 +787,10 @@ export function CompletionCertificateDialog({
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">
               3
             </span>
-            Customer Info &amp; Options
+            Addendum Details
           </DialogTitle>
           <DialogDescription>
-            Enter the customer's details for this certificate.
+            Fill in the details for this supplemental work addendum.
           </DialogDescription>
         </DialogHeader>
 
@@ -701,25 +805,34 @@ export function CompletionCertificateDialog({
               </p>
             </div>
 
-            {/* Customer fields */}
+            {/* Property & Customer */}
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="cert-customer-name">
+                <Label htmlFor="add-property-address">Property Address</Label>
+                <Input
+                  id="add-property-address"
+                  placeholder="123 Main St, City, State"
+                  value={propertyAddress}
+                  onChange={(e) => setPropertyAddress(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-customer-name">
                   Customer Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="cert-customer-name"
+                  id="add-customer-name"
                   placeholder="Jane Smith"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cert-customer-email">
+                <Label htmlFor="add-customer-email">
                   Customer Email <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="cert-customer-email"
+                  id="add-customer-email"
                   type="email"
                   placeholder="jane@example.com"
                   value={customerEmail}
@@ -727,9 +840,9 @@ export function CompletionCertificateDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cert-customer-phone">Customer Phone (optional)</Label>
+                <Label htmlFor="add-customer-phone">Customer Phone (optional)</Label>
                 <Input
-                  id="cert-customer-phone"
+                  id="add-customer-phone"
                   type="tel"
                   placeholder="(555) 000-0000"
                   value={customerPhone}
@@ -738,16 +851,121 @@ export function CompletionCertificateDialog({
               </div>
             </div>
 
+            {/* Dates */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-contract-date">
+                  Original Contract Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="add-contract-date"
+                  type="date"
+                  value={originalContractDate}
+                  onChange={(e) => setOriginalContractDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-build-date">
+                  Build Date <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="add-build-date"
+                  type="date"
+                  value={buildDate}
+                  onChange={(e) => setBuildDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Work description & reason */}
+            <div className="space-y-1.5">
+              <Label htmlFor="add-work-description">
+                Description of Additional Work/Materials <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="add-work-description"
+                placeholder="Describe the additional work or materials required..."
+                rows={3}
+                value={workDescription}
+                onChange={(e) => setWorkDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-work-reason">
+                Reason for Recommendation <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="add-work-reason"
+                placeholder="Explain why this supplemental work is recommended..."
+                rows={3}
+                value={workReason}
+                onChange={(e) => setWorkReason(e.target.value)}
+              />
+            </div>
+
+            {/* Costs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="add-material-cost">
+                  Additional Material Cost <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+                    $
+                  </span>
+                  <Input
+                    id="add-material-cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="pl-7"
+                    value={materialCostStr}
+                    onChange={(e) => setMaterialCostStr(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="add-labor-cost">
+                  Additional Labor Cost <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+                    $
+                  </span>
+                  <Input
+                    id="add-labor-cost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="pl-7"
+                    value={laborCostStr}
+                    onChange={(e) => setLaborCostStr(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Total (read-only computed) */}
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Total Supplemental Cost</p>
+                <p className="text-xs text-muted-foreground">Material + Labor</p>
+              </div>
+              <p className="text-lg font-bold text-primary">{formatCurrency(totalCost)}</p>
+            </div>
+
             {/* Insurance toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/40 p-3">
               <div className="space-y-0.5">
-                <Label htmlFor="cert-insurance" className="text-sm font-medium cursor-pointer">
+                <Label htmlFor="add-insurance" className="text-sm font-medium cursor-pointer">
                   Insurance Job
                 </Label>
                 <p className="text-xs text-muted-foreground">This is an insurance claim job</p>
               </div>
               <Switch
-                id="cert-insurance"
+                id="add-insurance"
                 checked={isInsuranceJob}
                 onCheckedChange={setIsInsuranceJob}
               />
@@ -762,11 +980,11 @@ export function CompletionCertificateDialog({
           </Button>
           <Button
             className="btn-gradient"
-            onClick={handleCreateCertificate}
+            onClick={handleCreateAddendum}
             disabled={!canProceed || isCreating}
           >
             {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generate Certificate
+            Generate Addendum
             {!isCreating && <ChevronRight className="ml-1 h-4 w-4" />}
           </Button>
         </DialogFooter>
@@ -775,30 +993,34 @@ export function CompletionCertificateDialog({
   }
 
   function renderStep4() {
-    const url = newCertId ? certUrl(newCertId) : '';
-    const isCopied = copiedId === (newCertId ?? '');
-    const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(customerEmail)}&su=${encodeURIComponent(
-      `Completion Certificate — ${selectedProject?.name ?? 'Your Project'}`,
+    const url = newAddendumId ? addendumUrl(newAddendumId) : '';
+    const isCopied = copiedId === (newAddendumId ?? '');
+    const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+      customerEmail,
+    )}&su=${encodeURIComponent(
+      `Supplemental Work Addendum — ${selectedProject?.name ?? 'Your Project'}`,
     )}&body=${encodeURIComponent(
-      `Hi ${customerName},\n\nYour completion certificate is ready for signing. Please click the link below to review and sign:\n\n${url}\n\nThank you!`,
+      `Hi ${customerName},\n\nA supplemental work addendum has been prepared for your review and signature. Please click the link below to review and sign:\n\n${url}\n\nTotal Supplemental Cost: ${formatCurrency(totalCost)}\n\nThank you!`,
     )}`;
 
     return (
       <>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-emerald-400" />
-            Certificate Ready!
+            <FileText className="h-5 w-5 text-emerald-400" />
+            Addendum Ready!
           </DialogTitle>
           <DialogDescription>
-            Share this link with {customerName} to collect their signature.
+            Share this link with {customerName} to collect their decision and signature.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-6 py-6">
           {/* URL display */}
           <div className="w-full rounded-lg border border-border/50 bg-background/40 p-4 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Signing Link</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Signing Link
+            </p>
             <p className="text-sm font-mono break-all text-primary">{url}</p>
           </div>
 
@@ -807,7 +1029,7 @@ export function CompletionCertificateDialog({
             <Button
               className="btn-gradient flex-1 gap-2"
               size="lg"
-              onClick={() => copyToClipboard(url, newCertId ?? '')}
+              onClick={() => copyToClipboard(url, newAddendumId ?? '')}
             >
               {isCopied ? (
                 <>
@@ -824,7 +1046,7 @@ export function CompletionCertificateDialog({
             <Button variant="outline" size="lg" className="flex-1 gap-2" asChild>
               <a href={gmailHref} target="_blank" rel="noreferrer">
                 <Mail className="h-4 w-4" />
-                Send via Email
+                Send via Gmail
               </a>
             </Button>
           </div>
@@ -832,7 +1054,7 @@ export function CompletionCertificateDialog({
           <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" asChild>
             <a href={url} target="_blank" rel="noreferrer">
               <ExternalLink className="h-3.5 w-3.5" />
-              Open signing page
+              Open addendum page
             </a>
           </Button>
         </div>
@@ -852,11 +1074,11 @@ export function CompletionCertificateDialog({
 
   function renderContent() {
     switch (step) {
-      case 'list':   return renderList();
-      case 'step1':  return renderStep1();
-      case 'step2':  return renderStep2();
-      case 'step3':  return renderStep3();
-      case 'step4':  return renderStep4();
+      case 'list':  return renderList();
+      case 'step1': return renderStep1();
+      case 'step2': return renderStep2();
+      case 'step3': return renderStep3();
+      case 'step4': return renderStep4();
     }
   }
 

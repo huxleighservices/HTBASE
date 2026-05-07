@@ -31,7 +31,8 @@ export type WidgetType =
   | 'deal-tracker'
   | 'schedule'
   | 'resource-library'
-  | 'communications';
+  | 'communications'
+  | 'supplemental-addendum';
 
 export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads' | 'Essentials';
 
@@ -169,6 +170,16 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     iconName: 'Users',
     category: 'Leads',
     actionLabel: 'Open Leads',
+  },
+
+  // ── Supplemental Work Addendum ───────────────────────────────────────────────
+  {
+    type: 'supplemental-addendum',
+    defaultTitle: 'Supplemental Work Addendum',
+    defaultDescription: 'Generate and send customer-facing addendums for supplemental work with authorize/decline digital signing.',
+    iconName: 'ScrollText',
+    category: 'Operations',
+    actionLabel: 'Open Addendums',
   },
 
   // ── Completion Certificate ───────────────────────────────────────────────────

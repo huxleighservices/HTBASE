@@ -7,6 +7,14 @@
         { "fieldPath": "clientPath", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "supplementalAddendums",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clientPath", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
