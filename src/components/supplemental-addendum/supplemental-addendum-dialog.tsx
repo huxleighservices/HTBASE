@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -89,7 +89,7 @@ interface AddendumRecord {
   id: string;
   projectName: string;
   customerName: string;
-  status: 'pending' | 'authorized' | 'declined';
+  status: 'pending' | 'authorized' | 'declined' | 'not-needed';
   createdAt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   clientPath: string;
 }
@@ -188,6 +188,12 @@ export function SupplementalAddendumDialog({
   const [laborCostStr, setLaborCostStr] = useState('');
   const [isInsuranceJob, setIsInsuranceJob] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+
+  // "No addendum needed" PM signature
+  const [noAddendumNeeded, setNoAddendumNeeded] = useState(false);
+  const [pmSignatureDataUrl, setPmSignatureDataUrl] = useState<string | null>(null);
+  const pmCanvasRef = useRef<HTMLCanvasElement>(null);
+  const pmIsDrawingRef = useRef(false);
 
   // Step 4
   const [newAddendumId, setNewAddendumId] = useState<string | null>(null);
@@ -313,7 +319,65 @@ export function SupplementalAddendumDialog({
   }
 
   async function handleCreateAddendum() {
-    if (!selectedProject || selectedPhotoIds.size === 0) return;
+    if (!selectedProject) return;
+
+    // ── "No Addendum Needed" path ──────────────────────────────────────────────
+    if (noAddendumNeeded) {
+      if (!pmSignatureDataUrl) {
+        toast({ title: 'Validation', description: 'Project manager signature is required.', variant: 'destructive' });
+        return;
+      }
+      setIsCreating(true);
+      try {
+        const pmName = activeUser?.displayName || activeUser?.username || 'Unknown PM';
+        const payload = {
+          clientPath: client.path ?? '',
+          firmName: client.firmName,
+          projectId: selectedProject.id,
+          projectName: selectedProject.name,
+          propertyAddress: propertyAddress.trim() || undefined,
+          customerName: customerName.trim() || selectedProject.name,
+          customerEmail: customerEmail.trim() || undefined,
+          pmSignatureDataUrl,
+          pmDisplayName: activeUser?.displayName ?? undefined,
+          pmUsername: activeUser?.username ?? undefined,
+          pmPhone: activeUser?.phoneNumber ?? undefined,
+          status: 'not-needed' as const,
+          createdBy: activeUser?.username ?? 'unknown',
+          createdAt: serverTimestamp(),
+        };
+        const docRef = await addDoc(collection(firestore, 'supplementalAddendums'), payload);
+        setNewAddendumId(docRef.id);
+
+        // Send notification email
+        fetch('/api/send-addendum-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            addendumId: docRef.id,
+            customerName: payload.customerName,
+            customerEmail: payload.customerEmail ?? '',
+            projectName: selectedProject.name,
+            decision: 'not-needed',
+            totalCost: 0,
+            firmName: client.firmName,
+            signedAt: new Date().toISOString(),
+            pmName,
+            pmPhone: activeUser?.phoneNumber ?? '',
+          }),
+        }).catch(() => { /* best-effort */ });
+
+        setStep('step4');
+      } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        toast({ title: 'Failed', description: err.message, variant: 'destructive' });
+      } finally {
+        setIsCreating(false);
+      }
+      return;
+    }
+
+    // ── Normal addendum path ───────────────────────────────────────────────────
+    if (selectedPhotoIds.size === 0) return;
     if (!customerName.trim()) {
       toast({ title: 'Validation', description: 'Customer name is required.', variant: 'destructive' });
       return;
@@ -340,10 +404,6 @@ export function SupplementalAddendumDialog({
     }
     if (!materialCostStr || materialCost < 0) {
       toast({ title: 'Validation', description: 'Additional material cost is required.', variant: 'destructive' });
-      return;
-    }
-    if (!laborCostStr || laborCost < 0) {
-      toast({ title: 'Validation', description: 'Additional labor cost is required.', variant: 'destructive' });
       return;
     }
 
@@ -393,6 +453,91 @@ export function SupplementalAddendumDialog({
     }
   }
 
+  // ── PM signature canvas handlers ────────────────────────────────────────────
+  function getPmPoint(clientX: number, clientY: number) {
+    const canvas = pmCanvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (clientX - rect.left) * (canvas.width / rect.width),
+      y: (clientY - rect.top) * (canvas.height / rect.height),
+    };
+  }
+
+  function handlePmMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
+    const canvas = pmCanvasRef.current;
+    if (!canvas) return;
+    pmIsDrawingRef.current = true;
+    const ctx = canvas.getContext('2d');
+    const pt = getPmPoint(e.clientX, e.clientY);
+    if (!ctx || !pt) return;
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+  }
+
+  function handlePmMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
+    if (!pmIsDrawingRef.current) return;
+    const canvas = pmCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const pt = getPmPoint(e.clientX, e.clientY);
+    if (!ctx || !pt) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+  }
+
+  function handlePmMouseEnd() {
+    if (!pmIsDrawingRef.current) return;
+    pmIsDrawingRef.current = false;
+    const canvas = pmCanvasRef.current;
+    if (canvas) setPmSignatureDataUrl(canvas.toDataURL());
+  }
+
+  function handlePmTouchStart(e: React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    const canvas = pmCanvasRef.current;
+    if (!canvas) return;
+    pmIsDrawingRef.current = true;
+    const ctx = canvas.getContext('2d');
+    const touch = e.touches[0];
+    const pt = getPmPoint(touch.clientX, touch.clientY);
+    if (!ctx || !pt) return;
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+  }
+
+  function handlePmTouchMove(e: React.TouchEvent<HTMLCanvasElement>) {
+    e.preventDefault();
+    if (!pmIsDrawingRef.current) return;
+    const canvas = pmCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const touch = e.touches[0];
+    const pt = getPmPoint(touch.clientX, touch.clientY);
+    if (!ctx || !pt) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineTo(pt.x, pt.y);
+    ctx.stroke();
+  }
+
+  function handlePmTouchEnd() {
+    pmIsDrawingRef.current = false;
+    const canvas = pmCanvasRef.current;
+    if (canvas) setPmSignatureDataUrl(canvas.toDataURL());
+  }
+
+  function clearPmSignature() {
+    const canvas = pmCanvasRef.current;
+    if (!canvas) return;
+    canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    setPmSignatureDataUrl(null);
+  }
+
   function resetForm() {
     setSelectedProject(null);
     setProjectSearch('');
@@ -408,6 +553,9 @@ export function SupplementalAddendumDialog({
     setMaterialCostStr('');
     setLaborCostStr('');
     setIsInsuranceJob(false);
+    setNoAddendumNeeded(false);
+    setPmSignatureDataUrl(null);
+    clearPmSignature();
     setNewAddendumId(null);
     setIsCreating(false);
     setCopiedId(null);
@@ -477,20 +625,19 @@ export function SupplementalAddendumDialog({
   // ── Status badge helpers ────────────────────────────────────────────────────
   function statusBadgeClass(status: AddendumRecord['status']) {
     switch (status) {
-      case 'authorized':
-        return 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10';
-      case 'declined':
-        return 'border-red-500/50 text-red-400 bg-red-500/10';
-      default:
-        return 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10';
+      case 'authorized':  return 'border-emerald-500/50 text-emerald-400 bg-emerald-500/10';
+      case 'declined':    return 'border-red-500/50 text-red-400 bg-red-500/10';
+      case 'not-needed':  return 'border-slate-500/50 text-slate-400 bg-slate-500/10';
+      default:            return 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10';
     }
   }
 
   function statusLabel(status: AddendumRecord['status']) {
     switch (status) {
-      case 'authorized': return 'Authorized';
-      case 'declined':   return 'Declined';
-      default:           return 'Pending';
+      case 'authorized':  return 'Authorized';
+      case 'declined':    return 'Declined';
+      case 'not-needed':  return 'Not Needed';
+      default:            return 'Pending';
     }
   }
 
@@ -782,15 +929,17 @@ export function SupplementalAddendumDialog({
   function renderStep3() {
     const nameValid = customerName.trim().length > 0;
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
-    const canProceed =
-      nameValid &&
-      emailValid &&
-      !!originalContractDate &&
-      !!buildDate &&
-      workDescription.trim().length > 0 &&
-      workReason.trim().length > 0 &&
-      materialCostStr !== '' &&
-      laborCostStr !== '';
+    const canProceed = noAddendumNeeded
+      ? !!pmSignatureDataUrl
+      : (
+        nameValid &&
+        emailValid &&
+        !!originalContractDate &&
+        !!buildDate &&
+        workDescription.trim().length > 0 &&
+        workReason.trim().length > 0 &&
+        materialCostStr !== ''
+      );
 
     return (
       <>
@@ -817,171 +966,234 @@ export function SupplementalAddendumDialog({
               </p>
             </div>
 
-            {/* Property & Customer */}
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="add-property-address">Property Address</Label>
-                <Input
-                  id="add-property-address"
-                  placeholder="123 Main St, City, State"
-                  value={propertyAddress}
-                  onChange={(e) => setPropertyAddress(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-customer-name">
-                  Customer Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="add-customer-name"
-                  placeholder="Jane Smith"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-customer-email">
-                  Customer Email <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="add-customer-email"
-                  type="email"
-                  placeholder="jane@example.com"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-customer-phone">Customer Phone (optional)</Label>
-                <Input
-                  id="add-customer-phone"
-                  type="tel"
-                  placeholder="(555) 000-0000"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="add-contract-date">
-                  Original Contract Date <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="add-contract-date"
-                  type="date"
-                  value={originalContractDate}
-                  onChange={(e) => setOriginalContractDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-build-date">
-                  Build Date <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="add-build-date"
-                  type="date"
-                  value={buildDate}
-                  onChange={(e) => setBuildDate(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Work description & reason */}
-            <div className="space-y-1.5">
-              <Label htmlFor="add-work-description">
-                Description of Additional Work/Materials <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="add-work-description"
-                placeholder="Describe the additional work or materials required..."
-                rows={3}
-                value={workDescription}
-                onChange={(e) => setWorkDescription(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="add-work-reason">
-                Reason for Recommendation <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="add-work-reason"
-                placeholder="Explain why this supplemental work is recommended..."
-                rows={3}
-                value={workReason}
-                onChange={(e) => setWorkReason(e.target.value)}
-              />
-            </div>
-
-            {/* Costs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="add-material-cost">
-                  Additional Material Cost <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
-                    $
-                  </span>
-                  <Input
-                    id="add-material-cost"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="pl-7"
-                    value={materialCostStr}
-                    onChange={(e) => setMaterialCostStr(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="add-labor-cost">
-                  Additional Labor Cost <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
-                    $
-                  </span>
-                  <Input
-                    id="add-labor-cost"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    className="pl-7"
-                    value={laborCostStr}
-                    onChange={(e) => setLaborCostStr(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Total (read-only computed) */}
-            <div className="rounded-lg border border-border/50 bg-background/40 p-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Total Supplemental Cost</p>
-                <p className="text-xs text-muted-foreground">Material + Labor</p>
-              </div>
-              <p className="text-lg font-bold text-primary">{formatCurrency(totalCost)}</p>
-            </div>
-
-            {/* Insurance toggle */}
+            {/* No Addendum Needed toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/40 p-3">
               <div className="space-y-0.5">
-                <Label htmlFor="add-insurance" className="text-sm font-medium cursor-pointer">
-                  Insurance Job
+                <Label htmlFor="add-no-addendum" className="text-sm font-medium cursor-pointer">
+                  No Addendum Needed
                 </Label>
-                <p className="text-xs text-muted-foreground">This is an insurance claim job</p>
+                <p className="text-xs text-muted-foreground">
+                  PM signs to confirm no supplemental work is required
+                </p>
               </div>
               <Switch
-                id="add-insurance"
-                checked={isInsuranceJob}
-                onCheckedChange={setIsInsuranceJob}
+                id="add-no-addendum"
+                checked={noAddendumNeeded}
+                onCheckedChange={(v) => {
+                  setNoAddendumNeeded(v);
+                  if (!v) clearPmSignature();
+                }}
               />
             </div>
+
+            {noAddendumNeeded ? (
+              /* PM signature section */
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Sign below to confirm that no supplemental addendum is needed for{' '}
+                  <span className="font-medium text-foreground">{selectedProject?.name}</span>.
+                </p>
+                <div
+                  className="relative rounded-lg border-2 border-border overflow-hidden bg-white"
+                  style={{ touchAction: 'none' }}
+                >
+                  <canvas
+                    ref={pmCanvasRef}
+                    width={560}
+                    height={160}
+                    className="w-full block cursor-crosshair"
+                    onMouseDown={handlePmMouseDown}
+                    onMouseMove={handlePmMouseMove}
+                    onMouseUp={handlePmMouseEnd}
+                    onMouseLeave={handlePmMouseEnd}
+                    onTouchStart={handlePmTouchStart}
+                    onTouchMove={handlePmTouchMove}
+                    onTouchEnd={handlePmTouchEnd}
+                  />
+                  {!pmSignatureDataUrl && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <p className="text-sm text-slate-400">Sign here</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button type="button" variant="outline" size="sm" onClick={clearPmSignature}>
+                    Clear
+                  </Button>
+                  {pmSignatureDataUrl && (
+                    <span className="text-xs text-emerald-500 flex items-center gap-1">
+                      <Check className="h-3 w-3" /> Signature captured
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Property & Customer */}
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-property-address">Property Address</Label>
+                    <Input
+                      id="add-property-address"
+                      placeholder="123 Main St, City, State"
+                      value={propertyAddress}
+                      onChange={(e) => setPropertyAddress(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-customer-name">
+                      Customer Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="add-customer-name"
+                      placeholder="Jane Smith"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-customer-email">
+                      Customer Email <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="add-customer-email"
+                      type="email"
+                      placeholder="jane@example.com"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-customer-phone">Customer Phone (optional)</Label>
+                    <Input
+                      id="add-customer-phone"
+                      type="tel"
+                      placeholder="(555) 000-0000"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-contract-date">
+                      Original Contract Date <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="add-contract-date"
+                      type="date"
+                      value={originalContractDate}
+                      onChange={(e) => setOriginalContractDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-build-date">
+                      Build Date <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="add-build-date"
+                      type="date"
+                      value={buildDate}
+                      onChange={(e) => setBuildDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Work description & reason */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-work-description">
+                    Description of Additional Work/Materials <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="add-work-description"
+                    placeholder="Describe the additional work or materials required..."
+                    rows={3}
+                    value={workDescription}
+                    onChange={(e) => setWorkDescription(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="add-work-reason">
+                    Reason for Recommendation <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="add-work-reason"
+                    placeholder="Explain why this supplemental work is recommended..."
+                    rows={3}
+                    value={workReason}
+                    onChange={(e) => setWorkReason(e.target.value)}
+                  />
+                </div>
+
+                {/* Costs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-material-cost">
+                      Additional Material Cost <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+                        $
+                      </span>
+                      <Input
+                        id="add-material-cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="pl-7"
+                        value={materialCostStr}
+                        onChange={(e) => setMaterialCostStr(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="add-labor-cost">Additional Labor Cost (optional)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+                        $
+                      </span>
+                      <Input
+                        id="add-labor-cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="pl-7"
+                        value={laborCostStr}
+                        onChange={(e) => setLaborCostStr(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total (read-only computed) */}
+                <div className="rounded-lg border border-border/50 bg-background/40 p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Total Supplemental Cost</p>
+                    <p className="text-xs text-muted-foreground">Material + Labor</p>
+                  </div>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(totalCost)}</p>
+                </div>
+
+                {/* Insurance toggle */}
+                <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background/40 p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="add-insurance" className="text-sm font-medium cursor-pointer">
+                      Insurance Job
+                    </Label>
+                    <p className="text-xs text-muted-foreground">This is an insurance claim job</p>
+                  </div>
+                  <Switch
+                    id="add-insurance"
+                    checked={isInsuranceJob}
+                    onCheckedChange={setIsInsuranceJob}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </ScrollArea>
 
@@ -996,7 +1208,7 @@ export function SupplementalAddendumDialog({
             disabled={!canProceed || isCreating}
           >
             {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generate Addendum
+            {noAddendumNeeded ? 'Submit — No Addendum Needed' : 'Generate Addendum'}
             {!isCreating && <ChevronRight className="ml-1 h-4 w-4" />}
           </Button>
         </DialogFooter>
@@ -1007,6 +1219,40 @@ export function SupplementalAddendumDialog({
   function renderStep4() {
     const url = newAddendumId ? addendumUrl(newAddendumId) : '';
     const isCopied = copiedId === (newAddendumId ?? '');
+
+    if (noAddendumNeeded) {
+      return (
+        <>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-emerald-400" />
+              Logged — No Addendum Needed
+            </DialogTitle>
+            <DialogDescription>
+              The PM signature has been saved confirming no supplemental work is required for{' '}
+              {selectedProject?.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 py-6">
+            <div className="w-full rounded-lg border border-border/50 bg-background/40 p-4 space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Project</p>
+              <p className="text-sm font-semibold">{selectedProject?.name}</p>
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              A notification email has been sent to the M&amp;T Roofing &amp; Restoration team.
+            </p>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button className="btn-gradient" onClick={handleDone}>
+              Done
+            </Button>
+          </DialogFooter>
+        </>
+      );
+    }
+
     const gmailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
       customerEmail,
     )}&su=${encodeURIComponent(

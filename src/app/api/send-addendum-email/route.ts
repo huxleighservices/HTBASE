@@ -6,10 +6,12 @@ interface AddendumEmailBody {
   customerName: string;
   customerEmail: string;
   projectName: string;
-  decision: 'authorized' | 'declined';
+  decision: 'authorized' | 'declined' | 'not-needed';
   totalCost: number;
   firmName: string;
   signedAt: string;
+  pmName?: string;
+  pmPhone?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -24,6 +26,8 @@ export async function POST(request: NextRequest) {
       totalCost,
       firmName,
       signedAt,
+      pmName,
+      pmPhone,
     } = body;
 
     if (!addendumId || !customerName || !projectName) {
@@ -61,8 +65,28 @@ export async function POST(request: NextRequest) {
     }).format(totalCost ?? 0);
 
     const isAuthorized = decision === 'authorized';
+    const isNotNeeded = decision === 'not-needed';
 
-    const decisionBanner = isAuthorized
+    const pmInfoLine = pmName
+      ? `${pmName}${pmPhone ? ` · ${pmPhone}` : ''}`
+      : '';
+
+    const decisionBanner = isNotNeeded
+      ? `
+        <tr>
+          <td style="background:#f1f5f9;border-left:4px solid #64748b;padding:16px 20px;border-radius:4px;">
+            <p style="margin:0;font-size:15px;font-weight:700;color:#1e293b;">
+              📋 NO ADDENDUM NEEDED
+            </p>
+            <p style="margin:6px 0 0;font-size:14px;color:#334155;">
+              The project manager has confirmed that no supplemental addendum is required for this project. The PM signature has been recorded.
+            </p>
+            ${pmInfoLine ? `<p style="margin:6px 0 0;font-size:13px;color:#64748b;">Signed by: <strong style="color:#1e293b;">${pmInfoLine}</strong></p>` : ''}
+          </td>
+        </tr>
+        <tr><td style="height:12px;"></td></tr>
+      `
+      : isAuthorized
       ? `
         <tr>
           <td style="background:#d1fae5;border-left:4px solid #10b981;padding:16px 20px;border-radius:4px;">
@@ -90,8 +114,8 @@ export async function POST(request: NextRequest) {
         <tr><td style="height:12px;"></td></tr>
       `;
 
-    const decisionLabel = isAuthorized ? 'Authorized' : 'Declined';
-    const subjectDecisionLabel = isAuthorized ? 'Authorized' : 'Declined';
+    const decisionLabel = isNotNeeded ? 'Not Needed' : isAuthorized ? 'Authorized' : 'Declined';
+    const subjectDecisionLabel = isNotNeeded ? 'Not Needed' : isAuthorized ? 'Authorized' : 'Declined';
 
     const html = `
 <!DOCTYPE html>
@@ -124,7 +148,10 @@ export async function POST(request: NextRequest) {
                 <tr>
                   <td style="padding-bottom:20px;">
                     <p style="margin:0;font-size:15px;color:#334155;">
-                      A Supplemental Work Addendum has been ${decisionLabel.toLowerCase()} by the customer. Details are below.
+                      ${isNotNeeded
+                        ? 'The project manager has confirmed no supplemental addendum is needed. Details are below.'
+                        : `A Supplemental Work Addendum has been ${decisionLabel.toLowerCase()} by the customer. Details are below.`
+                      }
                     </p>
                   </td>
                 </tr>
@@ -164,6 +191,12 @@ export async function POST(request: NextRequest) {
                         <td style="padding:12px 16px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Signed At</td>
                         <td style="padding:12px 16px;font-size:14px;color:#1e293b;">${signedDateFormatted}</td>
                       </tr>
+                      ${isNotNeeded && pmName ? `
+                      <tr style="border-top:1px solid #e2e8f0;">
+                        <td style="padding:12px 16px;font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Signed By (PM)</td>
+                        <td style="padding:12px 16px;font-size:14px;color:#1e293b;">${pmName}${pmPhone ? ` &middot; ${pmPhone}` : ''}</td>
+                      </tr>
+                      ` : ''}
                     </table>
                   </td>
                 </tr>

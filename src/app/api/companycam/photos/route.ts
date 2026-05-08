@@ -57,19 +57,23 @@ export async function GET(request: NextRequest) {
 
     // Normalise to a consistent shape regardless of API version.
     // CompanyCam v2 returns uris as an array: [{ uri, size }]
-    const photos = rawPhotos.map((photo) => {
-      const urisArr = Array.isArray(photo.uris)
-        ? (photo.uris as { uri: string; size: string }[])
-        : [];
-      const find = (size: string) => urisArr.find((u) => u.size === size)?.uri ?? '';
-      const original = find('original') || find('large') || (urisArr[0]?.uri ?? String(photo.uri ?? ''));
-      const thumb = find('thumb') || find('small') || original;
-      return {
-        id: photo.id,
-        uri: original,
-        thumb_uri: thumb,
-      };
-    });
+    const photos = rawPhotos
+      .map((photo) => {
+        const urisArr = Array.isArray(photo.uris)
+          ? (photo.uris as { uri: string; size: string }[])
+          : [];
+        const find = (size: string) => urisArr.find((u) => u.size === size)?.uri ?? '';
+        const original = find('original') || find('large') || (urisArr[0]?.uri ?? String(photo.uri ?? ''));
+        const thumb = find('thumb') || find('small') || original;
+        return {
+          id: photo.id,
+          uri: original,
+          thumb_uri: thumb,
+          captured_at: typeof photo.captured_at === 'number' ? photo.captured_at : 0,
+        };
+      })
+      // Most recent first
+      .sort((a, b) => b.captured_at - a.captured_at);
 
     return NextResponse.json(photos);
   } catch (error) {

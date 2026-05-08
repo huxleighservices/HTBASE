@@ -405,26 +405,40 @@ export default function SignCertPage({
               </section>
             )}
 
-            {/* Signature */}
+            {/* Legal document + Signature */}
             <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Customer Signature</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Section 2 — Certificate of Completion &amp; Release</h2>
+                <p className="text-xs text-slate-400 mt-1">Completed after final walkthrough.</p>
               </div>
-              <div className="px-6 py-5 space-y-2">
-                {signedData?.signatureDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={signedData.signatureDataUrl}
-                    alt="Customer signature"
-                    className="max-h-40 rounded border border-slate-200 bg-white"
-                  />
-                ) : (
-                  <p className="text-sm text-slate-400 italic">Signature not available.</p>
-                )}
-                <p className="text-xs text-slate-500">
-                  Signed by <span className="font-medium text-slate-700">{signedData?.customerName}</span> on{' '}
-                  {signedData?.signedAt ? formatTimestamp(signedData.signedAt) : '—'}
-                </p>
+              <div className="px-6 py-5 space-y-5">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Work Completion Confirmation</p>
+                  <ol className="space-y-3 text-sm text-slate-600">
+                    <li className="flex gap-3"><span className="font-semibold text-slate-700 shrink-0">I.</span><span><span className="font-semibold text-slate-700">Completion of Scope:</span> All work outlined in the original contract and any authorized supplemental addendums has been completed in full.</span></li>
+                    <li className="flex gap-3"><span className="font-semibold text-slate-700 shrink-0">II.</span><span><span className="font-semibold text-slate-700">Final Inspection:</span> A final walkthrough was performed with the Project Manager to verify the quality of materials and workmanship. If the customer was not available to be on-site, a virtual walkthrough was conducted via video call or digital photo documentation. The customer confirms satisfaction with the results.</span></li>
+                    <li className="flex gap-3"><span className="font-semibold text-slate-700 shrink-0">III.</span><span><span className="font-semibold text-slate-700">Jobsite Condition:</span> The jobsite has been left clean and free of debris to the best of M&amp;T Roofing &amp; Restoration's ability.</span></li>
+                    <li className="flex gap-3"><span className="font-semibold text-slate-700 shrink-0">IV.</span><span><span className="font-semibold text-slate-700">Final Payment:</span> The final invoice total will include the original contract amount plus any supplemental costs authorized in Section 1.</span></li>
+                  </ol>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-slate-700 mb-2">Release of Liability</p>
+                  <p className="text-sm text-slate-600 leading-relaxed">Upon signing this Certificate of Completion, M&amp;T Roofing &amp; Restoration is released from any further responsibility, except for obligations specifically covered under applicable manufacturer and/or workmanship warranties. If supplemental work was declined in Section 1, the customer remains responsible for any resulting issues.</p>
+                </div>
+                <div className="border-t border-slate-200 pt-4 space-y-3">
+                  <p className="text-sm font-semibold text-slate-700">Customer Final Approval</p>
+                  <p className="text-xs text-slate-500">Printed Name: <span className="font-medium text-slate-700">{signedData?.customerName}</span></p>
+                  {signedData?.signatureDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={signedData.signatureDataUrl} alt="Customer signature" className="max-h-40 rounded border border-slate-200 bg-white" />
+                  ) : (
+                    <p className="text-sm text-slate-400 italic">Signature not available.</p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    Signed by <span className="font-medium text-slate-700">{signedData?.customerName}</span> on{' '}
+                    {signedData?.signedAt ? formatTimestamp(signedData.signedAt) : '—'}
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -553,20 +567,62 @@ export default function SignCertPage({
           )}
 
           {/* ---------------------------------------------------------------- */}
-          {/* Signature section                                                 */}
+          {/* Legal document                                                    */}
           {/* ---------------------------------------------------------------- */}
           <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-                Digital Signature
+                Section 2 — Certificate of Completion &amp; Release
               </h2>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <p className="text-sm text-slate-600 leading-relaxed">
-                By signing below, I{' '}
-                <span className="font-semibold text-slate-800">{cert?.customerName}</span>{' '}
-                confirm that the work described above has been completed to my satisfaction.
+              <p className="text-xs text-slate-400 mt-1">
+                To be completed after the final walkthrough once all work is finished.
               </p>
+            </div>
+            <div className="px-6 py-5 space-y-5">
+              {/* Work Completion Confirmation */}
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-3">Work Completion Confirmation</p>
+                <p className="text-sm text-slate-600 mb-3">
+                  By signing below, the customer acknowledges and agrees that:
+                </p>
+                <ol className="space-y-3 text-sm text-slate-600">
+                  <li className="flex gap-3">
+                    <span className="font-semibold text-slate-700 shrink-0">I.</span>
+                    <span><span className="font-semibold text-slate-700">Completion of Scope:</span> All work outlined in the original contract and any authorized supplemental addendums has been completed in full.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="font-semibold text-slate-700 shrink-0">II.</span>
+                    <span><span className="font-semibold text-slate-700">Final Inspection:</span> A final walkthrough was performed with the Project Manager to verify the quality of materials and workmanship. If the customer was not available to be on-site, a virtual walkthrough was conducted via video call or digital photo documentation. The customer confirms satisfaction with the results.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="font-semibold text-slate-700 shrink-0">III.</span>
+                    <span><span className="font-semibold text-slate-700">Jobsite Condition:</span> The jobsite has been left clean and free of debris to the best of M&amp;T Roofing &amp; Restoration's ability.</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="font-semibold text-slate-700 shrink-0">IV.</span>
+                    <span><span className="font-semibold text-slate-700">Final Payment:</span> The final invoice total will include the original contract amount plus any supplemental costs authorized in Section 1.</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* Release of Liability */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-sm font-semibold text-slate-700 mb-2">Release of Liability</p>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Upon signing this Certificate of Completion, M&amp;T Roofing &amp; Restoration is released from any further
+                  responsibility, except for obligations specifically covered under applicable manufacturer and/or workmanship
+                  warranties. If supplemental work was declined in Section 1, the customer remains responsible for any
+                  resulting issues.
+                </p>
+              </div>
+
+              {/* Customer Final Approval header */}
+              <div className="border-t border-slate-200 pt-4">
+                <p className="text-sm font-semibold text-slate-700 mb-1">Customer Final Approval</p>
+                <p className="text-xs text-slate-500">
+                  Printed Name: <span className="font-medium text-slate-700">{cert?.customerName}</span>
+                </p>
+              </div>
 
               {/* Canvas wrapper */}
               <div className="relative rounded-lg border-2 border-slate-300 bg-white overflow-hidden"

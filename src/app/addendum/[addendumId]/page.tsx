@@ -36,24 +36,28 @@ type AddendumData = {
   firmName: string;
   projectId: string;
   projectName: string;
-  propertyAddress: string;
+  propertyAddress?: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail?: string;
   customerPhone?: string;
-  originalContractDate: string;
-  buildDate: string;
-  workDescription: string;
-  workReason: string;
-  materialCost: number;
-  laborCost: number;
-  totalCost: number;
-  isInsuranceJob: boolean;
-  photos: Array<{ id: string; uri: string; thumbUri: string }>;
-  status: 'pending' | 'authorized' | 'declined';
+  originalContractDate?: string;
+  buildDate?: string;
+  workDescription?: string;
+  workReason?: string;
+  materialCost?: number;
+  laborCost?: number;
+  totalCost?: number;
+  isInsuranceJob?: boolean;
+  photos?: Array<{ id: string; uri: string; thumbUri: string }>;
+  status: 'pending' | 'authorized' | 'declined' | 'not-needed';
   createdAt: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   signedAt?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   signatureDataUrl?: string;
   customerDecision?: 'authorized' | 'declined';
+  pmSignatureDataUrl?: string;
+  pmDisplayName?: string;
+  pmUsername?: string;
+  pmPhone?: string;
 };
 
 type PageState = 'loading' | 'not-found' | 'ready' | 'submitting' | 'complete' | 'already-signed';
@@ -265,7 +269,7 @@ export default function AddendumPage({
         const data = snap.data() as AddendumData;
         setAddendum(data);
         setPageState(
-          data.status === 'authorized' || data.status === 'declined'
+          data.status === 'authorized' || data.status === 'declined' || data.status === 'not-needed'
             ? 'already-signed'
             : 'ready',
         );
@@ -340,8 +344,96 @@ export default function AddendumPage({
   // Shared read-only document renderer
   // -------------------------------------------------------------------------
   function renderReadOnlyDoc(data: AddendumData, showBanner: boolean) {
+    const isNotNeeded = data.status === 'not-needed';
     const isAuthorized = data.customerDecision === 'authorized' || data.status === 'authorized';
     const isDeclined = data.customerDecision === 'declined' || data.status === 'declined';
+
+    // "No Addendum Needed" — simplified view showing PM confirmation
+    if (isNotNeeded) {
+      const pmLabel = data.pmDisplayName || data.pmUsername || 'Project Manager';
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <header className="bg-slate-800 text-white px-6 py-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">HTBase</p>
+              <p className="text-base font-semibold leading-tight">{data.firmName}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-medium">Document</p>
+              <p className="text-base font-semibold leading-tight">Supplemental Addendum</p>
+            </div>
+          </header>
+          <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+            {/* Status banner */}
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4">
+              <span className="text-2xl">📋</span>
+              <div>
+                <p className="font-semibold text-sm text-slate-800">No Supplemental Addendum Needed</p>
+                <p className="text-xs mt-0.5 text-slate-500">
+                  Confirmed by {pmLabel} on {data.createdAt ? formatTimestamp(data.createdAt) : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* Project info */}
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">Project Details</h2>
+              </div>
+              <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Project</p>
+                  <p className="text-slate-800 font-medium">{data.projectName}</p>
+                </div>
+                {data.customerName && (
+                  <div>
+                    <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Customer</p>
+                    <p className="text-slate-800 font-medium">{data.customerName}</p>
+                  </div>
+                )}
+                {data.propertyAddress && (
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">Property Address</p>
+                    <p className="text-slate-800">{data.propertyAddress}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* PM signature */}
+            {data.pmSignatureDataUrl && (
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+                    Project Manager Signature
+                  </h2>
+                </div>
+                <div className="px-6 py-5 space-y-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={data.pmSignatureDataUrl}
+                    alt="PM signature"
+                    className="max-h-40 rounded border border-slate-200 bg-white"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Signed by{' '}
+                    <span className="font-medium text-slate-700">{pmLabel}</span>
+                    {data.pmPhone && (
+                      <span className="text-slate-400"> · {data.pmPhone}</span>
+                    )}
+                    {' '}on {data.createdAt ? formatTimestamp(data.createdAt) : '—'}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            <p className="text-center text-xs text-slate-400 pb-4">
+              This document is on file. Powered by HTBase.
+            </p>
+          </main>
+        </div>
+      );
+    }
 
     return (
       <>
@@ -417,13 +509,13 @@ export default function AddendumPage({
                   <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">
                     Original Contract Date
                   </p>
-                  <p className="text-slate-800">{formatDate(data.originalContractDate)}</p>
+                  <p className="text-slate-800">{formatDate(data.originalContractDate ?? '')}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wide font-medium mb-0.5">
                     Build Date
                   </p>
-                  <p className="text-slate-800">{formatDate(data.buildDate)}</p>
+                  <p className="text-slate-800">{formatDate(data.buildDate ?? '')}</p>
                 </div>
               </div>
             </section>
@@ -482,11 +574,11 @@ export default function AddendumPage({
                     <p className="font-semibold text-slate-800">
                       Description of Additional Work/Materials:
                     </p>
-                    <p className="mt-1 whitespace-pre-wrap">{data.workDescription}</p>
+                    <p className="mt-1 whitespace-pre-wrap">{data.workDescription ?? ''}</p>
                   </div>
                   <div>
                     <p className="font-semibold text-slate-800">Reason for Recommendation:</p>
-                    <p className="mt-1 whitespace-pre-wrap">{data.workReason}</p>
+                    <p className="mt-1 whitespace-pre-wrap">{data.workReason ?? ''}</p>
                   </div>
                 </div>
 
@@ -500,19 +592,19 @@ export default function AddendumPage({
                     <div className="flex justify-between px-4 py-3">
                       <span className="text-slate-600">Additional Material Cost</span>
                       <span className="font-medium text-slate-800">
-                        {formatCurrency(data.materialCost)}
+                        {formatCurrency(data.materialCost ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between px-4 py-3">
                       <span className="text-slate-600">Additional Labor Cost</span>
                       <span className="font-medium text-slate-800">
-                        {formatCurrency(data.laborCost)}
+                        {formatCurrency(data.laborCost ?? 0)}
                       </span>
                     </div>
                     <div className="flex justify-between px-4 py-3 bg-slate-50">
                       <span className="font-semibold text-slate-800">Total Supplemental Cost</span>
                       <span className="font-bold text-slate-900">
-                        {formatCurrency(data.totalCost)}
+                        {formatCurrency(data.totalCost ?? 0)}
                       </span>
                     </div>
                   </div>
