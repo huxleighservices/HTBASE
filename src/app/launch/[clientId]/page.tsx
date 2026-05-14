@@ -69,6 +69,7 @@ import { ResourceLibraryDialog } from '@/components/resource-library/resource-li
 import { CommunicationsDialog } from '@/components/communications/communications-dialog';
 import { CompletionCertificateDialog } from '@/components/completion-certificate/completion-certificate-dialog';
 import { SupplementalAddendumDialog } from '@/components/supplemental-addendum/supplemental-addendum-dialog';
+import { KitchenTicketDialog } from '@/components/kitchen-ticket/kitchen-ticket-dialog';
 import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
 import { WidgetEditDialog } from '@/components/portal/widget-edit-dialog';
 import { WidgetBrowserDialog } from '@/components/portal/widget-browser-dialog';
@@ -798,6 +799,7 @@ export default function ClientLaunchPage() {
       {client && <CommunicationsDialog       open={openDialog === 'communications'}      onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <CompletionCertificateDialog open={openDialog === 'completion-certificate'} onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <SupplementalAddendumDialog open={openDialog === 'supplemental-addendum'} onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <KitchenTicketDialog        open={openDialog === 'kitchen-ticket'}        onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {/* Session manager is rendered inline in Sales Training section for the session-manager widget */}
 
       {client && (

@@ -32,7 +32,8 @@ export type WidgetType =
   | 'schedule'
   | 'resource-library'
   | 'communications'
-  | 'supplemental-addendum';
+  | 'supplemental-addendum'
+  | 'kitchen-ticket';
 
 export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads' | 'Essentials';
 
@@ -256,6 +257,16 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     iconName: 'Hash',
     category: 'Essentials',
     actionLabel: 'Open Comms',
+  },
+
+  // ── Kitchen Ticket ────────────────────────────────────────────────────────
+  {
+    type: 'kitchen-ticket',
+    defaultTitle: 'Kitchen Ticket System',
+    defaultDescription: 'Voice or manual food orders turned into digital kitchen tickets with ingredients, prep steps, and an interactive checklist.',
+    iconName: 'ChefHat',
+    category: 'Operations',
+    actionLabel: 'Open Kitchen',
   },
 ];
 
