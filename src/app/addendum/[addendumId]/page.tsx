@@ -95,6 +95,11 @@ function formatDate(dateStr: string): string {
   }
 }
 
+function proxyCamUrl(url: string): string {
+  if (!url) return url;
+  return `/api/companycam/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
 // ---------------------------------------------------------------------------
 // Lightbox component
 // ---------------------------------------------------------------------------
@@ -533,17 +538,18 @@ export default function AddendumPage({
                     <button
                       key={photo.id}
                       className="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100 focus:outline-none"
-                      onClick={() => setLightboxSrc(photo.uri)}
+                      onClick={() => setLightboxSrc(proxyCamUrl(photo.uri))}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={photo.thumbUri || photo.uri}
+                        src={proxyCamUrl(photo.thumbUri || photo.uri)}
                         alt="Work photo"
                         className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                         loading="eager"
                         onError={(e) => {
                           const img = e.currentTarget;
-                          if (img.src !== photo.uri) img.src = photo.uri;
+                          const fallback = proxyCamUrl(photo.uri);
+                          if (img.src !== fallback) img.src = fallback;
                         }}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">

@@ -128,6 +128,12 @@ function getProjectThumb(project: CompanyCamProject): string | null {
   return thumb?.uri ?? null;
 }
 
+// Route CompanyCam CDN images through our server to avoid iOS Safari cross-origin blocking
+function proxyCamUrl(url: string): string {
+  if (!url) return url;
+  return `/api/companycam/image-proxy?url=${encodeURIComponent(url)}`;
+}
+
 function toFirestoreDate(ts: any): Date | null { // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!ts) return null;
   if (ts.toDate) return ts.toDate();
@@ -769,7 +775,8 @@ export function SupplementalAddendumDialog({
           ) : (
             <div className="space-y-2 pr-4">
               {filteredProjects.map((project) => {
-                const thumb = getProjectThumb(project);
+                const rawThumb = getProjectThumb(project);
+                const thumb = rawThumb ? proxyCamUrl(rawThumb) : null;
                 const isSelected = selectedProject?.id === project.id;
                 const addressLine = [
                   project.address?.street_address_1,
@@ -876,7 +883,7 @@ export function SupplementalAddendumDialog({
                     style={{ borderColor: isSelected ? 'hsl(var(--primary))' : 'rgba(255,255,255,0.1)' }}
                   >
                     <img
-                      src={getPhotoThumb(photo)}
+                      src={proxyCamUrl(getPhotoThumb(photo))}
                       alt="project photo"
                       className="h-full w-full object-contain bg-black/20"
                     />
@@ -895,7 +902,7 @@ export function SupplementalAddendumDialog({
                     )}
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setPreviewSrc(getPhotoFull(photo)); }}
+                      onClick={(e) => { e.stopPropagation(); setPreviewSrc(proxyCamUrl(getPhotoFull(photo))); }}
                       className="absolute top-1 right-1 rounded-md bg-black/60 p-1 text-white opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity z-10"
                       aria-label="Preview photo"
                     >
