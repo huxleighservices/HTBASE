@@ -540,7 +540,11 @@ export default function AddendumPage({
                         src={photo.thumbUri || photo.uri}
                         alt="Work photo"
                         className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                        loading="lazy"
+                        loading="eager"
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.src !== photo.uri) img.src = photo.uri;
+                        }}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
                         <span className="text-white text-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200">
