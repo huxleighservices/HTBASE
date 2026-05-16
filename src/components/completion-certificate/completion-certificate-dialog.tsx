@@ -645,6 +645,11 @@ export function CompletionCertificateDialog({
                       src={proxyCamUrl(getPhotoThumb(photo))}
                       alt="project photo"
                       className="h-full w-full object-contain bg-black/20"
+                      onError={(e) => {
+                        const img = e.currentTarget;
+                        const direct = getPhotoThumb(photo);
+                        if (img.src !== direct) img.src = direct;
+                      }}
                     />
                     {/* Selection overlay */}
                     <button

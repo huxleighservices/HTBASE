@@ -21,19 +21,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(raw, { headers: { Accept: 'image/*' } });
+    const upstream = await fetch(raw);
     if (!upstream.ok) {
+      console.error(`[image-proxy] upstream ${upstream.status} for ${parsed.hostname}${parsed.pathname}`);
       return new NextResponse('Upstream error', { status: 502 });
     }
-    const body = await upstream.arrayBuffer();
-    return new NextResponse(body, {
+
+    const contentType = upstream.headers.get('Content-Type') ?? 'image/jpeg';
+    return new NextResponse(upstream.body, {
       status: 200,
       headers: {
-        'Content-Type': upstream.headers.get('Content-Type') ?? 'image/jpeg',
-        'Cache-Control': 'public, max-age=86400',
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*',
       },
     });
-  } catch {
+  } catch (err) {
+    console.error('[image-proxy] fetch failed:', err);
     return new NextResponse('Fetch failed', { status: 502 });
   }
 }
