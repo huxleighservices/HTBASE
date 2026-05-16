@@ -885,7 +885,7 @@ export function SupplementalAddendumDialog({
                     <img
                       src={proxyCamUrl(getPhotoThumb(photo))}
                       alt="project photo"
-                      className="h-full w-full object-contain bg-black/20"
+                      className="absolute inset-0 w-full h-full object-cover"
                       onError={(e) => {
                         const img = e.currentTarget;
                         const direct = getPhotoThumb(photo);
