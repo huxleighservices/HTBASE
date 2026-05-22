@@ -32,7 +32,8 @@ export type WidgetType =
   | 'schedule'
   | 'resource-library'
   | 'communications'
-  | 'supplemental-addendum';
+  | 'supplemental-addendum'
+  | 'inventory-manager';
 
 export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads' | 'Essentials';
 
@@ -256,6 +257,16 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     iconName: 'Hash',
     category: 'Essentials',
     actionLabel: 'Open Comms',
+  },
+
+  // ── Inventory Manager ────────────────────────────────────────────────────────
+  {
+    type: 'inventory-manager',
+    defaultTitle: 'Inventory Manager',
+    defaultDescription: 'Track stock levels across custom collections with low-stock alerts.',
+    iconName: 'Package',
+    category: 'Operations',
+    actionLabel: 'Open Inventory',
   },
 ];
 

@@ -264,4 +264,26 @@ export type ARActivityLog = {
     date: any; // Firestore Timestamp
     user: string;
 };
-    
+
+export type InventoryCollection = {
+    id: string;
+    name: string;
+    createdAt: any;
+};
+
+export type InventoryItem = {
+    id: string;
+    collectionId: string;
+    name: string;
+    descriptor?: string;
+    quantity: number;
+    createdAt: any;
+};
+
+export type InventoryPreferences = {
+    id: 'config';
+    lowStockAlertsEnabled: boolean;
+    alertEmail: string;
+    lowStockThreshold: number;
+};
+
