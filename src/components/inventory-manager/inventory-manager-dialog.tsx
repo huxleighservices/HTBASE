@@ -41,9 +41,11 @@ import {
   useMemoFirebase,
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  setDocumentNonBlocking,
   useDoc,
 } from '@/firebase';
-import { collection, doc, serverTimestamp, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Client, InventoryCollection, InventoryItem, InventoryPreferences } from '@/types/client';
 import type { AccessKey } from '@/types/session';
@@ -70,7 +72,6 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [alertEmail, setAlertEmail] = useState('');
   const [threshold, setThreshold] = useState('5');
-  const [prefsSaving, setPrefsSaving] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   // Firestore refs
@@ -134,16 +135,16 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
     toast({ title: 'Item added', description: `${data.name} added to ${selectedCollection.name}.` });
   };
 
-  const handleUpdateQuantity = async (item: InventoryItem, delta: number) => {
+  const handleUpdateQuantity = (item: InventoryItem, delta: number) => {
     if (!itemsRef) return;
     const newQty = Math.max(0, item.quantity + delta);
-    await updateDoc(doc(itemsRef, item.id), { quantity: newQty });
+    updateDocumentNonBlocking(doc(itemsRef, item.id), { quantity: newQty });
 
     // Fire low-stock alert when crossing the threshold going downward
     if (prefs?.lowStockAlertsEnabled && prefs.alertEmail && delta < 0) {
       const limit = prefs.lowStockThreshold ?? 5;
       if (item.quantity > limit && newQty <= limit) {
-        await sendEmail({
+        sendEmail({
           to: prefs.alertEmail,
           subject: `Low Stock Alert: ${item.name}`,
           html: `<p>The item <strong>${item.name}</strong>${item.descriptor ? ` (${item.descriptor})` : ''} in the collection <strong>${selectedCollection?.name}</strong> has reached a low stock level of <strong>${newQty}</strong>.</p><p>Your low stock threshold is set to <strong>${limit}</strong>.</p><p>— HTBase Inventory Manager</p>`,
@@ -170,16 +171,18 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
     toast({ title: 'Collection deleted', variant: 'destructive' });
   };
 
-  const handleSavePrefs = async () => {
+  const handleSavePrefs = () => {
     if (!prefsDocRef) return;
-    setPrefsSaving(true);
-    await setDoc(prefsDocRef, {
-      id: 'config',
-      lowStockAlertsEnabled: alertsEnabled,
-      alertEmail,
-      lowStockThreshold: Math.max(0, parseInt(threshold) || 0),
-    });
-    setPrefsSaving(false);
+    setDocumentNonBlocking(
+      prefsDocRef,
+      {
+        id: 'config',
+        lowStockAlertsEnabled: alertsEnabled,
+        alertEmail,
+        lowStockThreshold: Math.max(0, parseInt(threshold) || 0),
+      },
+      { merge: true },
+    );
     toast({ title: 'Preferences saved' });
   };
 
@@ -430,8 +433,7 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
                   </>
                 )}
 
-                <Button onClick={handleSavePrefs} disabled={prefsSaving}>
-                  {prefsSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button onClick={handleSavePrefs}>
                   Save Preferences
                 </Button>
               </div>
