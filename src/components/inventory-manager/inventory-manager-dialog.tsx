@@ -68,13 +68,11 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
   const [isAddCollectionOpen, setIsAddCollectionOpen] = useState(false);
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
 
-  // Preferences local state
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [alertEmail, setAlertEmail] = useState('');
   const [threshold, setThreshold] = useState('5');
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
-  // Firestore refs
   const collectionsRef = useMemoFirebase(() => {
     if (!firestore || !client.path) return null;
     return collection(firestore, client.path, 'inventoryCollections');
@@ -94,7 +92,6 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
   const { data: allItems, isLoading: itemsLoading } = useCollection<InventoryItem>(itemsRef);
   const { data: prefs } = useDoc<InventoryPreferences>(prefsDocRef);
 
-  // Sync prefs into local form state once loaded
   useEffect(() => {
     if (prefs && !prefsLoaded) {
       setAlertsEnabled(prefs.lowStockAlertsEnabled ?? false);
@@ -104,7 +101,6 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
     }
   }, [prefs, prefsLoaded]);
 
-  // Reset prefs loaded flag when dialog closes so it re-syncs on next open
   useEffect(() => {
     if (!open) setPrefsLoaded(false);
   }, [open]);
@@ -140,7 +136,6 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
     const newQty = Math.max(0, item.quantity + delta);
     updateDocumentNonBlocking(doc(itemsRef, item.id), { quantity: newQty });
 
-    // Fire low-stock alert when crossing the threshold going downward
     if (prefs?.lowStockAlertsEnabled && prefs.alertEmail && delta < 0) {
       const limit = prefs.lowStockThreshold ?? 5;
       if (item.quantity > limit && newQty <= limit) {
@@ -162,7 +157,6 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
 
   const handleDeleteCollection = (col: InventoryCollection) => {
     if (!collectionsRef || !itemsRef) return;
-    // Remove all items belonging to this collection
     (allItems ?? [])
       .filter((item) => item.collectionId === col.id)
       .forEach((item) => deleteDocumentNonBlocking(doc(itemsRef, item.id)));
@@ -191,207 +185,248 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-3xl font-bold font-headline tracking-tight flex items-center gap-3">
-              <Package /> Inventory Manager
+        <DialogContent className="max-w-5xl h-[90dvh] sm:h-[85vh] flex flex-col p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-xl sm:text-3xl font-bold font-headline tracking-tight flex items-center gap-2 sm:gap-3">
+              <Package className="h-5 w-5 sm:h-7 sm:w-7 shrink-0" />
+              Inventory Manager
             </DialogTitle>
             <DialogDescription>
-              Manage inventory collections and stock levels for {client.firmName}.
+              Collections and stock levels for {client.firmName}.
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs defaultValue="inventory" className="flex flex-col flex-grow min-h-0 pt-2">
+          <Tabs defaultValue="inventory" className="flex flex-col flex-grow min-h-0 pt-1 sm:pt-2">
             <TabsList className="w-fit shrink-0">
               <TabsTrigger value="inventory">Inventory</TabsTrigger>
               <TabsTrigger value="preferences">Preferences</TabsTrigger>
             </TabsList>
 
-            {/* ── Inventory tab ─────────────────────────────────────────────── */}
-            <TabsContent value="inventory" className="flex flex-grow min-h-0 gap-4 mt-4 overflow-hidden">
+            {/* ── Inventory tab ──────────────────────────────────────────── */}
+            <TabsContent value="inventory" className="flex flex-col flex-grow min-h-0 gap-3 mt-3 overflow-hidden">
 
-              {/* Collections sidebar */}
-              <div className="w-52 shrink-0 flex flex-col gap-2">
+              {/* Mobile: horizontal scrollable collection chips */}
+              <div className="md:hidden flex items-center gap-2 overflow-x-auto pb-1 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="shrink-0 h-8 px-3 text-xs"
                   onClick={() => setIsAddCollectionOpen(true)}
                 >
-                  <FolderPlus className="h-4 w-4 mr-2" />
-                  New Collection
+                  <FolderPlus className="h-3.5 w-3.5 mr-1" />
+                  New
                 </Button>
-                <ScrollArea className="flex-grow">
-                  {collectionsLoading ? (
-                    <div className="flex justify-center pt-4">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    </div>
-                  ) : !collections || collections.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center pt-4 px-2">
-                      No collections yet.
-                    </p>
-                  ) : (
-                    <div className="flex flex-col gap-1 pr-1">
-                      {collections.map((col) => (
-                        <div
-                          key={col.id}
-                          onClick={() => setSelectedCollectionId(col.id)}
-                          className={`flex items-center justify-between rounded-md px-2 py-1.5 cursor-pointer text-sm group transition-colors ${
-                            activeCollectionId === col.id
-                              ? 'bg-primary text-primary-foreground'
-                              : 'hover:bg-muted'
-                          }`}
-                        >
-                          <span className="truncate">{col.name}</span>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0 ml-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete collection?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will permanently delete &ldquo;{col.name}&rdquo; and all its items.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onClick={() => handleDeleteCollection(col)}
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
+                {collectionsLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0 text-muted-foreground" />
+                ) : (
+                  collections?.map((col) => (
+                    <button
+                      key={col.id}
+                      onClick={() => setSelectedCollectionId(col.id)}
+                      className={`shrink-0 h-8 px-3 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+                        activeCollectionId === col.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      {col.name}
+                    </button>
+                  ))
+                )}
               </div>
 
-              <Separator orientation="vertical" />
+              {/* Main area: desktop sidebar + items panel */}
+              <div className="flex flex-grow min-h-0 gap-4 overflow-hidden">
 
-              {/* Items panel */}
-              <div className="flex flex-col flex-grow min-h-0 gap-3">
-                {!selectedCollection ? (
-                  <div className="flex flex-col items-center justify-center flex-grow text-muted-foreground">
-                    <Package className="h-12 w-12 mb-3 opacity-20" />
-                    <p className="text-sm">Create a collection to get started.</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between shrink-0">
-                      <h3 className="font-semibold text-lg">{selectedCollection.name}</h3>
-                      <Button size="sm" onClick={() => setIsAddItemOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Item
-                      </Button>
+                {/* Desktop sidebar */}
+                <div className="hidden md:flex w-52 shrink-0 flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setIsAddCollectionOpen(true)}
+                  >
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    New Collection
+                  </Button>
+                  <ScrollArea className="flex-grow">
+                    {collectionsLoading ? (
+                      <div className="flex justify-center pt-4">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                    ) : !collections || collections.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center pt-4 px-2">
+                        No collections yet.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-1 pr-1">
+                        {collections.map((col) => (
+                          <div
+                            key={col.id}
+                            onClick={() => setSelectedCollectionId(col.id)}
+                            className={`flex items-center justify-between rounded-md px-2 py-1.5 cursor-pointer text-sm group transition-colors ${
+                              activeCollectionId === col.id
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            <span className="truncate">{col.name}</span>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 shrink-0 ml-1"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete collection?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete &ldquo;{col.name}&rdquo; and all its items.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    onClick={() => handleDeleteCollection(col)}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+
+                <Separator orientation="vertical" className="hidden md:block" />
+
+                {/* Items panel */}
+                <div className="flex flex-col flex-grow min-h-0 gap-3">
+                  {!selectedCollection ? (
+                    <div className="flex flex-col items-center justify-center flex-grow text-muted-foreground gap-2">
+                      <Package className="h-10 w-10 opacity-20" />
+                      <p className="text-sm">
+                        {collections && collections.length > 0
+                          ? 'Select a collection above.'
+                          : 'Create a collection to get started.'}
+                      </p>
                     </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between shrink-0">
+                        <h3 className="font-semibold text-base sm:text-lg truncate mr-2">
+                          {selectedCollection.name}
+                        </h3>
+                        <Button size="sm" onClick={() => setIsAddItemOpen(true)} className="shrink-0">
+                          <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+                          Add Item
+                        </Button>
+                      </div>
 
-                    <ScrollArea className="flex-grow">
-                      {itemsLoading ? (
-                        <div className="flex justify-center pt-8">
-                          <Loader2 className="h-6 w-6 animate-spin" />
-                        </div>
-                      ) : filteredItems.length === 0 ? (
-                        <div className="text-center py-12 text-muted-foreground text-sm">
-                          No items yet. Click &ldquo;Add Item&rdquo; to add your first item.
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-2 pr-1">
-                          {filteredItems.map((item) => {
-                            const isLow =
-                              prefs?.lowStockAlertsEnabled &&
-                              item.quantity <= (prefs.lowStockThreshold ?? 5);
-                            return (
-                              <div
-                                key={item.id}
-                                className="flex items-center gap-3 p-3 rounded-lg border bg-card"
-                              >
-                                <div className="flex-grow min-w-0">
-                                  <p className="font-medium truncate">{item.name}</p>
-                                  {item.descriptor && (
-                                    <p className="text-sm text-muted-foreground truncate">
-                                      {item.descriptor}
-                                    </p>
-                                  )}
-                                </div>
+                      <ScrollArea className="flex-grow">
+                        {itemsLoading ? (
+                          <div className="flex justify-center pt-8">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                          </div>
+                        ) : filteredItems.length === 0 ? (
+                          <div className="text-center py-12 text-muted-foreground text-sm">
+                            No items yet. Tap &ldquo;Add Item&rdquo; to get started.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2 pr-1">
+                            {filteredItems.map((item) => {
+                              const isLow =
+                                prefs?.lowStockAlertsEnabled &&
+                                item.quantity <= (prefs.lowStockThreshold ?? 5);
+                              return (
+                                <div key={item.id} className="p-3 rounded-lg border bg-card">
+                                  {/* Name + badge row */}
+                                  <div className="flex items-start justify-between gap-2 mb-2.5">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium leading-tight truncate">{item.name}</p>
+                                      {item.descriptor && (
+                                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                          {item.descriptor}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {isLow && (
+                                      <Badge variant="destructive" className="shrink-0 text-xs">
+                                        Low Stock
+                                      </Badge>
+                                    )}
+                                  </div>
 
-                                {isLow && (
-                                  <Badge variant="destructive" className="shrink-0">
-                                    Low Stock
-                                  </Badge>
-                                )}
-
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    disabled={item.quantity <= 0}
-                                    onClick={() => handleUpdateQuantity(item, -1)}
-                                  >
-                                    <Minus className="h-4 w-4" />
-                                  </Button>
-                                  <span className="w-10 text-center font-mono font-semibold tabular-nums">
-                                    {item.quantity}
-                                  </span>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleUpdateQuantity(item, 1)}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </div>
-
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                  {/* Controls row */}
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9"
+                                      disabled={item.quantity <= 0}
+                                      onClick={() => handleUpdateQuantity(item, -1)}
+                                    >
+                                      <Minus className="h-4 w-4" />
                                     </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete item?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        This will permanently delete &ldquo;{item.name}&rdquo;.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        onClick={() => handleDeleteItem(item.id)}
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </ScrollArea>
-                  </>
-                )}
+                                    <span className="w-12 text-center font-mono font-semibold tabular-nums text-base">
+                                      {item.quantity}
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-9 w-9"
+                                      onClick={() => handleUpdateQuantity(item, 1)}
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                    </Button>
+                                    <div className="flex-1" />
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete item?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            This will permanently delete &ldquo;{item.name}&rdquo;.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            onClick={() => handleDeleteItem(item.id)}
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
-            {/* ── Preferences tab ───────────────────────────────────────────── */}
+            {/* ── Preferences tab ────────────────────────────────────────── */}
             <TabsContent value="preferences" className="flex-grow overflow-auto mt-4">
               <div className="max-w-md space-y-6">
                 <div className="flex items-start justify-between gap-4">
@@ -433,7 +468,7 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
                   </>
                 )}
 
-                <Button onClick={handleSavePrefs}>
+                <Button onClick={handleSavePrefs} className="w-full sm:w-auto">
                   Save Preferences
                 </Button>
               </div>

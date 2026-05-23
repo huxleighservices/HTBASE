@@ -47,10 +47,10 @@ export function AddCollectionDialog({ open, onOpenChange, onAdd }: AddCollection
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim()}>
+            <Button type="submit" disabled={!name.trim()} className="w-full sm:w-auto">
               Create
             </Button>
           </DialogFooter>
