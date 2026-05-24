@@ -10,7 +10,9 @@
       "Bash(cmd /c \"taskkill /PID 39032 /F\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\david\\\\Downloads\\\\HTBASE CORE\" -Depth 2 -Force)",
       "Bash(Select-Object FullName, PSIsContainer)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "PowerShell(try { Invoke-WebRequest \"http://localhost:9002/launch/mtroofingandrestoration\" -TimeoutSec 10 } catch { $_.Exception.Response.GetResponseStream\\(\\) | ForEach-Object { $reader = New-Object System.IO.StreamReader\\($_\\); $reader.ReadToEnd\\(\\) } })",
+      "PowerShell(Invoke-WebRequest \"http://localhost:9002/__nextjs_original-stack-frame\" -TimeoutSec 5 -ErrorAction SilentlyContinue)"
     ]
   }
 }

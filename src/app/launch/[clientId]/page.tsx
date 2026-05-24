@@ -22,7 +22,7 @@ import type { WidgetType } from '@/lib/widget-catalog';
 import { WIDGET_CATALOG, WIDGET_CATALOG_MAP, WIDGET_CATEGORIES } from '@/lib/widget-catalog';
 import {
   Loader2, LogIn, LogOut, Settings2, LayoutGrid, Pencil,
-  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal, Tag, X,
+  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal, Tag, X, Building2,
 } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,6 +70,8 @@ import { CommunicationsDialog } from '@/components/communications/communications
 import { CompletionCertificateDialog } from '@/components/completion-certificate/completion-certificate-dialog';
 import { SupplementalAddendumDialog } from '@/components/supplemental-addendum/supplemental-addendum-dialog';
 import { InventoryManagerDialog } from '@/components/inventory-manager/inventory-manager-dialog';
+import { ERPHubDialog } from '@/components/erp-hub/erp-hub-dialog';
+import { ERPAdminSheet } from '@/components/erp-hub/erp-admin-sheet';
 import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
 import { WidgetEditDialog } from '@/components/portal/widget-edit-dialog';
 import { WidgetBrowserDialog } from '@/components/portal/widget-browser-dialog';
@@ -133,6 +135,7 @@ export default function ClientLaunchPage() {
   const [editingWidget, setEditingWidget] = useState<Widget | null>(null);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [isRequestOpen, setIsRequestOpen] = useState(false);
+  const [isERPAdminOpen, setIsERPAdminOpen] = useState(false);
 
   // ── Global tag filter ────────────────────────────────────────────────────────
   const [globalTagFilter, setGlobalTagFilter] = useState('');
@@ -143,6 +146,12 @@ export default function ClientLaunchPage() {
     { hidden: [] }
   );
   const [isUserEditorOpen, setIsUserEditorOpen] = useState(false);
+
+  // ── Portal mode: widget grid vs full-screen ERP Base ──────────────────────
+  const [portalMode, setPortalMode] = useLocalStorage<'widget' | 'base'>(
+    `portalMode-${clientId}`,
+    'widget',
+  );
 
   // ── Widget dialog state (one boolean per widget type) ──────────────────────
   const [openDialog, setOpenDialog] = useState<WidgetType | null>(null);
@@ -548,6 +557,98 @@ export default function ClientLaunchPage() {
 
   const displayGroups = editMode ? allWidgetsByCategory : widgetsByCategory;
 
+  // ── Mode toggle pill ────────────────────────────────────────────────────────
+  const modePill = (
+    <div
+      className="flex items-center rounded-lg p-0.5 gap-0.5"
+      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+    >
+      <button
+        onClick={() => setPortalMode('widget')}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-150"
+        style={
+          portalMode === 'widget'
+            ? { background: 'rgba(0,235,255,0.15)', color: 'var(--primary)', boxShadow: '0 0 8px rgba(0,235,255,0.2)' }
+            : { color: 'var(--muted-foreground)' }
+        }
+      >
+        <LayoutGrid className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Widgets</span>
+      </button>
+      <button
+        onClick={() => setPortalMode('base')}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-150"
+        style={
+          portalMode === 'base'
+            ? { background: 'rgba(244,196,48,0.18)', color: '#F4C430', boxShadow: '0 0 8px rgba(244,196,48,0.2)' }
+            : { color: 'var(--muted-foreground)' }
+        }
+      >
+        <Building2 className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Base</span>
+      </button>
+    </div>
+  );
+
+  if (portalMode === 'base') {
+    return (
+      <div className="flex h-screen flex-col bg-hero bg-dot overflow-hidden">
+        {/* ── Slim bar with mode toggle + logout ──────────────────────── */}
+        <div
+          className="shrink-0 flex items-center justify-between gap-3 px-4 py-2 md:px-6"
+          style={{
+            background: 'rgba(8, 8, 18, 0.9)',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
+        >
+          {/* Left: logo + firm name */}
+          <div className="flex items-center gap-2.5">
+            <div className="relative h-6 w-6 shrink-0 rounded-md overflow-hidden border border-primary/20 bg-background/40">
+              <Image src={logoSrc} alt="" fill sizes="24px" className="object-contain p-0.5" unoptimized={!!customization?.logoUrl} />
+            </div>
+            <span className="text-xs font-bold font-headline text-gradient-cyan truncate max-w-[160px]">
+              {client.firmName}
+            </span>
+            {isPortalAdmin && (
+              <Badge variant="outline" className="items-center gap-0.5 border-primary/30 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0 hidden sm:flex">
+                <ShieldCheck className="h-2.5 w-2.5" />Admin
+              </Badge>
+            )}
+          </div>
+
+          {/* Right: mode toggle + logout */}
+          <div className="flex items-center gap-2">
+            {modePill}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="h-8 gap-1.5 rounded-xl border border-border/60 text-xs font-semibold text-muted-foreground transition-all hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Log Out</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Full-screen ERP Hub ──────────────────────────────────────── */}
+        <div className="flex flex-1 min-h-0 flex-col">
+          {client && (
+            <ERPHubDialog
+              fullScreen
+              open={true}
+              onOpenChange={() => {}}
+              client={client}
+              activeUser={activeUser}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-hero bg-dot">
 
@@ -644,6 +745,9 @@ export default function ClientLaunchPage() {
 
           {/* Right: action buttons */}
           <div className="flex items-center gap-2">
+            {/* Mode toggle */}
+            {modePill}
+
             {/* My Widgets — available to every user */}
             <Button
               variant="outline"
@@ -680,6 +784,19 @@ export default function ClientLaunchPage() {
               >
                 <Settings2 className="h-3.5 w-3.5" />
                 {editMode ? 'Done Managing' : 'Manage Widgets'}
+              </Button>
+            )}
+
+            {/* My ERP — ADMIN ONLY: configure ERP departments for this client */}
+            {isPortalAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsERPAdminOpen(true)}
+                className="h-8 gap-2 rounded-xl border border-border/60 text-xs font-semibold text-muted-foreground transition-all hover:border-yellow-500/40 hover:text-yellow-400"
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                My ERP
               </Button>
             )}
 
@@ -840,6 +957,13 @@ export default function ClientLaunchPage() {
         activeWidgetIds={activeWidgetIds}
         onAdd={handleAddWidget}
       />
+      {isPortalAdmin && client && (
+        <ERPAdminSheet
+          open={isERPAdminOpen}
+          onOpenChange={setIsERPAdminOpen}
+          client={client}
+        />
+      )}
       <WidgetRequestDialog
         open={isRequestOpen}
         onOpenChange={setIsRequestOpen}

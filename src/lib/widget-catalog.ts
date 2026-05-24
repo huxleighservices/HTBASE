@@ -268,6 +268,7 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     category: 'Operations',
     actionLabel: 'Open Inventory',
   },
+
 ];
 
 /** Quick lookup by type */

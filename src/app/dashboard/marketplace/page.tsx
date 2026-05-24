@@ -20,7 +20,6 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   Search, Plus, Check, Minus, Sparkles, Send, Loader2,
-  ShieldCheck, Pencil, LayoutGrid, PackageOpen,
+  ShieldCheck, Pencil, LayoutGrid, PackageOpen, X, Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -50,6 +49,9 @@ import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
 import type { Widget } from '@/types/widget';
 import type { UserProfile } from '@/types/user';
 import type { Client } from '@/types/client';
+import { DEPARTMENTS, DEFAULT_ENABLED } from '@/lib/departments';
+import type { DepartmentId, Department } from '@/lib/departments';
+import type { ERPConfig } from '@/types/erp';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -64,12 +66,12 @@ import {
 } from '@/components/ui/form';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
+// Types & constants
 // ─────────────────────────────────────────────────────────────────────────────
 
 type MarketplaceListing = {
   type: WidgetType;
-  enabled: boolean;           // super admin toggle
+  enabled: boolean;
   nameOverride?: string;
   descriptionOverride?: string;
 };
@@ -81,8 +83,18 @@ const CATEGORY_COLORS: Record<WidgetCategory, string> = {
   'Essentials':     'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
 };
 
+/** Maps WidgetType to ERP config widgetDepts key (Firestore collection name) */
+const WIDGET_TYPE_TO_ERP_KEY: Partial<Record<WidgetType, string>> = {
+  'leads':                  'leads',
+  'builds':                 'builds',
+  'ar-collections':         'arCustomers',
+  'opac':                   'opacCustomers',
+  'completion-certificate': 'completionCertificates',
+  'supplemental-addendum':  'supplementalAddendums',
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Request dialog schema
+// Form schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
 const requestSchema = z.object({
@@ -90,10 +102,6 @@ const requestSchema = z.object({
   widgetDescription: z.string().min(10, 'Please describe what it should do (10+ chars)').max(500),
 });
 type RequestFormValues = z.infer<typeof requestSchema>;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Edit listing dialog (super admin)
-// ─────────────────────────────────────────────────────────────────────────────
 
 const editSchema = z.object({
   nameOverride: z.string().max(80).optional(),
@@ -119,8 +127,10 @@ export default function MarketplacePage() {
   const [editingListing, setEditingListing] = useState<MarketplaceListing | null>(null);
   const [togglingType, setTogglingType] = useState<WidgetType | null>(null);
   const [addingType, setAddingType] = useState<WidgetType | null>(null);
+  const [pendingDeptWidget, setPendingDeptWidget] = useState<WidgetType | null>(null);
+  const [editingDeptWidget, setEditingDeptWidget] = useState<WidgetType | null>(null);
 
-  // ── Load user profile ──────────────────────────────────────────────────────
+  // ── User profile ──────────────────────────────────────────────────────────
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return doc(firestore, 'users', user.uid);
@@ -129,7 +139,7 @@ export default function MarketplacePage() {
 
   const isSuperAdmin = user?.email === 'service@huxleigh.com';
 
-  // ── Load assigned client ───────────────────────────────────────────────────
+  // ── Load assigned client ──────────────────────────────────────────────────
   useEffect(() => {
     const fetchClient = async () => {
       if (isProfileLoading || !firestore) return;
@@ -153,21 +163,20 @@ export default function MarketplacePage() {
     fetchClient();
   }, [firestore, userProfile, isProfileLoading, isSuperAdmin]);
 
-  // ── Marketplace listings (top-level Firestore collection) ──────────────────
+  // ── Marketplace listings ──────────────────────────────────────────────────
   const marketplaceRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'widgetMarketplace');
   }, [firestore]);
   const { data: listings } = useCollection<MarketplaceListing>(marketplaceRef);
 
-  // Build a map of type → listing for quick lookup
   const listingMap = useMemo(() => {
     const map: Partial<Record<WidgetType, MarketplaceListing>> = {};
     listings?.forEach((l) => { map[l.type] = l; });
     return map;
   }, [listings]);
 
-  // ── Client's existing widgets ──────────────────────────────────────────────
+  // ── Client's widgets ──────────────────────────────────────────────────────
   const clientWidgetsRef = useMemoFirebase(() => {
     if (!firestore || !client?.path) return null;
     return collection(firestore, client.path, 'widgets');
@@ -179,14 +188,33 @@ export default function MarketplacePage() {
     [clientWidgets]
   );
 
-  // ── Filtered widget list ───────────────────────────────────────────────────
+  const clientWidgetDeptMap = useMemo(() => {
+    const map: Partial<Record<WidgetType, string>> = {};
+    clientWidgets?.forEach((w) => { if (w.deptId) map[w.type] = w.deptId; });
+    return map;
+  }, [clientWidgets]);
+
+  // ── ERP config (for dept picker) ─────────────────────────────────────────
+  const erpConfigRef = useMemoFirebase(() => {
+    if (!firestore || !client?.path) return null;
+    return doc(firestore, client.path, 'erpConfig', 'settings');
+  }, [firestore, client?.path]);
+  const { data: erpConfig } = useDoc<ERPConfig>(erpConfigRef);
+
+  const clientDepts = useMemo((): Department[] => {
+    const enabledIds: DepartmentId[] = erpConfig?.enabledDepartments ?? DEFAULT_ENABLED;
+    const customLabels = erpConfig?.customLabels ?? {};
+    return enabledIds.map((id) => {
+      const base = DEPARTMENTS[id];
+      return { ...base, label: customLabels[id] ?? base.label };
+    });
+  }, [erpConfig]);
+
+  // ── Filtered widget list ──────────────────────────────────────────────────
   const filteredWidgets = useMemo(() => {
     return WIDGET_CATALOG.filter((def) => {
       const listing = listingMap[def.type];
-      // Non-super-admin only sees marketplace-enabled widgets
-      // (if no listing exists yet, default to enabled)
       if (!isSuperAdmin && listing && !listing.enabled) return false;
-
       const name = listing?.nameOverride || def.defaultTitle;
       const desc = listing?.descriptionOverride || def.defaultDescription;
       const matchesSearch =
@@ -199,8 +227,8 @@ export default function MarketplacePage() {
     });
   }, [search, selectedCategory, listingMap, isSuperAdmin]);
 
-  // ── Add widget to client portal ────────────────────────────────────────────
-  const handleAdd = useCallback(async (type: WidgetType) => {
+  // ── Add widget to client portal ───────────────────────────────────────────
+  const handleAdd = useCallback(async (type: WidgetType, deptId?: string) => {
     if (!firestore || !client?.path) return;
     setAddingType(type);
     try {
@@ -214,15 +242,62 @@ export default function MarketplacePage() {
         enabled: true,
         order: (clientWidgets?.length ?? 0),
         category: def.category,
+        ...(deptId ? { deptId } : {}),
       };
       await setDoc(doc(firestore, client.path, 'widgets', type), newWidget);
+
+      // Update ERP config for widgets that map to ERP collection keys
+      if (deptId) {
+        const erpKey = WIDGET_TYPE_TO_ERP_KEY[type];
+        if (erpKey) {
+          await setDoc(
+            doc(firestore, client.path, 'erpConfig', 'settings'),
+            {
+              id: 'settings',
+              enabledDepartments: erpConfig?.enabledDepartments ?? DEFAULT_ENABLED,
+              customLabels: erpConfig?.customLabels ?? {},
+              widgetDepts: { ...(erpConfig?.widgetDepts ?? {}), [erpKey]: deptId },
+            },
+            { merge: true }
+          );
+        }
+      }
+
       toast({ title: 'Widget added', description: `"${newWidget.title}" added to your portal.` });
     } finally {
       setAddingType(null);
+      setPendingDeptWidget(null);
     }
-  }, [firestore, client, clientWidgets, listingMap, toast]);
+  }, [firestore, client, clientWidgets, listingMap, toast, erpConfig]);
 
-  // ── Remove widget from client portal ──────────────────────────────────────
+  // ── Update dept on existing widget ────────────────────────────────────────
+  const handleUpdateDept = useCallback(async (type: WidgetType, deptId: string | null) => {
+    if (!firestore || !client?.path) return;
+    await setDoc(
+      doc(firestore, client.path, 'widgets', type),
+      deptId ? { deptId } : { deptId: null },
+      { merge: true }
+    );
+    if (deptId) {
+      const erpKey = WIDGET_TYPE_TO_ERP_KEY[type];
+      if (erpKey) {
+        await setDoc(
+          doc(firestore, client.path, 'erpConfig', 'settings'),
+          {
+            id: 'settings',
+            enabledDepartments: erpConfig?.enabledDepartments ?? DEFAULT_ENABLED,
+            customLabels: erpConfig?.customLabels ?? {},
+            widgetDepts: { ...(erpConfig?.widgetDepts ?? {}), [erpKey]: deptId },
+          },
+          { merge: true }
+        );
+      }
+    }
+    setEditingDeptWidget(null);
+    toast({ title: 'Department updated' });
+  }, [firestore, client, erpConfig, toast]);
+
+  // ── Remove widget ─────────────────────────────────────────────────────────
   const handleRemove = useCallback(async (type: WidgetType) => {
     if (!firestore || !client?.path) return;
     setAddingType(type);
@@ -252,7 +327,7 @@ export default function MarketplacePage() {
     }
   }, [firestore, listingMap]);
 
-  // ── Super admin: save listing edits ───────────────────────────────────────
+  // ── Super admin: save listing edits ──────────────────────────────────────
   const handleSaveListing = useCallback(async (type: WidgetType, values: EditFormValues) => {
     if (!firestore) return;
     const existing = listingMap[type];
@@ -266,7 +341,7 @@ export default function MarketplacePage() {
     setEditingListing(null);
   }, [firestore, listingMap, toast]);
 
-  // ── Guard: redirect if not logged in ──────────────────────────────────────
+  // ── Guard ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isUserLoading && !user) router.push('/');
   }, [user, isUserLoading, router]);
@@ -384,6 +459,9 @@ export default function MarketplacePage() {
             const displayName = listing?.nameOverride || def.defaultTitle;
             const displayDesc = listing?.descriptionOverride || def.defaultDescription;
             const isWorking = addingType === def.type || togglingType === def.type;
+            const currentDeptId = clientWidgetDeptMap[def.type];
+            const currentDept = currentDeptId ? DEPARTMENTS[currentDeptId as DepartmentId] : null;
+            const showDeptPicker = pendingDeptWidget === def.type || editingDeptWidget === def.type;
 
             return (
               <div
@@ -423,7 +501,7 @@ export default function MarketplacePage() {
                 )}
 
                 {/* Icon + title */}
-                <div className={cn('flex items-start gap-3', isSuperAdmin ? 'pr-16' : isActive ? 'pr-16' : '')}>
+                <div className={cn('flex items-start gap-3', (isSuperAdmin || isActive) ? 'pr-16' : '')}>
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/15">
                     <WidgetIcon iconName={def.iconName} />
                   </div>
@@ -443,8 +521,95 @@ export default function MarketplacePage() {
                   {displayDesc}
                 </p>
 
-                {/* Action button — hidden for super admin */}
-                {!isSuperAdmin && (
+                {/* Dept assignment (non-super-admin only) */}
+                {!isSuperAdmin && client && (
+                  <>
+                    {/* Active widget: show current dept + edit */}
+                    {isActive && !showDeptPicker && (
+                      <div className="flex items-center gap-2">
+                        {currentDept ? (
+                          <span
+                            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                            style={{
+                              background: `rgba(${currentDept.rgb}, 0.15)`,
+                              border: `1px solid rgba(${currentDept.rgb}, 0.4)`,
+                              color: currentDept.color,
+                            }}
+                          >
+                            <Building2 className="h-3 w-3" />
+                            {currentDept.label}
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-border/40 px-2.5 py-1 text-[11px] text-muted-foreground/60">
+                            No department
+                          </span>
+                        )}
+                        {clientDepts.length > 0 && (
+                          <button
+                            onClick={() => setEditingDeptWidget(def.type)}
+                            className="flex h-6 w-6 items-center justify-center rounded-md border border-border/50 bg-background/50 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all shrink-0"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Dept picker (for add or edit) */}
+                    {showDeptPicker && clientDepts.length > 0 && (
+                      <div className="rounded-xl border border-border/40 bg-background/40 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            {editingDeptWidget === def.type ? 'Change department:' : 'Assign to department:'}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setPendingDeptWidget(null);
+                              setEditingDeptWidget(null);
+                            }}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {clientDepts.map((dept) => (
+                            <button
+                              key={dept.id}
+                              onClick={() =>
+                                editingDeptWidget === def.type
+                                  ? handleUpdateDept(def.type, dept.id)
+                                  : handleAdd(def.type, dept.id)
+                              }
+                              className="rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all hover:opacity-80"
+                              style={{
+                                background: `rgba(${dept.rgb}, 0.15)`,
+                                border: `1px solid rgba(${dept.rgb}, 0.4)`,
+                                color: dept.color,
+                              }}
+                            >
+                              {dept.label}
+                            </button>
+                          ))}
+                          {/* Skip / Unassign */}
+                          <button
+                            onClick={() =>
+                              editingDeptWidget === def.type
+                                ? handleUpdateDept(def.type, null)
+                                : handleAdd(def.type)
+                            }
+                            className="rounded-full border border-border/40 px-2.5 py-1 text-[11px] text-muted-foreground transition-all hover:border-border hover:text-foreground"
+                          >
+                            {editingDeptWidget === def.type ? 'Unassign' : 'Skip'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Action buttons — non-super-admin */}
+                {!isSuperAdmin && !showDeptPicker && (
                   <Button
                     size="sm"
                     variant={isActive ? 'outline' : 'default'}
@@ -454,8 +619,16 @@ export default function MarketplacePage() {
                         ? 'border-destructive/30 text-destructive/80 hover:bg-destructive/10 hover:border-destructive/50'
                         : 'btn-gradient'
                     )}
-                    onClick={() => isActive ? handleRemove(def.type) : handleAdd(def.type)}
-                    disabled={isWorking || (!client && !isSuperAdmin)}
+                    onClick={() => {
+                      if (isActive) {
+                        handleRemove(def.type);
+                      } else if (clientDepts.length > 0) {
+                        setPendingDeptWidget(def.type);
+                      } else {
+                        handleAdd(def.type);
+                      }
+                    }}
+                    disabled={isWorking || !client}
                   >
                     {isWorking ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

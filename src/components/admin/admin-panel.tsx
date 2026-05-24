@@ -40,7 +40,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
-const ADMIN_PASSCODE = "CROMEYELLOW1337";
+const ADMIN_PASSCODE = "CROME";
 
 export function AdminPanel() {
   const firestore = useFirestore();

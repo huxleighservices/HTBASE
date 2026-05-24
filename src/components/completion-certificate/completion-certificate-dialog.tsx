@@ -30,7 +30,19 @@ import {
   ImageIcon,
   ExternalLink,
   ZoomIn,
+  Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useFirestore } from '@/firebase';
 import {
@@ -38,6 +50,7 @@ import {
   addDoc,
   updateDoc,
   doc,
+  deleteDoc,
   serverTimestamp,
   getDocs,
   query,
@@ -211,6 +224,16 @@ export function CompletionCertificateDialog({
       toast({ title: 'Error', description: err.message ?? 'Failed to load certificates.', variant: 'destructive' });
     } finally {
       setIsCertsLoading(false);
+    }
+  }
+
+  async function handleDeleteCertificate(id: string) {
+    try {
+      await deleteDoc(doc(firestore, 'completionCertificates', id));
+      setCertificates((prev) => prev.filter((c) => c.id !== id));
+      toast({ title: 'Deleted', description: 'Certificate removed.' });
+    } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      toast({ title: 'Error', description: err.message ?? 'Failed to delete.', variant: 'destructive' });
     }
   }
 
@@ -486,6 +509,32 @@ export function CompletionCertificateDialog({
                       )}
                       {isCopied ? 'Copied' : 'View Link'}
                     </Button>
+                    {cert.status === 'pending' && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="ghost" className="shrink-0 h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete certificate?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the pending certificate for &ldquo;{cert.projectName}&rdquo;. This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDeleteCertificate(cert.id)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 );
               })}

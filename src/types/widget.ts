@@ -15,6 +15,7 @@ export type Widget = {
   order: number;
   category: WidgetCategory;
   tags?: string[];
+  deptId?: string;
 };
 
 /**

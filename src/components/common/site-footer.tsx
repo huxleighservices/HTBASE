@@ -45,6 +45,31 @@ export function SiteFooter() {
       <footer className="w-full border-t border-border/20 py-3 px-6 flex items-center justify-center gap-4 text-[11px] text-muted-foreground/60">
         <span>© {new Date().getFullYear()} HTBase. All rights reserved.</span>
         <span className="text-border/40">·</span>
+        <span>
+          <span
+            style={{
+              color: '#e040fb',
+              textShadow: '0 0 8px rgba(224,64,251,0.7), 0 0 16px rgba(224,64,251,0.4)',
+              fontWeight: 600,
+            }}
+          >
+            Fuchsia 5.24
+          </span>
+        </span>
+        <span className="text-border/40">·</span>
+        <span>
+          A{' '}
+          <a
+            href="https://huxleigh.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-muted-foreground transition-colors underline-offset-2 hover:underline"
+          >
+            Huxleigh
+          </a>{' '}
+          Product
+        </span>
+        <span className="text-border/40">·</span>
         <button
           onClick={() => setPrivacyOpen(true)}
           className="hover:text-muted-foreground transition-colors underline-offset-2 hover:underline"
