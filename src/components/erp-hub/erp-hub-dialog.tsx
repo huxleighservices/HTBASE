@@ -377,6 +377,7 @@ export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScree
             clientPath={client.path ?? ''}
             widgetDepts={widgetDepts}
             selectedPersonId={selectedPersonId}
+            activeUser={activeUser}
           />
         ) : viewMode === 'spreadsheet' ? (
           <SpreadsheetView

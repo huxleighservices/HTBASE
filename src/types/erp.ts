@@ -8,10 +8,19 @@ export type ERPField = {
   value: string;
 };
 
+export type ERPNote = {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: any;
+  updatedAt?: any;
+};
+
 export type ERPDeptEntry = {
   status: DeptStatus;
   notes: string;
   fields: ERPField[];
+  notesList?: ERPNote[];
 };
 
 export type ERPPerson = {

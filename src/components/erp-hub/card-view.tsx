@@ -12,6 +12,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -22,10 +28,14 @@ import {
   Check,
   X,
   Save,
+  Plus,
+  Trash2,
+  MessageSquare,
 } from 'lucide-react';
 import { deptGlass, deptDivider, deptPill, statusColor, STATUS_LABELS } from '@/lib/departments';
 import type { Department } from '@/lib/departments';
-import type { ERPPerson, DepartmentId, DeptStatus } from '@/types/erp';
+import type { ERPPerson, ERPNote, DepartmentId, DeptStatus } from '@/types/erp';
+import type { AccessKey } from '@/types/session';
 import { updateDocumentNonBlocking, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -434,6 +444,309 @@ function LiveWidgetChip({
   );
 }
 
+// ─── Note helpers ─────────────────────────────────────────────────────────────
+
+function fmtNoteDate(val: any): string {
+  if (!val) return '';
+  try {
+    const d = typeof val === 'string' ? new Date(val) : val?.toDate?.() ?? new Date(val);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch { return ''; }
+}
+
+function NoteChip({
+  note,
+  dept,
+  onEdit,
+  onDelete,
+}: {
+  note: ERPNote;
+  dept: Department;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <TooltipProvider delayDuration={300} skipDelayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className="relative group flex items-start gap-1.5 px-2 py-1.5 rounded-lg cursor-default w-full"
+            style={{
+              background: `rgba(${dept.rgb}, 0.07)`,
+              border: `1px solid rgba(${dept.rgb}, 0.2)`,
+            }}
+          >
+            <MessageSquare className="h-3 w-3 shrink-0 mt-0.5" style={{ color: dept.color, opacity: 0.6 }} />
+            <span className="flex-grow text-[11px] leading-relaxed line-clamp-2" style={{ color: 'var(--foreground)' }}>
+              {note.text}
+            </span>
+            <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                className="p-0.5 rounded hover:bg-white/10 transition-colors"
+                style={{ color: dept.color }}
+              >
+                <Pencil className="h-2.5 w-2.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className="p-0.5 rounded hover:bg-red-500/20 transition-colors"
+                style={{ color: '#ef4444' }}
+              >
+                <Trash2 className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          align="start"
+          className="max-w-xs p-0 overflow-hidden"
+          style={{
+            background: 'rgba(8,8,18,0.97)',
+            border: `1px solid rgba(${dept.rgb}, 0.35)`,
+            boxShadow: `0 0 20px rgba(${dept.rgb}, 0.2)`,
+          }}
+        >
+          <div
+            className="px-2 py-0.5"
+            style={{ background: `rgba(${dept.rgb}, 0.2)`, borderBottom: `1px solid rgba(${dept.rgb}, 0.2)` }}
+          >
+            <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: dept.color }}>Note</span>
+          </div>
+          <div className="px-3 py-2 space-y-1.5">
+            <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{note.text}</p>
+            <p className="text-[10px] text-muted-foreground">
+              — {note.author}{fmtNoteDate(note.createdAt) ? ` · ${fmtNoteDate(note.createdAt)}` : ''}
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function DeptSection({
+  dept,
+  entry,
+  person,
+  itemsRef,
+  activeUserName,
+}: {
+  dept: Department;
+  entry: any;
+  person: ERPPerson;
+  itemsRef: any;
+  activeUserName: string;
+}) {
+  const status = entry?.status ?? 'inactive';
+  const notesList: ERPNote[] = entry?.notesList ?? [];
+  const [addingNote, setAddingNote] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+
+  const saveNote = () => {
+    if (!noteText.trim() || !itemsRef) return;
+    const newNote: ERPNote = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      text: noteText.trim(),
+      author: activeUserName,
+      createdAt: new Date().toISOString(),
+    };
+    updateDocumentNonBlocking(doc(itemsRef, person.id), {
+      [`deptData.${dept.id}.notesList`]: [...notesList, newNote],
+    });
+    setNoteText('');
+    setAddingNote(false);
+  };
+
+  const saveEdit = (id: string) => {
+    if (!editingText.trim() || !itemsRef) return;
+    const updated = notesList.map((n) =>
+      n.id === id ? { ...n, text: editingText.trim(), updatedAt: new Date().toISOString() } : n,
+    );
+    updateDocumentNonBlocking(doc(itemsRef, person.id), {
+      [`deptData.${dept.id}.notesList`]: updated,
+    });
+    setEditingId(null);
+  };
+
+  const deleteNote = (id: string) => {
+    if (!itemsRef) return;
+    updateDocumentNonBlocking(doc(itemsRef, person.id), {
+      [`deptData.${dept.id}.notesList`]: notesList.filter((n) => n.id !== id),
+    });
+  };
+
+  const handleStatusChange = (status: DeptStatus) => {
+    if (!itemsRef) return;
+    updateDocumentNonBlocking(doc(itemsRef, person.id), {
+      [`deptData.${dept.id}.status`]: status,
+    });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="flex-grow" style={deptDivider(dept)} />
+        <span
+          className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
+          style={deptPill(dept)}
+        >
+          {dept.label}
+        </span>
+      </div>
+
+      <div className="p-3 space-y-2" style={deptGlass(dept, 'low')}>
+        {/* Status */}
+        <div className="flex items-center justify-between gap-2">
+          <Select value={status} onValueChange={(v) => handleStatusChange(v as DeptStatus)}>
+            <SelectTrigger
+              className="h-7 w-36 text-xs border-0 bg-transparent focus:ring-0"
+              style={{ color: statusColor(status) }}
+            >
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ background: statusColor(status), boxShadow: `0 0 5px ${statusColor(status)}` }}
+                />
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Add note button */}
+          <button
+            onClick={() => { setAddingNote(true); setEditingId(null); }}
+            className="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md transition-all hover:opacity-80"
+            style={{
+              background: `rgba(${dept.rgb}, 0.1)`,
+              border: `1px solid rgba(${dept.rgb}, 0.25)`,
+              color: dept.color,
+            }}
+          >
+            <Plus className="h-2.5 w-2.5" />Note
+          </button>
+        </div>
+
+        {/* Legacy string notes */}
+        {entry?.notes && (
+          <p className="text-xs text-muted-foreground leading-relaxed">{entry.notes}</p>
+        )}
+
+        {/* Custom fields */}
+        {entry?.fields && entry.fields.length > 0 && (
+          <div className="grid grid-cols-2 gap-1.5">
+            {entry.fields.map((f: any) => (
+              <div key={f.key} className="space-y-0.5">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{f.label}</p>
+                <p className="text-xs font-medium">{f.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Notes list */}
+        {notesList.length > 0 && (
+          <div className="space-y-1.5 pt-0.5">
+            {notesList.map((note) =>
+              editingId === note.id ? (
+                <div key={note.id} className="space-y-1.5">
+                  <Textarea
+                    value={editingText}
+                    onChange={(e) => setEditingText(e.target.value)}
+                    rows={2}
+                    autoFocus
+                    className="text-xs resize-none"
+                    style={{
+                      background: `rgba(${dept.rgb}, 0.07)`,
+                      border: `1px solid rgba(${dept.rgb}, 0.3)`,
+                      color: 'var(--foreground)',
+                    }}
+                  />
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingId(null)}
+                      className="h-6 px-2 text-[10px] flex-1 border"
+                      style={{ borderColor: `rgba(${dept.rgb}, 0.2)`, color: 'var(--muted-foreground)' }}
+                    >
+                      <X className="h-2.5 w-2.5 mr-1" />Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => saveEdit(note.id)}
+                      disabled={!editingText.trim()}
+                      className="h-6 px-2 text-[10px] font-semibold flex-1"
+                      style={{ background: `rgba(${dept.rgb}, 0.2)`, border: `1px solid rgba(${dept.rgb}, 0.4)`, color: dept.color }}
+                    >
+                      <Save className="h-2.5 w-2.5 mr-1" />Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <NoteChip
+                  key={note.id}
+                  note={note}
+                  dept={dept}
+                  onEdit={() => { setEditingId(note.id); setEditingText(note.text); setAddingNote(false); }}
+                  onDelete={() => deleteNote(note.id)}
+                />
+              ),
+            )}
+          </div>
+        )}
+
+        {/* Add note form */}
+        {addingNote && (
+          <div className="space-y-1.5 pt-0.5">
+            <Textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Add a note…"
+              rows={2}
+              autoFocus
+              className="text-xs resize-none"
+              style={{
+                background: `rgba(${dept.rgb}, 0.07)`,
+                border: `1px solid rgba(${dept.rgb}, 0.3)`,
+                color: 'var(--foreground)',
+              }}
+            />
+            <div className="flex gap-1.5">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => { setAddingNote(false); setNoteText(''); }}
+                className="h-6 px-2 text-[10px] flex-1 border"
+                style={{ borderColor: `rgba(${dept.rgb}, 0.2)`, color: 'var(--muted-foreground)' }}
+              >
+                <X className="h-2.5 w-2.5 mr-1" />Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={saveNote}
+                disabled={!noteText.trim()}
+                className="h-6 px-2 text-[10px] font-semibold flex-1"
+                style={{ background: `rgba(${dept.rgb}, 0.2)`, border: `1px solid rgba(${dept.rgb}, 0.4)`, color: dept.color }}
+              >
+                <Save className="h-2.5 w-2.5 mr-1" />Save Note
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── CardView ─────────────────────────────────────────────────────────────────
 
 type CardViewProps = {
@@ -444,9 +757,10 @@ type CardViewProps = {
   clientPath: string;
   widgetDepts: Record<string, string>;
   selectedPersonId?: string | null;
+  activeUser: AccessKey | null;
 };
 
-export function CardView({ people, enabledDepartments, itemsRef, clientPath, widgetDepts, selectedPersonId }: CardViewProps) {
+export function CardView({ people, enabledDepartments, itemsRef, clientPath, widgetDepts, selectedPersonId, activeUser }: CardViewProps) {
   const [index, setIndex] = useState(0);
   const [isEditingDepts, setIsEditingDepts] = useState(false);
   const [localDepts, setLocalDepts] = useState<DepartmentId[]>([]);
@@ -480,13 +794,6 @@ export function CardView({ people, enabledDepartments, itemsRef, clientPath, wid
 
   const prev = () => setIndex((i) => Math.max(0, i - 1));
   const next = () => setIndex((i) => Math.min(total - 1, i + 1));
-
-  const handleStatusChange = (deptId: DepartmentId, status: DeptStatus) => {
-    if (!itemsRef || !person) return;
-    updateDocumentNonBlocking(doc(itemsRef, person.id), {
-      [`deptData.${deptId}.status`]: status,
-    });
-  };
 
   const handleSaveDepts = () => {
     if (!itemsRef || !person) return;
@@ -757,65 +1064,16 @@ export function CardView({ people, enabledDepartments, itemsRef, clientPath, wid
                     No departments assigned. Press <span className="font-medium">Depts</span> to assign some.
                   </p>
                 ) : (
-                  personDepts.map((dept) => {
-                    const entry = person.deptData?.[dept.id];
-                    const status = entry?.status ?? 'inactive';
-                    return (
-                      <div key={dept.id} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-grow" style={deptDivider(dept)} />
-                          <span
-                            className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
-                            style={deptPill(dept)}
-                          >
-                            {dept.label}
-                          </span>
-                        </div>
-
-                        <div className="p-3 space-y-2" style={deptGlass(dept, 'low')}>
-                          <div className="flex items-center justify-between gap-2">
-                            <Select
-                              value={status}
-                              onValueChange={(v) => handleStatusChange(dept.id, v as DeptStatus)}
-                            >
-                              <SelectTrigger
-                                className="h-7 w-36 text-xs border-0 bg-transparent focus:ring-0"
-                                style={{ color: statusColor(status) }}
-                              >
-                                <div className="flex items-center gap-1.5">
-                                  <span
-                                    className="h-2 w-2 rounded-full shrink-0"
-                                    style={{ background: statusColor(status), boxShadow: `0 0 5px ${statusColor(status)}` }}
-                                  />
-                                  <SelectValue />
-                                </div>
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {entry?.notes && (
-                            <p className="text-xs text-muted-foreground leading-relaxed">{entry.notes}</p>
-                          )}
-
-                          {entry?.fields && entry.fields.length > 0 && (
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {entry.fields.map((f) => (
-                                <div key={f.key} className="space-y-0.5">
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{f.label}</p>
-                                  <p className="text-xs font-medium">{f.value}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
+                  personDepts.map((dept) => (
+                    <DeptSection
+                      key={dept.id}
+                      dept={dept}
+                      entry={person.deptData?.[dept.id]}
+                      person={person}
+                      itemsRef={itemsRef}
+                      activeUserName={activeUser?.displayName ?? 'Unknown'}
+                    />
+                  ))
                 )}
               </div>
             </div>
