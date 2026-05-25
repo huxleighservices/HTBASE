@@ -23,6 +23,8 @@ import {
   ArrowDownToLine,
   ChevronLeft,
   AlertTriangle,
+  CircleDollarSign,
+  MapPin,
 } from 'lucide-react';
 import {
   useFirestore,
@@ -66,6 +68,7 @@ type WidgetSourceDef = {
   rgb: string;
   widgetType: string; // matches Widget.type in the client's widgets collection
   isGlobal?: boolean; // top-level Firestore collection filtered by clientPath
+  defaultDepartment?: DepartmentId; // auto-assign this dept on import
   toMapped: (data: Record<string, any>) => MappedRecord;
 };
 
@@ -162,6 +165,38 @@ const SOURCES: WidgetSourceDef[] = [
       name:  d.customerName ?? '',
       email: d.customerEmail ?? '',
       phone: d.customerPhone ?? '',
+    }),
+  },
+  {
+    id: 'deals',
+    label: 'Deal Tracker',
+    collectionName: 'deals',
+    description: 'Import contacts from the Deal & Pipeline Tracker',
+    icon: <CircleDollarSign className="h-5 w-5" />,
+    color: '#F59E0B',
+    rgb: '245,158,11',
+    widgetType: 'deal-tracker',
+    defaultDepartment: 'sales',
+    toMapped: (d) => ({
+      name:  d.contactName ?? '',
+      email: '',
+      phone: d.contactPhone ?? '',
+    }),
+  },
+  {
+    id: 'knock-pro',
+    label: 'Knock Pro',
+    collectionName: 'knockPins',
+    description: 'Import prospects from Knock Pro door-to-door pins',
+    icon: <MapPin className="h-5 w-5" />,
+    color: '#FF7043',
+    rgb: '255,112,67',
+    widgetType: 'knock-pro',
+    defaultDepartment: 'sales',
+    toMapped: (d) => ({
+      name:  d.personName ?? '',
+      email: '',
+      phone: d.phone ?? '',
     }),
   },
 ];
@@ -281,11 +316,12 @@ export function WidgetImportSheet({ open, onOpenChange, client, people, peopleRe
     let count = 0;
     for (const row of toApply) {
       if (row.action === 'new') {
+        const defaultDept = activeSource!.defaultDepartment;
         addDocumentNonBlocking(peopleRef, {
           name: row.mapped.name,
           email: row.mapped.email,
           phone: row.mapped.phone,
-          departments: [] as DepartmentId[],
+          departments: defaultDept ? [defaultDept] : [] as DepartmentId[],
           deptData: {},
           widgetLinks: { [activeSource!.collectionName]: row.sourceId },
           createdAt: serverTimestamp(),
