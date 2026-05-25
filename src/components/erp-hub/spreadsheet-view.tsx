@@ -560,7 +560,29 @@ export function DeptDotWithPopover({
                 </div>
               </>
             )}
-            {!deptData.notes && (!deptData.fields || deptData.fields.length === 0) && (
+            {deptData.notesList && deptData.notesList.length > 0 && (
+              <>
+                {(deptData.notes || (deptData.fields && deptData.fields.length > 0)) && <Divider />}
+                <div className="space-y-1.5">
+                  {deptData.notesList.map((note) => (
+                    <div
+                      key={note.id}
+                      className="rounded-md px-2 py-1.5 space-y-0.5"
+                      style={{
+                        background: `rgba(${dept.rgb}, 0.08)`,
+                        border: `1px solid rgba(${dept.rgb}, 0.18)`,
+                      }}
+                    >
+                      <p className="text-[11px] text-white/80 leading-snug whitespace-pre-wrap">{note.text}</p>
+                      <p className="text-[9px] text-white/35">
+                        — {note.author}{note.createdAt ? ` · ${fmtDate(note.createdAt)}` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            {!deptData.notes && (!deptData.fields || deptData.fields.length === 0) && (!deptData.notesList || deptData.notesList.length === 0) && (
               <p className="text-[10px] text-white/30 italic">No notes or fields recorded</p>
             )}
           </div>
