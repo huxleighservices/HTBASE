@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import {
   useFirestore,
+  useCollection,
+  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
 } from '@/firebase';
@@ -33,6 +35,7 @@ import { collection, getDocs, doc, serverTimestamp, query, where } from 'firebas
 import { useToast } from '@/hooks/use-toast';
 import type { Client } from '@/types/client';
 import type { ERPPerson } from '@/types/erp';
+import type { Widget } from '@/types/widget';
 import type { DepartmentId } from '@/lib/departments';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -61,6 +64,7 @@ type WidgetSourceDef = {
   icon: React.ReactNode;
   color: string;
   rgb: string;
+  widgetType: string; // matches Widget.type in the client's widgets collection
   isGlobal?: boolean; // top-level Firestore collection filtered by clientPath
   toMapped: (data: Record<string, any>) => MappedRecord;
 };
@@ -76,6 +80,7 @@ const SOURCES: WidgetSourceDef[] = [
     icon: <Users className="h-5 w-5" />,
     color: '#42A5F5',
     rgb: '66,165,245',
+    widgetType: 'leads',
     toMapped: (d) => ({
       name:  [d.firstName, d.lastName].filter(Boolean).join(' '),
       email: d.email ?? '',
@@ -90,6 +95,7 @@ const SOURCES: WidgetSourceDef[] = [
     icon: <Wrench className="h-5 w-5" />,
     color: '#C1440E',
     rgb: '193,68,14',
+    widgetType: 'builds',
     toMapped: (d) => ({
       name:  d.clientName ?? '',
       email: d.email ?? '',
@@ -104,6 +110,7 @@ const SOURCES: WidgetSourceDef[] = [
     icon: <DollarSign className="h-5 w-5" />,
     color: '#5DBF8A',
     rgb: '93,191,138',
+    widgetType: 'ar-collections',
     toMapped: (d) => ({
       name:  d.customerName ?? '',
       email: d.email ?? '',
@@ -118,6 +125,7 @@ const SOURCES: WidgetSourceDef[] = [
     icon: <Database className="h-5 w-5" />,
     color: '#8B5CF6',
     rgb: '139,92,246',
+    widgetType: 'opac',
     toMapped: (d) => ({
       name:  [d.firstName, d.lastName].filter(Boolean).join(' '),
       email: '',
@@ -132,6 +140,7 @@ const SOURCES: WidgetSourceDef[] = [
     icon: <Award className="h-5 w-5" />,
     color: '#00BCD4',
     rgb: '0,188,212',
+    widgetType: 'completion-certificate',
     isGlobal: true,
     toMapped: (d) => ({
       name:  d.customerName ?? '',
@@ -147,6 +156,7 @@ const SOURCES: WidgetSourceDef[] = [
     icon: <FileText className="h-5 w-5" />,
     color: '#AB47BC',
     rgb: '171,71,188',
+    widgetType: 'supplemental-addendum',
     isGlobal: true,
     toMapped: (d) => ({
       name:  d.customerName ?? '',
@@ -219,6 +229,19 @@ type WidgetImportSheetProps = {
 export function WidgetImportSheet({ open, onOpenChange, client, people, peopleRef }: WidgetImportSheetProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const widgetsRef = useMemoFirebase(() => {
+    if (!firestore || !client.path) return null;
+    return collection(firestore, client.path, 'widgets');
+  }, [firestore, client.path]);
+  const { data: clientWidgets } = useCollection<Widget>(widgetsRef);
+
+  const activeWidgetTypes = new Set(
+    (clientWidgets ?? []).filter((w) => w.enabled).map((w) => w.type),
+  );
+  const availableSources = clientWidgets
+    ? SOURCES.filter((s) => activeWidgetTypes.has(s.widgetType as any))
+    : SOURCES;
 
   const [step, setStep] = useState<ImportStep>('source');
   const [activeSource, setActiveSource] = useState<WidgetSourceDef | null>(null);
@@ -351,8 +374,16 @@ export function WidgetImportSheet({ open, onOpenChange, client, people, peopleRe
                 Select a widget to pull from. Records are matched by name against existing ERP entries
                 so duplicates are never created.
               </p>
+              {availableSources.length === 0 && (
+                <div
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl text-xs"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: 'var(--muted-foreground)' }}
+                >
+                  No compatible widgets are active on this portal yet.
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {SOURCES.map((source) => {
+                {availableSources.map((source) => {
                   const loading = fetchingId === source.id;
                   return (
                     <button
