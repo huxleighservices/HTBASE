@@ -12,6 +12,7 @@ type HybridViewProps = {
   clientPath: string;
   widgetDepts: Record<string, string>;
   onSelectPerson: (person: ERPPerson) => void;
+  onJumpToWidget?: (widgetType: string) => void;
 };
 
 type FilterDept = DepartmentId | 'all';
@@ -20,7 +21,7 @@ const HEADER_BG = 'rgba(8,8,18,0.97)';
 const NAME_BG = 'rgba(8,8,18,0.97)';
 const NAME_BG_ALT = 'rgba(14,14,28,0.97)';
 
-export function HybridView({ people, enabledDepartments, clientPath, widgetDepts, onSelectPerson }: HybridViewProps) {
+export function HybridView({ people, enabledDepartments, clientPath, widgetDepts, onSelectPerson, onJumpToWidget }: HybridViewProps) {
   const [activeDept, setActiveDept] = useState<FilterDept>('all');
 
   const displayDepts =
@@ -157,6 +158,7 @@ export function HybridView({ people, enabledDepartments, clientPath, widgetDepts
                           colKey={col}
                           docId={docId}
                           clientPath={clientPath}
+                          onJumpToWidget={onJumpToWidget}
                         />
                       ))}
                       {!active && (

@@ -76,6 +76,7 @@ type ERPHubDialogProps = {
   client: Client;
   activeUser: AccessKey | null;
   fullScreen?: boolean;
+  onJumpToWidget?: (widgetType: string) => void;
 };
 
 type SortKey = 'name-asc' | 'name-desc' | 'widgets' | 'depts' | 'recent';
@@ -86,7 +87,7 @@ const VIEW_OPTIONS: { mode: ERPViewMode; icon: React.ReactNode; label: string }[
   { mode: 'hybrid',      icon: <LayoutGrid className="h-4 w-4" />, label: 'Hybrid' },
 ];
 
-export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScreen = false }: ERPHubDialogProps) {
+export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScreen = false, onJumpToWidget }: ERPHubDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const isAdmin = activeUser?.role === 'admin';
@@ -378,6 +379,7 @@ export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScree
             widgetDepts={widgetDepts}
             selectedPersonId={selectedPersonId}
             activeUser={activeUser}
+            onJumpToWidget={onJumpToWidget}
           />
         ) : viewMode === 'spreadsheet' ? (
           <SpreadsheetView
@@ -388,6 +390,7 @@ export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScree
             onDeleteSelected={handleDeleteSelected}
             clientPath={client.path ?? ''}
             onSelectPerson={(person) => { setSelectedPersonId(person.id); setViewMode('card'); }}
+            onJumpToWidget={onJumpToWidget}
           />
         ) : (
           <HybridView
@@ -396,6 +399,7 @@ export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScree
             clientPath={client.path ?? ''}
             widgetDepts={widgetDepts}
             onSelectPerson={(person) => { setSelectedPersonId(person.id); setViewMode('card'); }}
+            onJumpToWidget={onJumpToWidget}
           />
         )}
       </div>

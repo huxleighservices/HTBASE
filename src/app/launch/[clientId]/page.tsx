@@ -642,6 +642,10 @@ export default function ClientLaunchPage() {
               onOpenChange={() => {}}
               client={client}
               activeUser={activeUser}
+              onJumpToWidget={(widgetType) => {
+                setPortalMode('widget');
+                setOpenDialog(widgetType as WidgetType);
+              }}
             />
           )}
         </div>

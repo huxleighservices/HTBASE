@@ -31,6 +31,7 @@ import {
   Plus,
   Trash2,
   MessageSquare,
+  ExternalLink,
 } from 'lucide-react';
 import { deptGlass, deptDivider, deptPill, statusColor, STATUS_LABELS } from '@/lib/departments';
 import type { Department } from '@/lib/departments';
@@ -39,7 +40,17 @@ import type { AccessKey } from '@/types/session';
 import { updateDocumentNonBlocking, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { WidgetChip } from './spreadsheet-view';
+import { WidgetChip, COLLECTION_TO_WIDGET } from './spreadsheet-view';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // ─── Widget chip config ───────────────────────────────────────────────────────
 
@@ -343,16 +354,20 @@ function LiveWidgetChip({
   docId,
   isExpanded,
   onToggle,
+  onJumpToWidget,
 }: {
   clientPath: string;
   collectionName: string;
   docId: string;
   isExpanded: boolean;
   onToggle: () => void;
+  onJumpToWidget?: (widgetType: string) => void;
 }) {
   const firestore = useFirestore();
   const cfg = WIDGET_CHIP_CONFIGS[collectionName];
   const [isEditing, setIsEditing] = useState(false);
+  const [jumpPending, setJumpPending] = useState(false);
+  const widgetType = COLLECTION_TO_WIDGET[collectionName];
 
   // Reset edit mode whenever the chip collapses
   useEffect(() => {
@@ -437,8 +452,41 @@ function LiveWidgetChip({
                 ))}
               </div>
             )}
+            {widgetType && onJumpToWidget && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setJumpPending(true); }}
+                className="flex items-center gap-1.5 mt-2.5 text-[10px] font-semibold hover:opacity-80 transition-opacity"
+                style={{ color: cfg.color }}
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open in {cfg.label}
+              </button>
+            )}
           </div>
         )
+      )}
+
+      {jumpPending && (
+        <AlertDialog open={jumpPending} onOpenChange={setJumpPending}>
+          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Switch to {cfg.label}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will close Base and open {cfg.label}. You can return to Base at any time from the navigation bar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Stay in Base</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => onJumpToWidget!(widgetType)}
+                style={{ background: `rgba(${cfg.rgb}, 0.2)`, border: `1px solid rgba(${cfg.rgb}, 0.4)`, color: cfg.color }}
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Open {cfg.label}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
@@ -758,9 +806,10 @@ type CardViewProps = {
   widgetDepts: Record<string, string>;
   selectedPersonId?: string | null;
   activeUser: AccessKey | null;
+  onJumpToWidget?: (widgetType: string) => void;
 };
 
-export function CardView({ people, enabledDepartments, itemsRef, clientPath, widgetDepts, selectedPersonId, activeUser }: CardViewProps) {
+export function CardView({ people, enabledDepartments, itemsRef, clientPath, widgetDepts, selectedPersonId, activeUser, onJumpToWidget }: CardViewProps) {
   const [index, setIndex] = useState(0);
   const [isEditingDepts, setIsEditingDepts] = useState(false);
   const [localDepts, setLocalDepts] = useState<DepartmentId[]>([]);
@@ -1005,6 +1054,7 @@ export function CardView({ people, enabledDepartments, itemsRef, clientPath, wid
                         docId={docId}
                         isExpanded={expandedChip === colName}
                         onToggle={() => setExpandedChip((prev) => (prev === colName ? null : colName))}
+                        onJumpToWidget={onJumpToWidget}
                       />
                     ))}
                   </div>

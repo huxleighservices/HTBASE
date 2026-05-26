@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash2, CheckSquare, Square, Minus } from 'lucide-react';
+import { Trash2, CheckSquare, Square, Minus, ExternalLink } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +38,17 @@ export const WIDGET_CHIP_DEFS: Record<string, { label: string; color: string; rg
   opacCustomers:          { label: 'OPAC',        color: '#8B5CF6', rgb: '139,92,246' },
   completionCertificates: { label: 'Certificate', color: '#00BCD4', rgb: '0,188,212' },
   supplementalAddendums:  { label: 'Addendum',    color: '#AB47BC', rgb: '171,71,188' },
+};
+
+export const COLLECTION_TO_WIDGET: Record<string, string> = {
+  leads:                  'leads',
+  builds:                 'builds',
+  arCustomers:            'ar-collections',
+  opacCustomers:          'opac',
+  completionCertificates: 'completion-certificate',
+  supplementalAddendums:  'supplemental-addendum',
+  deals:                  'deal-tracker',
+  knockPins:              'knock-pro',
 };
 
 export const DEFAULT_WIDGET_DEPTS: Record<string, string> = {
@@ -364,15 +375,19 @@ export function WidgetChipWithPopover({
   colKey,
   docId,
   clientPath,
+  onJumpToWidget,
 }: {
   colKey: string;
   docId: string;
   clientPath: string;
+  onJumpToWidget?: (widgetType: string) => void;
 }) {
   const cfg = WIDGET_CHIP_DEFS[colKey];
   const firestore = useFirestore();
   const [docData, setDocData] = useState<any>(null);
   const [fetched, setFetched] = useState(false);
+  const [jumpPending, setJumpPending] = useState(false);
+  const widgetType = COLLECTION_TO_WIDGET[colKey];
 
   const handleOpen = useCallback(async (open: boolean) => {
     if (!open || fetched || !firestore || !docId) return;
@@ -411,6 +426,7 @@ export function WidgetChipWithPopover({
   if (!clientPath || !docId) return triggerEl;
 
   return (
+    <>
     <TooltipProvider delayDuration={350} skipDelayDuration={200}>
       <Tooltip onOpenChange={handleOpen}>
         <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -469,9 +485,50 @@ export function WidgetChipWithPopover({
               <p className="text-xs text-white/50">No preview available</p>
             )}
           </div>
+
+          {/* Jump footer */}
+          {widgetType && onJumpToWidget && fetched && (
+            <div
+              className="px-3 py-2 border-t"
+              style={{ borderColor: `rgba(${cfg.rgb}, 0.15)` }}
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); setJumpPending(true); }}
+                className="flex items-center gap-1.5 text-[10px] font-semibold w-full hover:opacity-80 transition-opacity"
+                style={{ color: cfg.color }}
+              >
+                <ExternalLink className="h-3 w-3" />
+                Open in {cfg.label}
+              </button>
+            </div>
+          )}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+
+    {jumpPending && (
+      <AlertDialog open={jumpPending} onOpenChange={setJumpPending}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Switch to {cfg.label}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will close Base and open {cfg.label}. You can return to Base at any time from the navigation bar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay in Base</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => onJumpToWidget!(widgetType)}
+              style={{ background: `rgba(${cfg.rgb}, 0.2)`, border: `1px solid rgba(${cfg.rgb}, 0.4)`, color: cfg.color }}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              Open {cfg.label}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )}
+    </>
   );
 }
 
@@ -604,6 +661,7 @@ type SpreadsheetViewProps = {
   onDeletePerson: (id: string) => void;
   onDeleteSelected: (ids: string[]) => void;
   onSelectPerson: (person: ERPPerson) => void;
+  onJumpToWidget?: (widgetType: string) => void;
 };
 
 export function SpreadsheetView({
@@ -614,6 +672,7 @@ export function SpreadsheetView({
   onDeletePerson,
   onDeleteSelected,
   onSelectPerson,
+  onJumpToWidget,
 }: SpreadsheetViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -841,6 +900,7 @@ export function SpreadsheetView({
                             colKey={col}
                             docId={docId}
                             clientPath={clientPath}
+                            onJumpToWidget={onJumpToWidget}
                           />
                         ))}
                         {!active && (
