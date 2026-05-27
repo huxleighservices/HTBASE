@@ -140,6 +140,32 @@ const WIDGET_CHIP_CONFIGS: Record<string, WidgetChipConfig> = {
       { label: 'Created By', value: d.createdBy ?? '—' },
     ],
   },
+  deals: {
+    label: 'Deal',
+    color: '#FF7043',
+    rgb: '255,112,67',
+    getStatus: (d) => d.stage ?? 'Deal',
+    getDetails: (d) => [
+      { label: 'Contact',     value: d.contactName ?? '—' },
+      { label: 'Phone',       value: d.contactPhone ?? '—' },
+      { label: 'Value',       value: d.value != null ? `$${Number(d.value).toLocaleString()}` : '—' },
+      { label: 'Probability', value: d.probability != null ? `${d.probability}%` : '—' },
+      { label: 'Assignee',    value: d.assignee ?? '—' },
+      { label: 'Notes',       value: d.notes ?? '—' },
+    ],
+  },
+  knockPins: {
+    label: 'Knock Pro',
+    color: '#EC4899',
+    rgb: '236,72,153',
+    getStatus: (d) => (d.status ?? 'knock').replace(/-/g, ' '),
+    getDetails: (d) => [
+      { label: 'Phone',   value: d.phone ?? '—' },
+      { label: 'Address', value: d.address ?? '—' },
+      { label: 'Agent',   value: d.knockedByDisplayName || d.knockedBy || '—' },
+      { label: 'Notes',   value: d.salesInfo || d.notes || '—' },
+    ],
+  },
 };
 
 // ─── LiveWidgetChip ───────────────────────────────────────────────────────────

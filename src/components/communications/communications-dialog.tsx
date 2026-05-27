@@ -568,7 +568,12 @@ type CommunicationsDialogProps = {
   activeUser: AccessKey | null;
 };
 
-export function CommunicationsDialog({ open, onOpenChange, client, activeUser }: CommunicationsDialogProps) {
+type CommunicationsContentProps = {
+  client: Client;
+  activeUser: AccessKey | null;
+};
+
+export function CommunicationsContent({ client, activeUser }: CommunicationsContentProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -822,15 +827,7 @@ export function CommunicationsDialog({ open, onOpenChange, client, activeUser }:
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[88vh] flex flex-col p-0 overflow-hidden glass-card-strong border-border/50">
-        {/* Hidden for a11y */}
-        <DialogHeader className="sr-only">
-          <DialogTitle>Team Communications — {client.firmName}</DialogTitle>
-          <DialogDescription>Chat channels for {client.firmName}</DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+    <div className="flex flex-1 min-h-0 overflow-hidden h-full">
           {/* ── Sidebar ─────────────────────────────────────────────────────── */}
           <div className="w-56 shrink-0 flex flex-col border-r border-border/30 bg-background/20">
             {/* Sidebar header */}
@@ -1079,7 +1076,19 @@ export function CommunicationsDialog({ open, onOpenChange, client, activeUser }:
               </div>
             )}
           </div>
-        </div>
+    </div>
+  );
+}
+
+export function CommunicationsDialog({ open, onOpenChange, client, activeUser }: CommunicationsDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-5xl h-[88vh] flex flex-col p-0 overflow-hidden glass-card-strong border-border/50">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Team Communications — {client.firmName}</DialogTitle>
+          <DialogDescription>Chat channels for {client.firmName}</DialogDescription>
+        </DialogHeader>
+        <CommunicationsContent client={client} activeUser={activeUser} />
       </DialogContent>
     </Dialog>
   );

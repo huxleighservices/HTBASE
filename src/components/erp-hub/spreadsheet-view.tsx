@@ -38,6 +38,8 @@ export const WIDGET_CHIP_DEFS: Record<string, { label: string; color: string; rg
   opacCustomers:          { label: 'OPAC',        color: '#8B5CF6', rgb: '139,92,246' },
   completionCertificates: { label: 'Certificate', color: '#00BCD4', rgb: '0,188,212' },
   supplementalAddendums:  { label: 'Addendum',    color: '#AB47BC', rgb: '171,71,188' },
+  deals:                  { label: 'Deal',        color: '#FF7043', rgb: '255,112,67' },
+  knockPins:              { label: 'Knock Pro',   color: '#EC4899', rgb: '236,72,153' },
 };
 
 export const COLLECTION_TO_WIDGET: Record<string, string> = {
@@ -58,6 +60,8 @@ export const DEFAULT_WIDGET_DEPTS: Record<string, string> = {
   opacCustomers:          'sales',
   completionCertificates: 'operations',
   supplementalAddendums:  'operations',
+  deals:                  'sales',
+  knockPins:              'sales',
 };
 
 const HEADER_BG = 'rgba(8,8,18,0.97)';
@@ -346,6 +350,64 @@ function AddendumSummaryContent({ d }: { d: any }) {
   );
 }
 
+function DealSummaryContent({ d }: { d: any }) {
+  const stageColor =
+    /closed|won/i.test(d.stage ?? '') ? '#4CAF50'
+    : /lost|dead/i.test(d.stage ?? '') ? '#ef4444'
+    : '#F4C430';
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold text-white/90 truncate">{d.title ?? '—'}</span>
+        {d.stage && <StatusPill label={d.stage} color={stageColor} />}
+      </div>
+      <Divider />
+      <SRow label="Contact" value={d.contactName} />
+      <SRow label="Phone" value={d.contactPhone} />
+      <SRow label="Value" value={d.value != null ? fmtCurrency(d.value) : null} />
+      <SRow label="Probability" value={d.probability != null ? `${d.probability}%` : null} />
+      <SRow label="Assignee" value={d.assignee} />
+      {d.notes && (
+        <>
+          <Divider />
+          <p className="text-[11px] text-white/50 italic leading-snug line-clamp-3">{d.notes}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function KnockPinSummaryContent({ d }: { d: any }) {
+  const statusColor =
+    d.status === 'accepted' ? '#4CAF50'
+    : d.status === 'rejected' ? '#ef4444'
+    : '#F4C430';
+  const statusLabel = (d.status ?? '').replace(/-/g, ' ');
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold text-white/90 truncate">{d.personName ?? '—'}</span>
+        {d.status && <StatusPill label={statusLabel} color={statusColor} />}
+      </div>
+      <Divider />
+      <SRow label="Phone" value={d.phone} />
+      <SRow label="Address" value={d.address} />
+      <SRow label="Agent" value={d.knockedByDisplayName || d.knockedBy} />
+      <SRow label="Date" value={fmtDate(d.date)} />
+      {(d.salesInfo || d.notes) && (
+        <>
+          <Divider />
+          <p className="text-[11px] text-white/50 italic leading-snug line-clamp-3">
+            {d.salesInfo || d.notes}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Widget chip with hover popover
 // ─────────────────────────────────────────────────────────────────────────────
@@ -481,6 +543,10 @@ export function WidgetChipWithPopover({
               <CertSummaryContent d={docData} />
             ) : colKey === 'supplementalAddendums' ? (
               <AddendumSummaryContent d={docData} />
+            ) : colKey === 'deals' ? (
+              <DealSummaryContent d={docData} />
+            ) : colKey === 'knockPins' ? (
+              <KnockPinSummaryContent d={docData} />
             ) : (
               <p className="text-xs text-white/50">No preview available</p>
             )}

@@ -39,6 +39,8 @@ const WIDGET_ASSIGNMENT_DEFS: { key: string; label: string }[] = [
   { key: 'opacCustomers',          label: 'OPAC Tracker' },
   { key: 'completionCertificates', label: 'Completion Certificate' },
   { key: 'supplementalAddendums',  label: 'Supplemental Addendum' },
+  { key: 'deals',                  label: 'Deal Tracker' },
+  { key: 'knockPins',              label: 'Knock Pro' },
 ];
 
 type Props = {
