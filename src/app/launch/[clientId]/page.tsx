@@ -22,7 +22,7 @@ import type { WidgetType } from '@/lib/widget-catalog';
 import { WIDGET_CATALOG, WIDGET_CATALOG_MAP, WIDGET_CATEGORIES } from '@/lib/widget-catalog';
 import {
   Loader2, LogIn, LogOut, Settings2, LayoutGrid, Pencil,
-  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal, Tag, X, Building2, Bell,
+  ShieldCheck, Sparkles, EyeOff, SlidersHorizontal, Tag, X, Building2,
 } from 'lucide-react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,7 +73,6 @@ import { SupplementalAddendumDialog } from '@/components/supplemental-addendum/s
 import { InventoryManagerDialog } from '@/components/inventory-manager/inventory-manager-dialog';
 import { ERPHubDialog } from '@/components/erp-hub/erp-hub-dialog';
 import { ERPAdminSheet } from '@/components/erp-hub/erp-admin-sheet';
-import { NotificationSettingsSheet } from '@/components/portal/notification-settings-sheet';
 import { WidgetIcon } from '@/components/portal/widget-browser-dialog';
 import { WidgetEditDialog } from '@/components/portal/widget-edit-dialog';
 import { WidgetBrowserDialog } from '@/components/portal/widget-browser-dialog';
@@ -138,7 +137,6 @@ export default function ClientLaunchPage() {
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [isRequestOpen, setIsRequestOpen] = useState(false);
   const [isERPAdminOpen, setIsERPAdminOpen] = useState(false);
-  const [isNotifSettingsOpen, setIsNotifSettingsOpen] = useState(false);
 
   // ── Global tag filter ────────────────────────────────────────────────────────
   const [globalTagFilter, setGlobalTagFilter] = useState('');
@@ -163,11 +161,14 @@ export default function ClientLaunchPage() {
   const [isManageTemplatesOpen, setIsManageTemplatesOpen]         = useState(false);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Redirect already-logged-in non-anonymous users
+  // Email/password Firebase users get direct portal access (no access key needed)
   // ─────────────────────────────────────────────────────────────────────────────
+  const isPortalEmailAdmin = !!user && !user.isAnonymous;
+
   useEffect(() => {
-    if (user && !isUserLoading && !user.isAnonymous) router.push('/dashboard');
-  }, [user, isUserLoading, router]);
+    if (!user || user.isAnonymous || isUserLoading || !client || stage !== 'login') return;
+    setStage('portal');
+  }, [user, isUserLoading, client, stage]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Load client + customization
@@ -657,16 +658,6 @@ export default function ClientLaunchPage() {
         {client && activeUser && (
           <CommunicationsSidebar client={client} activeUser={activeUser} />
         )}
-
-        {/* Notification settings sheet */}
-        {client && (
-          <NotificationSettingsSheet
-            open={isNotifSettingsOpen}
-            onOpenChange={setIsNotifSettingsOpen}
-            client={client}
-            activeWidgets={adminEnabledWidgets}
-          />
-        )}
       </div>
     );
   }
@@ -809,8 +800,8 @@ export default function ClientLaunchPage() {
               </Button>
             )}
 
-            {/* My ERP — ADMIN ONLY: configure ERP departments for this client */}
-            {isPortalAdmin && (
+            {/* My ERP — access key admin OR Firebase email/password user */}
+            {(isPortalAdmin || isPortalEmailAdmin) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -819,19 +810,6 @@ export default function ClientLaunchPage() {
               >
                 <Building2 className="h-3.5 w-3.5" />
                 My ERP
-              </Button>
-            )}
-
-            {/* Notifications — ADMIN ONLY */}
-            {isPortalAdmin && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsNotifSettingsOpen(true)}
-                className="h-8 gap-2 rounded-xl border border-border/60 text-xs font-semibold text-muted-foreground transition-all hover:border-primary/40 hover:text-primary/80"
-              >
-                <Bell className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Notifications</span>
               </Button>
             )}
 
@@ -1017,16 +995,6 @@ export default function ClientLaunchPage() {
       {/* Persistent chat sidebar — visible in widget mode */}
       {client && activeUser && (
         <CommunicationsSidebar client={client} activeUser={activeUser} />
-      )}
-
-      {/* Notification settings sheet */}
-      {client && (
-        <NotificationSettingsSheet
-          open={isNotifSettingsOpen}
-          onOpenChange={setIsNotifSettingsOpen}
-          client={client}
-          activeWidgets={adminEnabledWidgets}
-        />
       )}
     </div>
   );
