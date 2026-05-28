@@ -571,9 +571,10 @@ type CommunicationsDialogProps = {
 type CommunicationsContentProps = {
   client: Client;
   activeUser: AccessKey | null;
+  compact?: boolean;
 };
 
-export function CommunicationsContent({ client, activeUser }: CommunicationsContentProps) {
+export function CommunicationsContent({ client, activeUser, compact = false }: CommunicationsContentProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -829,19 +830,21 @@ export function CommunicationsContent({ client, activeUser }: CommunicationsCont
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden h-full">
           {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-          <div className="w-56 shrink-0 flex flex-col border-r border-border/30 bg-background/20">
-            {/* Sidebar header */}
-            <div className="px-3 py-3.5 border-b border-border/30">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary shrink-0">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold truncate">{client.firmName}</p>
-                  <p className="text-[10px] text-muted-foreground">Communications</p>
+          <div className={`${compact ? 'w-36' : 'w-56'} shrink-0 flex flex-col border-r border-border/30 bg-background/20`}>
+            {/* Sidebar header — hidden in compact mode (sidebar has its own header) */}
+            {!compact && (
+              <div className="px-3 py-3.5 border-b border-border/30">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 text-primary shrink-0">
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold truncate">{client.firmName}</p>
+                    <p className="text-[10px] text-muted-foreground">Communications</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Channel list */}
             <div className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">

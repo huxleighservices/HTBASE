@@ -63,7 +63,7 @@ export function CommunicationsSidebar({ client, activeUser }: Props) {
           isOpen ? 'translate-x-0' : 'translate-x-full'
         )}
         style={{
-          width: 'min(420px, 92vw)',
+          width: 'min(680px, 96vw)',
           background: 'rgba(8,8,22,0.97)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
@@ -96,7 +96,7 @@ export function CommunicationsSidebar({ client, activeUser }: Props) {
         {/* Chat content — only mounted when open to avoid unnecessary subscriptions */}
         {isOpen && (
           <div className="flex flex-col flex-1 min-h-0">
-            <CommunicationsContent client={client} activeUser={activeUser} />
+            <CommunicationsContent client={client} activeUser={activeUser} compact />
           </div>
         )}
       </div>
