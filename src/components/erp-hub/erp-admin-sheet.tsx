@@ -12,16 +12,14 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
-import { Settings2, Bell, Mail } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import {
   useFirestore,
   setDocumentNonBlocking,
   useDoc,
   useMemoFirebase,
-  useUser,
-  useCollection,
 } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import {
   DEPARTMENTS,
@@ -32,8 +30,6 @@ import {
 import type { DepartmentId } from '@/lib/departments';
 import type { Client } from '@/types/client';
 import type { ERPConfig } from '@/types/erp';
-import type { Widget } from '@/types/widget';
-import { WIDGET_CATALOG_MAP } from '@/lib/widget-catalog';
 import { WIDGET_CHIP_DEFS, DEFAULT_WIDGET_DEPTS } from './spreadsheet-view';
 
 const WIDGET_ASSIGNMENT_DEFS: { key: string; label: string }[] = [
@@ -47,12 +43,6 @@ const WIDGET_ASSIGNMENT_DEFS: { key: string; label: string }[] = [
   { key: 'knockPins',              label: 'Knock Pro' },
 ];
 
-type NotificationConfig = {
-  email: string;
-  widgets: Record<string, boolean>;
-  baseEnabled: boolean;
-};
-
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,10 +52,7 @@ type Props = {
 export function ERPAdminSheet({ open, onOpenChange, client }: Props) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { user } = useUser();
-  const isEmailAdmin = !!user && !user.isAnonymous;
 
-  // ── ERP config ────────────────────────────────────────────────────────────
   const [configLoaded, setConfigLoaded] = useState(false);
   const [enabledDepts, setEnabledDepts] = useState<DepartmentId[]>(DEFAULT_ENABLED);
   const [customLabels, setCustomLabels] = useState<Partial<Record<DepartmentId, string>>>({});
@@ -87,45 +74,10 @@ export function ERPAdminSheet({ open, onOpenChange, client }: Props) {
     }
   }, [config, configLoaded]);
 
-  // ── Notification config (email/password admin only) ───────────────────────
-  const [notifLoaded, setNotifLoaded] = useState(false);
-  const [notifEmail, setNotifEmail] = useState('');
-  const [widgetToggles, setWidgetToggles] = useState<Record<string, boolean>>({});
-  const [baseEnabled, setBaseEnabled] = useState(true);
-
-  const notifConfigRef = useMemoFirebase(() => {
-    if (!firestore || !client.path || !isEmailAdmin) return null;
-    return doc(firestore, client.path, 'notificationSettings', 'config');
-  }, [firestore, client.path, isEmailAdmin]);
-
-  const { data: notifConfig } = useDoc<NotificationConfig>(notifConfigRef);
-
-  const widgetsRef = useMemoFirebase(() => {
-    if (!firestore || !client.path || !isEmailAdmin) return null;
-    return collection(firestore, client.path, 'widgets');
-  }, [firestore, client.path, isEmailAdmin]);
-
-  const { data: firestoreWidgets } = useCollection<Widget>(widgetsRef);
-
   useEffect(() => {
-    if (!open) { setConfigLoaded(false); setNotifLoaded(false); return; }
+    if (!open) setConfigLoaded(false);
   }, [open]);
 
-  useEffect(() => {
-    if (notifConfig && !notifLoaded) {
-      setNotifEmail(notifConfig.email ?? (client.displayId === '4WK21Y' ? (client.contactEmail ?? '') : ''));
-      setWidgetToggles(notifConfig.widgets ?? {});
-      setBaseEnabled(notifConfig.baseEnabled ?? true);
-      setNotifLoaded(true);
-    } else if (!notifConfig && !notifLoaded && open && isEmailAdmin) {
-      setNotifEmail(client.displayId === '4WK21Y' ? (client.contactEmail ?? '') : '');
-      setWidgetToggles({});
-      setBaseEnabled(true);
-      setNotifLoaded(true);
-    }
-  }, [notifConfig, notifLoaded, open, isEmailAdmin, client]);
-
-  // ── Derived ───────────────────────────────────────────────────────────────
   const resolvedDepts = useMemo(() =>
     enabledDepts.map((id) => {
       const base = DEPARTMENTS[id];
@@ -135,20 +87,12 @@ export function ERPAdminSheet({ open, onOpenChange, client }: Props) {
     [enabledDepts, customLabels],
   );
 
-  const activeWidgets = useMemo(() =>
-    (firestoreWidgets ?? [])
-      .filter((w) => w.enabled && w.type !== 'communications')
-      .sort((a, b) => a.order - b.order),
-    [firestoreWidgets],
-  );
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
   const toggleDept = (id: DepartmentId) =>
     setEnabledDepts((prev) =>
       prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
     );
 
-  const handleSaveERP = () => {
+  const handleSave = () => {
     if (!configDocRef) return;
     setDocumentNonBlocking(
       configDocRef,
@@ -157,16 +101,6 @@ export function ERPAdminSheet({ open, onOpenChange, client }: Props) {
     );
     toast({ title: 'ERP settings saved' });
     onOpenChange(false);
-  };
-
-  const handleSaveNotifications = () => {
-    if (!notifConfigRef) return;
-    setDocumentNonBlocking(notifConfigRef, {
-      email: notifEmail.trim(),
-      widgets: widgetToggles,
-      baseEnabled,
-    }, { merge: true });
-    toast({ title: 'Notification settings saved' });
   };
 
   return (
@@ -309,90 +243,12 @@ export function ERPAdminSheet({ open, onOpenChange, client }: Props) {
                 })}
               </div>
             </div>
-
-            {/* ── Notification Settings — email/password admin only ─────────── */}
-            {isEmailAdmin && (
-              <div className="pt-2">
-                <div className="border-t border-white/8 pt-6 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary/70" />
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Notification Settings
-                    </p>
-                  </div>
-
-                  {/* Notification email */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <Mail className="h-3 w-3 text-muted-foreground" />
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Notification Email
-                      </p>
-                    </div>
-                    <Input
-                      type="email"
-                      value={notifEmail}
-                      onChange={(e) => setNotifEmail(e.target.value)}
-                      placeholder="notifications@yourcompany.com"
-                      className="h-8 text-sm border-border/60 bg-background/30"
-                    />
-                  </div>
-
-                  {/* Base ERP toggle */}
-                  <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                    <div>
-                      <p className="text-sm font-medium">ERP Base Alerts</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">New records, status changes, notes</p>
-                    </div>
-                    <Switch checked={baseEnabled} onCheckedChange={setBaseEnabled} />
-                  </div>
-
-                  {/* Per-widget toggles */}
-                  {activeWidgets.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                        Widget Alerts
-                      </p>
-                      {activeWidgets.map((widget) => {
-                        const def = WIDGET_CATALOG_MAP[widget.type];
-                        return (
-                          <div
-                            key={widget.type}
-                            className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-2.5 gap-3"
-                          >
-                            <p className="text-sm font-medium truncate">{widget.title || def?.defaultTitle || widget.type}</p>
-                            <Switch
-                              checked={widgetToggles[widget.type] ?? false}
-                              onCheckedChange={(v) => setWidgetToggles((prev) => ({ ...prev, [widget.type]: v }))}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleSaveNotifications}
-                    size="sm"
-                    className="w-full gap-2"
-                    style={{
-                      background: 'rgba(0,235,255,0.12)',
-                      border: '1px solid rgba(0,235,255,0.25)',
-                      color: 'var(--primary)',
-                    }}
-                  >
-                    <Bell className="h-3.5 w-3.5" />
-                    Save Notification Settings
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         </ScrollArea>
 
         <div className="px-6 py-4 border-t border-white/8">
           <Button
-            onClick={handleSaveERP}
+            onClick={handleSave}
             className="w-full"
             style={{
               background: 'rgba(244,196,48,0.15)',

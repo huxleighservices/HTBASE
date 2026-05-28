@@ -161,14 +161,11 @@ export default function ClientLaunchPage() {
   const [isManageTemplatesOpen, setIsManageTemplatesOpen]         = useState(false);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Email/password Firebase users get direct portal access (no access key needed)
+  // Redirect already-logged-in non-anonymous users
   // ─────────────────────────────────────────────────────────────────────────────
-  const isPortalEmailAdmin = !!user && !user.isAnonymous;
-
   useEffect(() => {
-    if (!user || user.isAnonymous || isUserLoading || !client || stage !== 'login') return;
-    setStage('portal');
-  }, [user, isUserLoading, client, stage]);
+    if (user && !isUserLoading && !user.isAnonymous) router.push('/dashboard');
+  }, [user, isUserLoading, router]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Load client + customization
@@ -800,8 +797,8 @@ export default function ClientLaunchPage() {
               </Button>
             )}
 
-            {/* My ERP — access key admin OR Firebase email/password user */}
-            {(isPortalAdmin || isPortalEmailAdmin) && (
+            {/* My ERP — ADMIN ONLY: configure ERP departments for this client */}
+            {isPortalAdmin && (
               <Button
                 variant="outline"
                 size="sm"

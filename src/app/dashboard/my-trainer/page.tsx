@@ -17,6 +17,7 @@ import {
   addDocumentNonBlocking,
   deleteDocumentNonBlocking,
   updateDocumentNonBlocking,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import {
   doc,
@@ -30,11 +31,12 @@ import {
 } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { Loader2, KeyRound, PlusCircle, Trash2, Wrench, Edit } from 'lucide-react';
+import { Loader2, KeyRound, PlusCircle, Trash2, Wrench, Edit, Bell, Mail, Save } from 'lucide-react';
 import type { UserProfile } from '@/types/user';
 import type { Client } from '@/types/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -95,6 +97,12 @@ export default function MyTrainerPage() {
   const [isAddKeyOpen, setIsAddKeyOpen] = useState(false);
   const [isCreatingKey, setIsCreatingKey] = useState(false);
   const [keyToEdit, setKeyToEdit] = useState<AccessKey | null>(null);
+
+  // ── Notification settings ─────────────────────────────────────────────────
+  const [notifLoaded, setNotifLoaded] = useState(false);
+  const [notifEmail, setNotifEmail] = useState('');
+  const [widgetToggles, setWidgetToggles] = useState<Record<string, boolean>>({});
+  const [baseEnabled, setBaseEnabled] = useState(true);
 
   const userDocRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -158,6 +166,52 @@ export default function MyTrainerPage() {
 
   const { data: accessKeys, isLoading: areKeysLoading } =
     useCollection<AccessKey>(accessKeysCollectionRef);
+
+  const notifConfigRef = useMemoFirebase(() => {
+    if (!firestore || !client?.path) return null;
+    return doc(firestore, client.path, 'notificationSettings', 'config');
+  }, [firestore, client]);
+
+  const { data: notifConfig } = useDoc<{ email?: string; widgets?: Record<string, boolean>; baseEnabled?: boolean }>(notifConfigRef);
+
+  const widgetsRef = useMemoFirebase(() => {
+    if (!firestore || !client?.path) return null;
+    return collection(firestore, client.path, 'widgets');
+  }, [firestore, client]);
+
+  const { data: firestoreWidgets } = useCollection<{ id: string; type: string; title: string; enabled: boolean; order: number }>(widgetsRef);
+
+  const activeWidgets = useMemo(() =>
+    (firestoreWidgets ?? [])
+      .filter((w) => w.enabled && w.type !== 'communications')
+      .sort((a, b) => a.order - b.order),
+    [firestoreWidgets],
+  );
+
+  useEffect(() => {
+    if (!client || notifLoaded) return;
+    if (notifConfig) {
+      setNotifEmail(notifConfig.email ?? (client.displayId === '4WK21Y' ? (client.contactEmail ?? '') : ''));
+      setWidgetToggles(notifConfig.widgets ?? {});
+      setBaseEnabled(notifConfig.baseEnabled ?? true);
+      setNotifLoaded(true);
+    } else if (notifConfig === null) {
+      setNotifEmail(client.displayId === '4WK21Y' ? (client.contactEmail ?? '') : '');
+      setWidgetToggles({});
+      setBaseEnabled(true);
+      setNotifLoaded(true);
+    }
+  }, [notifConfig, notifLoaded, client]);
+
+  const handleSaveNotifications = () => {
+    if (!notifConfigRef) return;
+    setDocumentNonBlocking(notifConfigRef, {
+      email: notifEmail.trim(),
+      widgets: widgetToggles,
+      baseEnabled,
+    }, { merge: true });
+    toast({ title: 'Notification settings saved' });
+  };
 
   const addKeyForm = useForm<AddKeyFormValues>({
     resolver: zodResolver(addKeyFormSchema),
@@ -373,6 +427,77 @@ export default function MyTrainerPage() {
                 </TableBody>
               </Table>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Notification Settings */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <CardTitle>Notification Settings</CardTitle>
+                <CardDescription>
+                  Configure email alerts for {client.firmName}.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Notification email */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <Mail className="h-3.5 w-3.5" />
+                Notification Email
+              </label>
+              <Input
+                type="email"
+                value={notifEmail}
+                onChange={(e) => setNotifEmail(e.target.value)}
+                placeholder="notifications@yourcompany.com"
+                className="max-w-sm"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Email address where system alerts and widget notifications are sent.
+              </p>
+            </div>
+
+            {/* Base ERP toggle */}
+            <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3 max-w-sm">
+              <div>
+                <p className="text-sm font-medium">ERP Base Alerts</p>
+                <p className="text-xs text-muted-foreground">New records, status changes, notes</p>
+              </div>
+              <Switch checked={baseEnabled} onCheckedChange={setBaseEnabled} />
+            </div>
+
+            {/* Per-widget toggles */}
+            {activeWidgets.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Widget Email Alerts
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {activeWidgets.map((widget) => (
+                    <div
+                      key={widget.type}
+                      className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-2.5 gap-3"
+                    >
+                      <p className="text-sm font-medium truncate">{widget.title || widget.type}</p>
+                      <Switch
+                        checked={widgetToggles[widget.type] ?? false}
+                        onCheckedChange={(v) => setWidgetToggles((prev) => ({ ...prev, [widget.type]: v }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <Button onClick={handleSaveNotifications} className="gap-2">
+              <Save className="h-4 w-4" />
+              Save Notification Settings
+            </Button>
           </CardContent>
         </Card>
 
