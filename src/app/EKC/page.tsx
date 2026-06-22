@@ -20,7 +20,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LayoutGrid, List, Calendar, MapPin, Clock, Loader2, Pencil, Trash2, Repeat2 } from 'lucide-react';
+import { LayoutGrid, List, Calendar, MapPin, Clock, Loader2, Pencil, Trash2, Repeat2, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   useFirestore,
@@ -310,12 +310,20 @@ export default function EKCPage() {
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #050f05 0%, #0b1a0b 50%, #060e06 100%)' }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="text-center px-6 py-7" style={{ borderBottom: '1px solid rgba(74,222,128,0.12)' }}>
+      <div className="relative text-center px-6 py-7" style={{ borderBottom: '1px solid rgba(74,222,128,0.12)' }}>
         <div className="flex items-center justify-center gap-2.5 mb-1">
           <span className="text-3xl select-none">🏕️</span>
           <h1 className="text-2xl font-bold text-white tracking-tight">Emma Kaufmann Camp</h1>
         </div>
         <p className="text-sm font-medium" style={{ color: 'rgba(74,222,128,0.7)' }}>Space Reservation Hub</p>
+        <a
+          href="/EKC/admin"
+          className="absolute right-4 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
+          style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.20)', color: 'rgba(74,222,128,0.7)' }}
+        >
+          <Shield className="h-3.5 w-3.5" />
+          Admin
+        </a>
       </div>
 
       {/* ── Controls ───────────────────────────────────────────────────────── */}
