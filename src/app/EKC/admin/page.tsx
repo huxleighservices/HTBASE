@@ -373,11 +373,22 @@ function SchedulerTab() {
   const [selectedDay, setSelectedDay] = useState<DayKey>(todayKey());
 
   const currentUnit = UNITS.find(u => u.id === selectedUnit);
-  // For Teens, only show top-level Quad entries (not individual tents)
+  // For Teens, show one entry per Quad (quads 3/5/6 have no top-level entry, only tents)
   const displayCabins = useMemo(() => {
     if (!currentUnit) return [];
     if (currentUnit.id === 'teens') {
-      return currentUnit.cabins.filter(c => /^quad_\d+$/.test(c.id));
+      const seen = new Set<string>();
+      const result: typeof currentUnit.cabins = [];
+      for (const c of currentUnit.cabins) {
+        const m = c.id.match(/^(quad_\d+)/);
+        if (!m) continue;
+        const quadId = m[1];
+        if (seen.has(quadId)) continue;
+        seen.add(quadId);
+        const topLevel = currentUnit.cabins.find(x => x.id === quadId);
+        result.push(topLevel ?? { ...c, id: quadId, label: 'Quad ' + quadId.replace('quad_', '') });
+      }
+      return result;
     }
     return currentUnit.cabins;
   }, [currentUnit]);
