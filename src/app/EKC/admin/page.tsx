@@ -401,6 +401,46 @@ const HT_SLOTS: { id: SlotKey; label: string; time: string; isFreeSwim?: boolean
   { id: 'ACT7', label: 'Zayin',  time: '7:30–8:20'  },
 ];
 
+type ActivitySlot = { id: SlotKey; label: string; time: string; isFreeSwim?: boolean };
+type ScheduleRow =
+  | { type: 'activity'; slot: ActivitySlot }
+  | { type: 'fixed'; kind: 'meal' | 'nosh'; label: string; time: string; from: number; to: number };
+
+function buildDisplayRows(unitId: string): ScheduleRow[] {
+  if (unitId === 'sabra' || unitId === 'kineret') {
+    return [
+      { type: 'fixed',    kind: 'meal', label: 'Breakfast',    time: '8:30–9:00',   from: 510,  to: 540  },
+      { type: 'activity', slot: SK_SLOTS[0] },
+      { type: 'activity', slot: SK_SLOTS[1] },
+      { type: 'fixed',    kind: 'meal', label: 'Lunch',        time: '12:00–12:50', from: 720,  to: 770  },
+      { type: 'activity', slot: SK_SLOTS[2] },
+      { type: 'fixed',    kind: 'nosh', label: 'Nosh',         time: '2:50–3:30',   from: 890,  to: 930  },
+      { type: 'activity', slot: SK_SLOTS[3] },
+      { type: 'activity', slot: SK_SLOTS[4] },
+      { type: 'fixed',    kind: 'meal', label: 'Dinner',       time: '5:30–6:20',   from: 1050, to: 1100 },
+      { type: 'activity', slot: SK_SLOTS[5] },
+      { type: 'activity', slot: SK_SLOTS[6] },
+      { type: 'fixed',    kind: 'nosh', label: 'Evening Nosh', time: '8:30–9:00',   from: 1230, to: 1260 },
+    ];
+  }
+  // halutzim or teens
+  return [
+    { type: 'fixed',    kind: 'meal', label: 'Breakfast',    time: '9:10–9:40',   from: 550,  to: 580  },
+    { type: 'activity', slot: HT_SLOTS[0] },
+    { type: 'activity', slot: HT_SLOTS[1] },
+    { type: 'activity', slot: HT_SLOTS[2] },
+    { type: 'fixed',    kind: 'meal', label: 'Lunch',        time: '1:00–1:40',   from: 780,  to: 820  },
+    { type: 'activity', slot: HT_SLOTS[3] },
+    { type: 'activity', slot: HT_SLOTS[4] },
+    { type: 'activity', slot: HT_SLOTS[5] },
+    { type: 'fixed',    kind: 'meal', label: 'Dinner',       time: '6:30–7:20',   from: 1110, to: 1160 },
+    { type: 'activity', slot: HT_SLOTS[6] },
+    unitId === 'teens'
+      ? { type: 'fixed', kind: 'nosh', label: 'Evening Nosh', time: '9:30–9:50',  from: 1290, to: 1310 }
+      : { type: 'fixed', kind: 'nosh', label: 'Evening Nosh', time: '8:30–9:00',  from: 1230, to: 1260 },
+  ];
+}
+
 // Current day as DayKey
 function todayKey(): DayKey {
   const d = new Date().getDay(); // 0=Sun
@@ -461,11 +501,13 @@ function SchedulerTab() {
 
   const currentCabin = displayCabins.find(c => c.id === selectedCabin) ?? displayCabins[0];
   const unitType = getUnitType(selectedUnit);
-  const slots = unitType === 'sk' ? SK_SLOTS : HT_SLOTS;
   const cabinId = currentCabin?.id ?? '';
   const cabinSchedule = getSchedule(cabinId);
   const daySchedule = cabinSchedule?.[selectedDay] ?? {};
-  const nowSlot = selectedDay === todayKey() ? currentSlotId(unitType) : null;
+  const displayRows = buildDisplayRows(selectedUnit);
+  const isViewingToday = selectedDay === todayKey();
+  const nowMinutes = isViewingToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+  const nowActSlot = isViewingToday ? currentSlotId(unitType) : null;
 
   const handleUnitChange = (unitId: string) => {
     setSelectedUnit(unitId);
@@ -540,9 +582,35 @@ function SchedulerTab() {
             </span>
           </div>
           <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-            {slots.map((slot) => {
+            {displayRows.map((row, idx) => {
+              if (row.type === 'fixed') {
+                const isNow = nowMinutes >= row.from && nowMinutes < row.to;
+                const isMeal = row.kind === 'meal';
+                return (
+                  <div key={`fixed-${idx}`}
+                    className="flex items-center gap-3 px-4 py-2"
+                    style={{ background: isNow
+                      ? (isMeal ? 'rgba(251,146,60,0.09)' : 'rgba(251,191,36,0.09)')
+                      : 'rgba(0,0,0,0.12)' }}>
+                    <div className="w-24 shrink-0">
+                      <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{row.time}</p>
+                    </div>
+                    <div className="flex-1">
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={isMeal
+                          ? { background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.28)', color: isNow ? '#fed7aa' : '#fb923c' }
+                          : { background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', color: isNow ? '#fef3c7' : '#fbbf24' }}>
+                        {isMeal ? '🍽️' : '🍎'} {row.label}{isNow ? ' ●' : ''}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Activity row
+              const slot = row.slot;
               const val = daySchedule[slot.id] ?? '';
-              const isNow = slot.id === nowSlot;
+              const isNow = slot.id === nowActSlot;
               const isFreeSwim = slot.isFreeSwim || val === 'Free Swim';
               return (
                 <div key={slot.id}
