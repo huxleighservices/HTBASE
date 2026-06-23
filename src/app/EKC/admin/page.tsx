@@ -208,12 +208,54 @@ function BunkingTab({ searchQuery }: { searchQuery: string }) {
 
 // ─── Search Tab ───────────────────────────────────────────────────────────────
 
-function currentActivity(cabinId: string, unitId: string): string | null {
+type CampStatusKind = 'activity' | 'meal' | 'nosh' | 'lila-tov';
+type CampStatus = { kind: CampStatusKind; label: string } | null;
+
+// Fixed daily time windows per unit (minutes from midnight)
+const UNIT_DAILY: Record<string, Array<{ from: number; to: number; kind: CampStatusKind; label: string }>> = {
+  sabra: [
+    { from: 510,  to: 540,  kind: 'meal',     label: 'Breakfast'    }, // 8:30–9:00
+    { from: 720,  to: 770,  kind: 'meal',     label: 'Lunch'        }, // 12:00–12:50
+    { from: 1050, to: 1100, kind: 'meal',     label: 'Dinner'       }, // 5:30–6:20
+    { from: 1230, to: 1260, kind: 'nosh',     label: 'Evening Nosh' }, // 8:30–9:00
+    { from: 1260, to: 1440, kind: 'lila-tov', label: 'Lila Tov'    }, // 9:00 PM+
+  ],
+  kineret: [
+    { from: 510,  to: 540,  kind: 'meal',     label: 'Breakfast'    }, // 8:30–9:00
+    { from: 720,  to: 770,  kind: 'meal',     label: 'Lunch'        }, // 12:00–12:50
+    { from: 1050, to: 1100, kind: 'meal',     label: 'Dinner'       }, // 5:30–6:20
+    { from: 1230, to: 1260, kind: 'nosh',     label: 'Evening Nosh' }, // 8:30–9:00
+    { from: 1320, to: 1440, kind: 'lila-tov', label: 'Lila Tov'    }, // 10:00 PM+
+  ],
+  halutzim: [
+    { from: 550,  to: 580,  kind: 'meal',     label: 'Breakfast'    }, // 9:10–9:40
+    { from: 780,  to: 820,  kind: 'meal',     label: 'Lunch'        }, // 1:00–1:40
+    { from: 1110, to: 1160, kind: 'meal',     label: 'Dinner'       }, // 6:30–7:20
+    { from: 1230, to: 1260, kind: 'nosh',     label: 'Evening Nosh' }, // 8:30–9:00
+    { from: 1350, to: 1440, kind: 'lila-tov', label: 'Lila Tov'    }, // 10:30 PM+
+  ],
+  teens: [
+    { from: 550,  to: 580,  kind: 'meal',     label: 'Breakfast'    }, // 9:10–9:40
+    { from: 780,  to: 820,  kind: 'meal',     label: 'Lunch'        }, // 1:00–1:40
+    { from: 1110, to: 1160, kind: 'meal',     label: 'Dinner'       }, // 6:30–7:20
+    { from: 1290, to: 1310, kind: 'nosh',     label: 'Evening Nosh' }, // 9:30–9:50
+    { from: 1410, to: 1440, kind: 'lila-tov', label: 'Lila Tov'    }, // 11:30 PM+
+  ],
+};
+
+function currentCampStatus(cabinId: string, unitId: string): CampStatus {
   const utype = getUnitType(unitId);
   const slot = currentSlotId(utype);
-  if (!slot) return null;
-  const sched = getSchedule(cabinId);
-  return sched?.[todayKey()]?.[slot] ?? null;
+  if (slot) {
+    const sched = getSchedule(cabinId);
+    const activity = sched?.[todayKey()]?.[slot];
+    if (activity) return { kind: 'activity', label: activity };
+  }
+  const t = new Date().getHours() * 60 + new Date().getMinutes();
+  for (const w of (UNIT_DAILY[unitId] ?? [])) {
+    if (t >= w.from && t < w.to) return { kind: w.kind, label: w.label };
+  }
+  return null;
 }
 
 function SearchTab() {
@@ -253,7 +295,7 @@ function SearchTab() {
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{results.length} result{results.length !== 1 ? 's' : ''}</p>
           {results.map(({ name, cabin, unit, isStaff }, i) => {
             const color = UNIT_COLORS[unit.id] ?? UNIT_COLORS.sabra;
-            const nowAt = currentActivity(cabin.id, unit.id);
+            const status = currentCampStatus(cabin.id, unit.id);
             return (
               <div key={i} className="rounded-xl p-4 space-y-2"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -280,11 +322,35 @@ function SearchTab() {
                     </span>
                   )}
                 </div>
-                {nowAt && (
+                {status?.kind === 'activity' && (
                   <div className="flex items-center gap-2 pt-0.5">
                     <span className="h-1.5 w-1.5 rounded-full shrink-0 animate-pulse" style={{ background: '#4ade80' }} />
                     <span className="text-xs font-medium" style={{ color: '#86efac' }}>
-                      Now: {nowAt === 'Free Swim' ? '🏊 Free Swim' : nowAt}
+                      Now: {status.label === 'Free Swim' ? '🏊 Free Swim' : status.label}
+                    </span>
+                  </div>
+                )}
+                {status?.kind === 'meal' && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-sm leading-none">🍽️</span>
+                    <span className="text-xs font-medium" style={{ color: '#fb923c' }}>
+                      {status.label}
+                    </span>
+                  </div>
+                )}
+                {status?.kind === 'nosh' && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-sm leading-none">🍎</span>
+                    <span className="text-xs font-medium" style={{ color: '#fbbf24' }}>
+                      {status.label}
+                    </span>
+                  </div>
+                )}
+                {status?.kind === 'lila-tov' && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-sm leading-none">🌙</span>
+                    <span className="text-xs font-medium" style={{ color: '#a78bfa' }}>
+                      Lila Tov
                     </span>
                   </div>
                 )}
@@ -297,7 +363,7 @@ function SearchTab() {
       {query.trim().length === 0 && (
         <div className="text-center py-12">
           <Search className="h-8 w-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.15)' }} />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>Type a name to find their cabin, unit, and current activity</p>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>Type a name to find their cabin, unit, and current activity, meal, or status</p>
         </div>
       )}
     </div>
