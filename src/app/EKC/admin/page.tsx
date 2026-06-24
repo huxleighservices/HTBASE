@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Users, CalendarDays, Search, ChevronDown, ChevronRight, X, Shield } from 'lucide-react';
+import { Users, CalendarDays, Search, ChevronDown, ChevronRight, X, Shield, Pill, Plus, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UNITS, findPersonInBunks, type Cabin, type Unit } from './data';
 import { getSchedule, type DayKey, type SlotKey } from './schedule-data';
+import { loadMeds, saveMeds, medsForPerson, BASE_MEDS, type MedEntry, type MedTime } from './meds-data';
 
 // ─── Password gate ────────────────────────────────────────────────────────────
 
@@ -258,7 +259,14 @@ function currentCampStatus(cabinId: string, unitId: string): CampStatus {
   return null;
 }
 
-function SearchTab() {
+const MED_TIME_STYLE: Record<MedTime, { bg: string; border: string; text: string }> = {
+  breakfast: { bg: 'rgba(251,191,36,0.14)',  border: 'rgba(251,191,36,0.35)',  text: '#fbbf24' },
+  lunch:     { bg: 'rgba(96,165,250,0.14)',   border: 'rgba(96,165,250,0.35)',   text: '#60a5fa' },
+  snack:     { bg: 'rgba(74,222,128,0.14)',   border: 'rgba(74,222,128,0.35)',   text: '#86efac' },
+  dinner:    { bg: 'rgba(251,146,60,0.14)',   border: 'rgba(251,146,60,0.35)',   text: '#fb923c' },
+};
+
+function SearchTab({ meds }: { meds: MedEntry[] }) {
   const [query, setQuery] = useState('');
 
   const results = useMemo(() => {
@@ -296,6 +304,7 @@ function SearchTab() {
           {results.map(({ name, cabin, unit, isStaff }, i) => {
             const color = UNIT_COLORS[unit.id] ?? UNIT_COLORS.sabra;
             const status = currentCampStatus(cabin.id, unit.id);
+            const medEntry = medsForPerson(name, meds);
             return (
               <div key={i} className="rounded-xl p-4 space-y-2"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -352,6 +361,20 @@ function SearchTab() {
                     <span className="text-xs font-medium" style={{ color: '#a78bfa' }}>
                       Lila Tov
                     </span>
+                  </div>
+                )}
+                {medEntry && (
+                  <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                    <span className="text-sm leading-none">💊</span>
+                    {medEntry.times.map(t => (
+                      <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                        style={{ background: MED_TIME_STYLE[t].bg, border: `1px solid ${MED_TIME_STYLE[t].border}`, color: MED_TIME_STYLE[t].text }}>
+                        {t}
+                      </span>
+                    ))}
+                    {medEntry.notes && (
+                      <span className="text-[10px] italic" style={{ color: 'rgba(255,255,255,0.35)' }}>{medEntry.notes}</span>
+                    )}
                   </div>
                 )}
               </div>
@@ -660,19 +683,281 @@ function SchedulerTab() {
   );
 }
 
+// ─── Meds Tab ─────────────────────────────────────────────────────────────────
+
+const UNIT_MED_COLOR: Record<string, string> = {
+  kineret:  '#60a5fa',
+  halutzim: '#fbbf24',
+  teens:    '#a78bfa',
+  sabra:    '#4ade80',
+  sits:     '#94a3b8',
+};
+
+const ALL_MED_TIMES: MedTime[] = ['breakfast', 'lunch', 'snack', 'dinner'];
+
+function MedForm({
+  initial, onSave, onCancel, onDelete,
+}: {
+  initial: { name: string; unit: string; times: MedTime[]; notes: string };
+  onSave: (v: { name: string; unit: string; times: MedTime[]; notes: string }) => void;
+  onCancel: () => void;
+  onDelete?: () => void;
+}) {
+  const [name,  setName]  = useState(initial.name);
+  const [unit,  setUnit]  = useState(initial.unit);
+  const [times, setTimes] = useState<MedTime[]>(initial.times);
+  const [notes, setNotes] = useState(initial.notes);
+
+  const toggle = (t: MedTime) =>
+    setTimes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+
+  const valid = name.trim().length > 0 && times.length > 0;
+
+  return (
+    <div className="space-y-3 pt-1">
+      <input
+        value={name} onChange={e => setName(e.target.value)}
+        placeholder="Full name (First Last)"
+        className="w-full h-9 px-3 rounded-lg text-sm outline-none"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff' }}
+      />
+      <div className="flex items-center gap-2">
+        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.40)' }}>Unit:</span>
+        <select value={unit} onChange={e => setUnit(e.target.value)}
+          className="h-7 px-2 rounded-md text-xs outline-none"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff' }}>
+          {['kineret','halutzim','teens','sabra','sits'].map(u => (
+            <option key={u} value={u}>{u.charAt(0).toUpperCase() + u.slice(1)}</option>
+          ))}
+        </select>
+      </div>
+      <div className="flex gap-1.5 flex-wrap">
+        {ALL_MED_TIMES.map(t => {
+          const on = times.includes(t);
+          const s = MED_TIME_STYLE[t];
+          return (
+            <button key={t} onClick={() => toggle(t)}
+              className="px-2.5 h-7 rounded-full text-xs font-semibold transition-all"
+              style={on
+                ? { background: s.bg, border: `1px solid ${s.border}`, color: s.text }
+                : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.40)' }}>
+              {t}
+            </button>
+          );
+        })}
+      </div>
+      <input
+        value={notes} onChange={e => setNotes(e.target.value)}
+        placeholder="Notes (optional)"
+        className="w-full h-8 px-3 rounded-lg text-xs outline-none"
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.70)' }}
+      />
+      <div className="flex items-center gap-2">
+        <button onClick={() => valid && onSave({ name: name.trim(), unit, times, notes: notes.trim() })}
+          className="px-3 h-7 rounded-lg text-xs font-semibold transition-all"
+          style={{ background: valid ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(74,222,128,0.35)', color: valid ? '#4ade80' : 'rgba(255,255,255,0.25)' }}>
+          Save
+        </button>
+        <button onClick={onCancel}
+          className="px-3 h-7 rounded-lg text-xs font-semibold"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.45)' }}>
+          Cancel
+        </button>
+        {onDelete && (
+          <button onClick={onDelete}
+            className="ml-auto px-2 h-7 rounded-lg text-xs font-semibold flex items-center gap-1"
+            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171' }}>
+            <Trash2 className="h-3 w-3" /> Delete
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MedsTab({ meds, onUpdate }: { meds: MedEntry[]; onUpdate: (m: MedEntry[]) => void }) {
+  const [filterTime, setFilterTime]   = useState<MedTime | 'all'>('all');
+  const [filterUnit, setFilterUnit]   = useState<string>('all');
+  const [filterQuery, setFilterQuery] = useState('');
+  const [editingId, setEditingId]     = useState<string | null>(null);
+  const [isAdding, setIsAdding]       = useState(false);
+
+  const filtered = useMemo(() => {
+    let list = meds;
+    if (filterTime !== 'all') list = list.filter(m => m.times.includes(filterTime));
+    if (filterUnit !== 'all') list = list.filter(m => m.unit === filterUnit);
+    if (filterQuery.trim()) {
+      const q = filterQuery.toLowerCase();
+      list = list.filter(m => m.name.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
+  }, [meds, filterTime, filterUnit, filterQuery]);
+
+  const save = (id: string, vals: { name: string; unit: string; times: MedTime[]; notes: string }) => {
+    onUpdate(meds.map(m => m.id === id ? { ...m, ...vals, notes: vals.notes || undefined } : m));
+    setEditingId(null);
+  };
+
+  const add = (vals: { name: string; unit: string; times: MedTime[]; notes: string }) => {
+    onUpdate([...meds, { id: `custom_${Date.now()}`, ...vals, notes: vals.notes || undefined }]);
+    setIsAdding(false);
+  };
+
+  const del = (id: string) => {
+    onUpdate(meds.filter(m => m.id !== id));
+    setEditingId(null);
+  };
+
+  const reset = () => {
+    if (confirm('Reset all meds data to the original list? This cannot be undone.')) {
+      onUpdate(BASE_MEDS);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Time filter */}
+      <div className="flex gap-1.5 flex-wrap">
+        {(['all', ...ALL_MED_TIMES] as const).map(t => {
+          const active = filterTime === t;
+          const s = t !== 'all' ? MED_TIME_STYLE[t] : null;
+          return (
+            <button key={t} onClick={() => setFilterTime(t)}
+              className="px-3 h-7 rounded-full text-xs font-semibold transition-all"
+              style={active && s
+                ? { background: s.bg, border: `1px solid ${s.border}`, color: s.text }
+                : active
+                ? { background: 'rgba(244,114,182,0.18)', border: '1px solid rgba(244,114,182,0.40)', color: '#f472b6' }
+                : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)' }}>
+              {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Unit filter */}
+      <div className="flex gap-1.5 flex-wrap">
+        {(['all', 'kineret', 'halutzim', 'teens', 'sabra', 'sits'] as const).map(u => (
+          <button key={u} onClick={() => setFilterUnit(u)}
+            className="px-2.5 h-6 rounded-full text-[11px] font-semibold transition-all"
+            style={filterUnit === u
+              ? { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff' }
+              : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.40)' }}>
+            {u === 'all' ? 'All Units' : u.charAt(0).toUpperCase() + u.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Search + Add */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: 'rgba(255,255,255,0.30)' }} />
+          <input value={filterQuery} onChange={e => setFilterQuery(e.target.value)}
+            placeholder="Filter by name…"
+            className="w-full h-9 pl-9 pr-3 rounded-xl text-sm outline-none"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', color: '#fff' }}
+          />
+        </div>
+        <button onClick={() => { setIsAdding(true); setEditingId(null); }}
+          className="flex items-center gap-1 px-3 h-9 rounded-xl text-xs font-semibold shrink-0"
+          style={{ background: 'rgba(244,114,182,0.12)', border: '1px solid rgba(244,114,182,0.30)', color: '#f472b6' }}>
+          <Plus className="h-3.5 w-3.5" /> Add
+        </button>
+      </div>
+
+      {/* Add form */}
+      {isAdding && (
+        <div className="rounded-xl p-4" style={{ background: 'rgba(244,114,182,0.05)', border: '1px solid rgba(244,114,182,0.20)' }}>
+          <p className="text-xs font-bold mb-3" style={{ color: '#f472b6' }}>New Entry</p>
+          <MedForm
+            initial={{ name: '', unit: 'kineret', times: [], notes: '' }}
+            onSave={add}
+            onCancel={() => setIsAdding(false)}
+          />
+        </div>
+      )}
+
+      {/* Count */}
+      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+        {filtered.length} {filtered.length === 1 ? 'person' : 'people'}
+      </p>
+
+      {/* List */}
+      <div className="space-y-1.5">
+        {filtered.map(m => {
+          const unitColor = UNIT_MED_COLOR[m.unit] ?? '#94a3b8';
+          const isEditing = editingId === m.id;
+          return (
+            <div key={m.id} className="rounded-xl px-4 py-3"
+              style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${isEditing ? 'rgba(244,114,182,0.25)' : 'rgba(255,255,255,0.07)'}` }}>
+              {isEditing ? (
+                <MedForm
+                  initial={{ name: m.name, unit: m.unit, times: [...m.times], notes: m.notes ?? '' }}
+                  onSave={vals => save(m.id, vals)}
+                  onCancel={() => setEditingId(null)}
+                  onDelete={() => del(m.id)}
+                />
+              ) : (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1.5 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-white truncate">{m.name}</p>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0 font-semibold"
+                        style={{ background: `${unitColor}18`, border: `1px solid ${unitColor}35`, color: unitColor }}>
+                        {m.unit}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {m.times.map(t => (
+                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+                          style={{ background: MED_TIME_STYLE[t].bg, border: `1px solid ${MED_TIME_STYLE[t].border}`, color: MED_TIME_STYLE[t].text }}>
+                          {t}
+                        </span>
+                      ))}
+                      {m.notes && <span className="text-[10px] italic" style={{ color: 'rgba(255,255,255,0.35)' }}>{m.notes}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => setEditingId(m.id)} className="shrink-0 mt-0.5 hover:opacity-70 transition-opacity">
+                    <Pencil className="h-3.5 w-3.5" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {filtered.length === 0 && (
+        <p className="text-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.30)' }}>No entries match</p>
+      )}
+
+      <button onClick={reset} className="text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.20)' }}>
+        Reset to default data
+      </button>
+    </div>
+  );
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
-type Tab = 'bunking' | 'scheduler' | 'search';
+type Tab = 'bunking' | 'scheduler' | 'search' | 'meds';
 
 const TABS: { id: Tab; label: string; Icon: (p: { className?: string }) => JSX.Element }[] = [
   { id: 'bunking',   label: 'Bunking',   Icon: Users        },
-  { id: 'scheduler', label: 'Scheduler', Icon: CalendarDays },
+  { id: 'scheduler', label: 'Schedule',  Icon: CalendarDays },
   { id: 'search',    label: 'Search',    Icon: Search       },
+  { id: 'meds',      label: 'Meds',      Icon: Pill         },
 ];
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('bunking');
   const [bunkSearch, setBunkSearch] = useState('');
+  const [meds, setMeds] = useState<MedEntry[]>(() => loadMeds());
+
+  const handleMedsUpdate = (updated: MedEntry[]) => {
+    setMeds(updated);
+    saveMeds(updated);
+  };
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #050f05 0%, #0b1a0b 50%, #060e06 100%)' }}>
@@ -713,7 +998,8 @@ function AdminDashboard() {
       <div className="max-w-4xl mx-auto px-4 pt-4 pb-28">
         {activeTab === 'bunking'   && <BunkingTab searchQuery={bunkSearch} />}
         {activeTab === 'scheduler' && <SchedulerTab />}
-        {activeTab === 'search'    && <SearchTab />}
+        {activeTab === 'search'    && <SearchTab meds={meds} />}
+        {activeTab === 'meds'      && <MedsTab meds={meds} onUpdate={handleMedsUpdate} />}
       </div>
 
       {/* Bottom tab bar */}
