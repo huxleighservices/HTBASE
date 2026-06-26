@@ -1,12 +1,6 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      { source: '/ekc',       destination: '/EKC',       permanent: false },
-      { source: '/ekc/admin', destination: '/EKC/admin', permanent: false },
-    ];
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

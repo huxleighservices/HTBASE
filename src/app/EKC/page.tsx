@@ -52,8 +52,8 @@ const TIME_BLOCKS = [
   { id: 'ACT6HT', label: 'ACT 6HT',         time: '5:30–6:20'   },
   { id: 'ACT6SK', label: 'ACT 6SK',         time: '6:30–7:20'   },
   { id: 'ACT7',   label: 'ACT 7',           time: '7:30–8:20'   },
-  { id: 'ACT8A',  label: 'ACT 8 / SIKUM A', time: '8:30–9:20'   },
-  { id: 'SIKUMB', label: 'SIKUM B',         time: '9:30–10:15'  },
+  { id: 'ACT8',   label: 'ACT 8',            time: '8:30–9:20'   },
+  { id: 'SIKUM',  label: 'Sikum',           time: '9:30–10:30'  },
 ] as const;
 
 type Location   = typeof LOCATIONS[number];

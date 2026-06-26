@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import { UNITS, findPersonInBunks, type Cabin, type Unit } from './data';
 import { getSchedule, type DayKey, type SlotKey } from './schedule-data';
 import { loadMeds, saveMeds, medsForPerson, BASE_MEDS, type MedEntry, type MedTime } from './meds-data';
+import { useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, query as firestoreQuery, where } from 'firebase/firestore';
 
 // ─── Password gate ────────────────────────────────────────────────────────────
 
@@ -207,6 +209,52 @@ function BunkingTab({ searchQuery }: { searchQuery: string }) {
   );
 }
 
+// ─── Reservations helpers ─────────────────────────────────────────────────────
+
+type ReservationEntry = {
+  cabin: string;
+  location: string;
+  locationLabel: string;
+  timeBlock: string;
+  name: string;
+};
+
+const LOCATION_EMOJIS: Record<string, string> = {
+  treehouse:     '🌲',
+  sukkah:        '🕍',
+  main_fire_pit: '🔥',
+  gazebo:        '⛺',
+};
+
+// Maps reservation page time-block IDs to admin SlotKeys (ACT3/ACT6 split by group)
+const RESV_SLOT_MAP: Partial<Record<string, SlotKey>> = {
+  ACT1:    'ACT1',
+  ACT2:    'ACT2',
+  ACT3HT:  'ACT3',
+  ACT3SK:  'ACT3',
+  ACT4:    'ACT4',
+  ACT5:    'ACT5',
+  ACT6HT:  'ACT6',
+  ACT6SK:  'ACT6',
+  ACT7:    'ACT7',
+};
+
+function todayDateStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function buildResvMap(entries: ReservationEntry[]): Map<string, Map<SlotKey, ReservationEntry>> {
+  const map = new Map<string, Map<SlotKey, ReservationEntry>>();
+  for (const r of entries) {
+    const slot = RESV_SLOT_MAP[r.timeBlock];
+    if (!slot) continue;
+    const key = r.cabin.toLowerCase().trim();
+    if (!map.has(key)) map.set(key, new Map());
+    map.get(key)!.set(slot, r);
+  }
+  return map;
+}
+
 // ─── Search Tab ───────────────────────────────────────────────────────────────
 
 type CampStatusKind = 'activity' | 'meal' | 'nosh' | 'lila-tov';
@@ -268,6 +316,15 @@ const MED_TIME_STYLE: Record<MedTime, { bg: string; border: string; text: string
 
 function SearchTab({ meds }: { meds: MedEntry[] }) {
   const [query, setQuery] = useState('');
+  const firestore = useFirestore();
+
+  const todayStr = todayDateStr();
+  const resvQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return firestoreQuery(collection(firestore, 'ekc_reservations'), where('date', '==', todayStr));
+  }, [firestore, todayStr]);
+  const { data: resvData } = useCollection<ReservationEntry>(resvQuery);
+  const resvMap = useMemo(() => buildResvMap(resvData ?? []), [resvData]);
 
   const results = useMemo(() => {
     if (query.trim().length < 2) return [];
@@ -305,6 +362,10 @@ function SearchTab({ meds }: { meds: MedEntry[] }) {
             const color = UNIT_COLORS[unit.id] ?? UNIT_COLORS.sabra;
             const status = currentCampStatus(cabin.id, unit.id);
             const medEntry = medsForPerson(name, meds);
+            const currentSlot = currentSlotId(getUnitType(unit.id));
+            const resvAtSlot = currentSlot
+              ? resvMap.get(cabin.label.toLowerCase().trim())?.get(currentSlot)
+              : undefined;
             return (
               <div key={i} className="rounded-xl p-4 space-y-2"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -363,6 +424,14 @@ function SearchTab({ meds }: { meds: MedEntry[] }) {
                     </span>
                   </div>
                 )}
+                {resvAtSlot && (
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-sm leading-none">{LOCATION_EMOJIS[resvAtSlot.location] ?? '📍'}</span>
+                    <span className="text-xs font-medium" style={{ color: '#fbbf24' }}>
+                      {resvAtSlot.locationLabel}
+                    </span>
+                  </div>
+                )}
                 {medEntry && (
                   <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
                     <span className="text-sm leading-none">💊</span>
@@ -396,6 +465,14 @@ function SearchTab({ meds }: { meds: MedEntry[] }) {
 // ─── Scheduler Tab ────────────────────────────────────────────────────────────
 
 const DAYS: DayKey[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function dayKeyToDateStr(dayKey: DayKey): string {
+  const today = new Date();
+  const diff = DAYS.indexOf(dayKey) - today.getDay();
+  const d = new Date(today);
+  d.setDate(today.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
 
 // Slot definitions differ by unit type
 type UnitType = 'sk' | 'ht'; // sabra/kineret vs halutzim/teens
@@ -500,6 +577,7 @@ function SchedulerTab() {
   const [selectedUnit, setSelectedUnit] = useState<string>('sabra');
   const [selectedCabin, setSelectedCabin] = useState<string>('');
   const [selectedDay, setSelectedDay] = useState<DayKey>(todayKey());
+  const firestore = useFirestore();
 
   const currentUnit = UNITS.find(u => u.id === selectedUnit);
   // For Teens, show one entry per Quad (quads 3/5/6 have no top-level entry, only tents)
@@ -531,6 +609,17 @@ function SchedulerTab() {
   const isViewingToday = selectedDay === todayKey();
   const nowMinutes = isViewingToday ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
   const nowActSlot = isViewingToday ? currentSlotId(unitType) : null;
+
+  const selectedDateStr = dayKeyToDateStr(selectedDay);
+  const schedResvQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return firestoreQuery(collection(firestore, 'ekc_reservations'), where('date', '==', selectedDateStr));
+  }, [firestore, selectedDateStr]);
+  const { data: schedResvData } = useCollection<ReservationEntry>(schedResvQuery);
+  const cabinResvSlots = useMemo(() => {
+    if (!currentCabin || !schedResvData) return new Map<SlotKey, ReservationEntry>();
+    return buildResvMap(schedResvData).get(currentCabin.label.toLowerCase().trim()) ?? new Map<SlotKey, ReservationEntry>();
+  }, [schedResvData, currentCabin]);
 
   const handleUnitChange = (unitId: string) => {
     setSelectedUnit(unitId);
@@ -635,6 +724,7 @@ function SchedulerTab() {
               const val = daySchedule[slot.id] ?? '';
               const isNow = slot.id === nowActSlot;
               const isFreeSwim = slot.isFreeSwim || val === 'Free Swim';
+              const resvHere = cabinResvSlots.get(slot.id);
               return (
                 <div key={slot.id}
                   className="flex items-center gap-3 px-4 py-2.5"
@@ -645,7 +735,7 @@ function SchedulerTab() {
                     </p>
                     <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{slot.time}</p>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 flex items-center gap-2 flex-wrap">
                     {isFreeSwim ? (
                       <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
                         style={{ background: 'rgba(96,165,250,0.10)', border: '1px solid rgba(96,165,250,0.25)', color: '#60a5fa' }}>
@@ -665,6 +755,12 @@ function SchedulerTab() {
                       <span className="text-sm font-medium" style={{ color: isNow ? '#fff' : 'rgba(255,255,255,0.80)' }}>{val}</span>
                     ) : (
                       <span className="text-xs" style={{ color: 'rgba(255,255,255,0.20)' }}>—</span>
+                    )}
+                    {resvHere && (
+                      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold"
+                        style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.25)', color: '#fbbf24' }}>
+                        {LOCATION_EMOJIS[resvHere.location] ?? '📍'} {resvHere.locationLabel}
+                      </span>
                     )}
                   </div>
                 </div>
