@@ -1,56 +1,56 @@
-// Cabin schedules — EKC Session 1, Week 1
+// Cabin schedules — EKC Session 1, Week 2 (week of June 28, 2026)
 // Slot IDs: ACT1–ACT7 map to Acts Aleph–Zayin
 // Sabra/Kineret: ACT3 = Free Swim (always). Halutzim/Teens: ACT4 = Free Swim (always).
-// Sunday = Camp Opening Day ("Happy First Day of Camp 2026!") — no per-slot activities.
-// Saturday = Shabbat. Friday evening activities left blank.
-// Teens: schedules are per-Quad; all tents in a Quad share the schedule.
+// Wednesday = Israel Day for all cabins.
+// Friday: Big Sibling (ACT1) + Trip! (ACT2) then Shabbat for all cabins.
+// Saturday = Shabbat.
+// Circle 3/4 and Circle 5/7 are combined cabins sharing one schedule this week.
 
 export type DayKey = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
 export type SlotKey = 'ACT1' | 'ACT2' | 'ACT3' | 'ACT4' | 'ACT5' | 'ACT6' | 'ACT7';
 export type WeekSchedule = Partial<Record<DayKey, Partial<Record<SlotKey, string>>>>;
 
 const FREE_SWIM = 'Free Swim';
-const OPENING = 'Happy First Day of Camp 2026!';
 const SHABBAT = 'Shabbat';
 
-// Helper: build Sabra/Kineret cabin (ACT3 = Free Swim every day, Sun = opening)
+// SK (Sabra/Kineret): ACT3 = Free Swim every day; Fri = Big Sibling/Trip!/Free Swim; Sat = Shabbat
 function sk(
+  sun: [string,string,string,string,string,string],
   mon: [string,string,string,string,string,string],
   tue: [string,string,string,string,string,string],
   wed: [string,string,string,string,string,string],
   thu: [string,string,string,string,string,string],
-  fri: [string,string],
 ): WeekSchedule {
   const day = (a1:string,a2:string,a4:string,a5:string,a6:string,a7:string) =>
     ({ ACT1:a1, ACT2:a2, ACT3:FREE_SWIM, ACT4:a4, ACT5:a5, ACT6:a6, ACT7:a7 });
   return {
-    Sun: { ACT1: OPENING },
+    Sun: day(...sun),
     Mon: day(...mon),
     Tue: day(...tue),
     Wed: day(...wed),
     Thu: day(...thu),
-    Fri: { ACT1:fri[0], ACT2:fri[1], ACT3:FREE_SWIM },
+    Fri: { ACT1:'Big Sibling', ACT2:'Trip!', ACT3:FREE_SWIM },
     Sat: { ACT1: SHABBAT },
   };
 }
 
-// Helper: build Halutzim/Teens cabin (ACT4 = Free Swim, ACT3 has activities, Sun = opening)
+// HT (Halutzim/Teens): ACT4 = Free Swim every day; Fri = Big Sibling/Trip!/Trip!/Free Swim; Sat = Shabbat
 function ht(
+  sun: [string,string,string,string,string,string],
   mon: [string,string,string,string,string,string],
   tue: [string,string,string,string,string,string],
   wed: [string,string,string,string,string,string],
   thu: [string,string,string,string,string,string],
-  fri: [string,string,string],
 ): WeekSchedule {
   const day = (a1:string,a2:string,a3:string,a5:string,a6:string,a7:string) =>
     ({ ACT1:a1, ACT2:a2, ACT3:a3, ACT4:FREE_SWIM, ACT5:a5, ACT6:a6, ACT7:a7 });
   return {
-    Sun: { ACT1: OPENING },
+    Sun: day(...sun),
     Mon: day(...mon),
     Tue: day(...tue),
     Wed: day(...wed),
     Thu: day(...thu),
-    Fri: { ACT1:fri[0], ACT2:fri[1], ACT3:fri[2], ACT4:FREE_SWIM },
+    Fri: { ACT1:'Big Sibling', ACT2:'Trip!', ACT3:'Trip!', ACT4:FREE_SWIM },
     Sat: { ACT1: SHABBAT },
   };
 }
@@ -60,298 +60,301 @@ export const SCHEDULES: Record<string, WeekSchedule> = {
   // ── SABRA ─────────────────────────────────────────────────────────────────
 
   circle_1: sk(
-    ['Arts & Crafts','Blob and Rave','Cooking','Israeli Culture','Volleyball','Unit Program'],
-    ['Zipline','Sabra I.S.','Mud Hike','Dance','Library / Board Games','Sabra Story-time'],
-    ['JTM','Sabra I.S.','Archery','Ceramics','Counselors Choice','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Canteen','Garden','Lawn Games','Big Sibling'],
-    ['HBR','Wild World of Animals'],
+    ['Super Cleanup','Music','STEM','Frisbee w/ C8','Low Ropes','Campfire'],
+    ['Sabra I.S.','Ceramics','Counselors Choice','Arts & Crafts','Pool Games','Sabra Kickball'],
+    ['Sabra','Free Day','Softball v C2','Library / Board Games','PUH PUH','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['SPARK!','Sabra I.S.','Cove Games','Theatre','Pool Party','Extended Shower Time'],
   ),
 
   circle_2: sk(
-    ['HBR','Archery','JTM','Arts & Crafts','Blob and Rave','Unit Program'],
-    ['STEM','Sabra I.S.','Bouncing Around with Ben','Ceramics','Lawn Games','Sabra Story-time'],
-    ['Zipline','Sabra I.S.','Dance','Mud Hike','Library / Board Games','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Cooking','Counselors Choice','Soccer','Big Sibling'],
-    ['Tubing','Wild World of Animals'],
+    ['Super Cleanup','Flying Squirrel','Cove Games','Theatre','PUH PUH','Campfire'],
+    ['Sabra I.S.','Library / Board Games','Tubing','Frisbee','Pool Games','Sabra Kickball'],
+    ['Sabra','Free Day','Softball v C1','Random Acts of Kindness','Low Ropes','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['Mud Hike','Sabra I.S.','Arts & Crafts','Music','Pool Party','Extended Shower Time'],
   ),
 
+  // Circle 3/4 share one schedule this week
   circle_3: sk(
-    ['Sabra I.S.','Blob and Rave','Zipline','Canteen','Library / Board Games','Unit Program'],
-    ['Blob and Rave','Ceramics','Random Acts of Kindness','Israeli Culture','PuH-PuH','Sabra Story-time'],
-    ['Sabra I.S.','Random Acts of Kindness','Arts & Crafts','Cooking','Archery','Pool Party!'],
-    ['Sabra Free Day','Day yay!','HBR','Music','Counselors Choice','Big Sibling'],
-    ['Tubing','Wild World of Animals'],
+    ['Super Cleanup','Sabra I.S.','Mud Hike','Soccer v C4','Lawn Games','Campfire'],
+    ['Flying Squirrel','Sabra I.S.','Theatre','Arts & Crafts','Pool Games','Sabra Kickball'],
+    ['Sabra','Free Day','Basketball','Counselors Choice','Dance','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['SPARK!','JTM','Cove Games','Random Acts of Kindness','Pool Party','Extended Shower Time'],
   ),
 
   circle_4: sk(
-    ['Sabra I.S.','Music with Marshall','Arts & Crafts','Cooking','Archery','Unit Program'],
-    ['HBR','Magic with Marshall','Israeli Culture','Cooking','Counselors Choice','Sabra Story-time'],
-    ['Sabra I.S.','Canteen','Zipline','STEM','PuH-PuH','Pool Party!'],
-    ['Sabra Free Day','Day yay!','JTM','Ceramics','Library / Board Games','Big Sibling'],
-    ['Blob and Rave','Wild World of Animals'],
+    ['Super Cleanup','Sabra I.S.','Mud Hike','Soccer v C4','Lawn Games','Campfire'],
+    ['Flying Squirrel','Sabra I.S.','Theatre','Arts & Crafts','Pool Games','Sabra Kickball'],
+    ['Sabra','Free Day','Basketball','Counselors Choice','Dance','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['SPARK!','JTM','Cove Games','Random Acts of Kindness','Pool Party','Extended Shower Time'],
   ),
 
+  // Circle 5/7 share one schedule this week
   circle_5: sk(
-    ['Sabra I.S.','Blob and Rave','STEM','Ceramics','Canteen','Unit Program'],
-    ['JTM','Archery','Random Acts of Kindness','Library / Board Games','Archery','Sabra Story-time'],
-    ['Sabra I.S.','Zipline','Theatre','Arts & Crafts','Basketball','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Basketball','Cooking','Mud Hike','Big Sibling'],
-    ['Canteen','Wild World of Animals'],
+    ['Super Cleanup','Israeli Culture','JTM','Sabra I.S.','Tennis','Campfire'],
+    ['Softball v C9','Dance','Arts & Crafts','Counselors Choice','PUH PUH','Sabra Kickball'],
+    ['Sabra','Free Day','Low Ropes','Tubing','Volleyball v C8','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['Sabra I.S.','Flying Squirrel','Music','Pool Games','Pool Party','Extended Shower Time'],
   ),
 
   circle_6: sk(
-    ['Blob and Rave','Sabra I.S.','Library / Board Games','HBR','Flying Squirrel','Unit Program'],
-    ['Library / Board Games','Cooking','Canteen','JTM','Pool Games','Sabra Story-time'],
-    ['Ceramics','Israeli Culture','Tubing','Archery','Mud Hike','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Tubing','Sabra I.S.','Counselors Choice','Big Sibling'],
-    ['Zipline','Wild World of Animals'],
+    ['Super Cleanup','Lawn Games','Dance','Mud Hike','Cove Games','Campfire'],
+    ['STEM','Low Ropes','Blob & Rave','Library / Board Games','Random Acts of Kindness','Sabra Kickball'],
+    ['Sabra','Free Day','Counselors Choice','Volleyball','Sabra I.S.','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['Music','SPARK!','Arts & Crafts','PUH PUH','Pool Party','Extended Shower Time'],
   ),
 
   circle_7: sk(
-    ['Sabra I.S.','Arts & Crafts','Ceramics','HBR','Flying Squirrel','Unit Program'],
-    ['JTM','Theatre','Cooking','JTM','Pool','Sabra Story-time'],
-    ['Sabra I.S.','Blob and Rave','Ultimate Frisbee','Archery','Mud Hike','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Dance','Library / Board Games','Zipline','Big Sibling'],
-    ['Archery','Wild World of Animals'],
+    ['Super Cleanup','Israeli Culture','JTM','Sabra I.S.','Tennis','Campfire'],
+    ['Softball v C9','Dance','Arts & Crafts','Counselors Choice','PUH PUH','Sabra Kickball'],
+    ['Sabra','Free Day','Low Ropes','Tubing','Volleyball v C8','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['Sabra I.S.','Flying Squirrel','Music','Pool Games','Pool Party','Extended Shower Time'],
   ),
 
   circle_8: sk(
-    ['STEM','Cooking','Tubing','Flying Squirrel','Mud Hike','Unit Program'],
-    ['Canteen','Sabra I.S.','Pickleball','HBR','Blob and Rave','Sabra Story-time'],
-    ['JTM','Sabra I.S.','Ceramics','Library / Board Games','Random Acts of Kindness','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Arts & Crafts','Israeli Culture','Zipline','Big Sibling'],
-    ['Dance','Wild World of Animals'],
+    ['Super Cleanup','PUH PUH','Counselors Choice','Frisbee w/ C1','Cove Games','Campfire'],
+    ['Sabra I.S.','Theatre','Climbing Wall','Tennis','Arts & Crafts','Sabra Kickball'],
+    ['Sabra','Free Day','Music','Lawn Games','Volleyball v C5','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['Low Ropes','Sabra I.S.','Frisbee','Pool Games','Pool Party','Extended Shower Time'],
   ),
 
   circle_9: sk(
-    ['Archery','Sabra I.S.','HBR','Lawn Games','Pool Games','Unit Program'],
-    ['Tubing','Music','Canteen','JTM','Random Acts of Kindness','Sabra Story-time'],
-    ['Flying Squirrel','Ceramics','Cooking','Arts & Crafts','Zipline','Pool Party!'],
-    ['Sabra Free Day','Day yay!','Garden','Sabra I.S.','Basketball','Big Sibling'],
-    ['Library / Board Games','Ceramics'],
+    ['Super Cleanup','Tennis','Volleyball','Arts & Crafts','Cove Games','Campfire'],
+    ['Softball v C5','Dance','Dance','Counselors Choice','Low Ropes','Sabra Kickball'],
+    ['Sabra','Free Day','Library / Board Games','STEM','Sabra I.S.','Sabra Story Time'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Extended Shower Time'],
+    ['Israeli Culture','Climbing Wall','Mud Hike','Theatre','Pool Party','Extended Shower Time'],
   ),
 
   // ── KINERET ──────────────────────────────────────────────────────────────
 
   street_1: sk(
-    ['Zipline','Israeli Culture','Archery','Library / Board Games / Arts & Crafts','HBR','Chugim Bet'],
-    ['Kineret I.S.','STEM','Tubing','Arts & Crafts','Volleyball','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Lawn Games','Kineret I.S.','Dance','Unit Program'],
-    ['Blob and Rave','Day yay!','Ceramics','Canteen','Counselors Choice','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Low Ropes','Boat Ride','Music','Cooking','Pool Party'],
+    ['Morning','Chugim','HBR','Lawn Games','Counselors Choice','Chugim Bet'],
+    ['Kineret I.S.','Frisbee','Theatre','Pool Games','Arts & Crafts','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['PUH PUH','Ceramics','Vertical Playground','Canoe / Kayak','Random Acts of Kindness','Chugim Bet'],
   ),
 
   street_2: sk(
-    ['Dance','Ceramics','Canteen','Archery','Paddleboard','Chugim Bet'],
-    ['Kineret I.S.','Zipline','Library / Board Games','Arts & Crafts','Mud Hike','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Tubing','Kineret I.S.','Lawn Games','Unit Program'],
-    ['Tennis','Day yay!','HBR','Random Acts of Kindness','Blob and Rave','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Frisbee','PUH PUH','Theatre','Boat Ride','Pool Party'],
+    ['Morning','Chugim','Volleyball','Theatre','Random Acts of Kindness','Chugim Bet'],
+    ['Kineret I.S.','Counselors Choice','Arts & Crafts','Low Ropes','Library / Board Games','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Soccer v S4','Israeli Culture','Cooking','STEM','Climbing Wall','Chugim Bet'],
   ),
 
   street_3: sk(
-    ['Tubing','Soccer','Mud Hike','JTM','Dance','Chugim Bet'],
-    ['Kineret I.S.','Library / Board Games','Blob and Rave','Music','Counselors Choice','Chugim Bet'],
-    ['Kineret I.S.','Chugim','STEM','Kineret I.S.','Vertical Playground','Unit Program'],
-    ['HBR','Day yay!','Zipline','Archery','Canteen','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Ceramics','HBR','Counselors Choice','Frisbee','Pool Party'],
+    ['Morning','Chugim','PUH PUH','Climbing Wall','Boat Ride','Chugim Bet'],
+    ['Kineret I.S.','STEM','Cooking','Random Acts of Kindness','Mud Hike','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Theatre','Cove Games','Israeli Culture','Softball v S7','Low Ropes','Chugim Bet'],
   ),
 
   street_4: sk(
-    ['Paddleboard','JTM','Library / Board Games','Theatre','PuH-PuH','Chugim Bet'],
-    ['Archery','Blob and Rave','Zipline','Volleyball','Canteen','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Tubing','Dance','Random Acts of Kindness','Unit Program'],
-    ['Music','Garden','Israeli Culture','HBR','Kickball vs S5','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Tennis','Israeli Culture','Low Ropes','Mud Hike','Pool Party'],
+    ['Morning','Chugim','Ceramics','STEM','Soccer v S5','Chugim Bet'],
+    ['Random Acts of Kindness','Cooking','JTM','Pool Games','Boat Ride','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Soccer v S2','Cove Games','Counselors Choice','Flying Squirrel','Vertical Playground','Chugim Bet'],
   ),
 
   street_5: sk(
-    ['Ceramics','JTM','Giants Ladder','Hockey','Tubing','Chugim Bet'],
-    ['Arts & Crafts','Counselors Choice','Archery','Canteen','Zipline','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Library / Board Games','HBR','Pool Games','Unit Program'],
-    ['Garden','Israeli Culture','Blob and Rave','Lawn Games','Kickball vs S4','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Giants Ladder','Music','PUH PUH','Library / Board Games','Pool Party'],
+    ['Morning','Chugim','Low Ropes','Cooking','Soccer v S4','Chugim Bet'],
+    ['Theatre','Pool Games','JTM','Random Acts of Kindness','Frisbee','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Dance','Boat Ride','Counselors Choice','Tennis','Arts & Crafts','Chugim Bet'],
   ),
 
   street_6: sk(
-    ['Theatre','HBR','Low Ropes','Paddleboard','Pickleball','Chugim Bet'],
-    ['Arts & Crafts','JTM','Frisbee','STEM','Tubing','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Music','Canteen','Pool Games','Unit Program'],
-    ['Blob and Rave','Ceramics','Archery','Counselors Choice','Sittin\' w/ Syd','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Cooking','Vertical Playground','Dance','Arts & Crafts','Pool Party'],
+    ['Morning','Chugim','Boat Ride','Kickball v S10','Ziplining','Chugim Bet'],
+    ['Counselors Choice','Ceramics','PUH PUH','Pool Games','Mud Hike','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Lawn Games','Canoe / Kayak','Climbing Wall','Israeli Culture','Library / Board Games','Chugim Bet'],
   ),
 
   street_7: sk(
-    ['Lawn Games','Canteen','Blob and Rave','Music','Giants Ladder','Chugim Bet'],
-    ['Israeli Culture','Mud Hike','Ceramics','Zipline','Archery','Chugim Bet'],
-    ['Kineret I.S.','Chugim','HBR','Counselors Choice','Tubing','Unit Program'],
-    ['JTM','Library / Board Games','Hockey','Theatre','Canoe / Kayak','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Soccer','Counselors Choice','STEM','Vertical Playground','Pool Party'],
+    ['Morning','Chugim','Lawn Games','Low Ropes','Canoe / Kayak','Chugim Bet'],
+    ['Library / Board Games','Pool Games','Climbing Wall','Dance','Random Acts of Kindness','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Morning','PUH PUH','JTM','Softball v S3','Arts & Crafts','Chugim Bet'],
   ),
 
   street_8: sk(
-    ['Basketball','Low Ropes','Blob and Rave','Pool Games','Canteen','Chugim Bet'],
-    ['Theatre','Canoe / Kayak','STEM','Archery','Random Acts of Kindness','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Israeli Culture','Zipline','HBR','Unit Program'],
-    ['JTM','PuH-PuH','Mud Hike','Arts & Crafts','Tubing','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Library / Board Games','Giants Ladder','Cooking','Soccer','Pool Party'],
+    ['Morning','Chugim','STEM','Boat Ride','Dance','Chugim Bet'],
+    ['Music','Pool Games','Arts & Crafts','Random Acts of Kindness','Tubing','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Climbing Wall','Counselors Choice','Ceramics','Lawn Games','Volleyball','Chugim Bet'],
   ),
 
   street_9: sk(
-    ['Canteen','Zipline','Arts & Crafts','Blob and Rave','Basketball','Chugim Bet'],
-    ['Tennis','Paddleboard','Music','Lawn Games','Low Ropes','Chugim Bet'],
-    ['Kineret I.S.','Chugim','JTM','Vertical Playground','Counselors Choice','Unit Program'],
-    ['Ceramics','Cove Games','Tubing','Mud Hike','Archery','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Random Acts of Kindness','Cooking','Lawn Games','HBR','Pool Party'],
+    ['Morning','Chugim','Library / Board Games','Vertical Playground','Arts & Crafts','Chugim Bet'],
+    ['Frisbee','Counselors Choice','Pool Games','PUH PUH','Climbing Wall','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Garden','Volleyball','Theatre','Boat Ride','Mud Hike','Chugim Bet'],
   ),
 
   street_10: sk(
-    ['Low Ropes','STEM','Dance','Tubing','Random Acts of Kindness','Chugim Bet'],
-    ['Paddleboard','Canteen','Arts & Crafts','Pool Games','Frisbee','Chugim Bet'],
-    ['Kineret I.S.','Chugim','JTM','Blob and Rave','Cooking','Unit Program'],
-    ['Softball vs S11','Cove Games','Music','Zipline','PuH-PuH','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Random Acts of Kindness','Ceramics','Football','Giants Ladder','Pool Party'],
+    ['Morning','Chugim','Canoe / Kayak','Kickball v S6','HBR','Chugim Bet'],
+    ['Climbing Wall','Lawn Games','Dance','Israeli Culture','Counselors Choice','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['Arts & Crafts','Mud Hike','JTM','Vertical Playground','Boat Ride','Chugim Bet'],
   ),
 
   street_11: sk(
-    ['Volleyball','Dance','Israeli Culture','Zipline','Stories w/ Syd','Chugim Bet'],
-    ['Music','Mud Hike','Tubing','Pool Games','Basketball','Chugim Bet'],
-    ['Kineret I.S.','Chugim','PuH-PuH','JTM','Cove Games','Unit Program'],
-    ['Softball vs S10','Canteen','Library / Board Games','Blob and Rave','Random Acts of Kindness','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Tubing','Arts & Crafts','Library / Board Games','Counselors Choice','Pool Party'],
+    ['Morning','Chugim','Cooking','PUH PUH','Giants Ladder','Chugim Bet'],
+    ['Random Acts of Kindness','Tennis','Ceramics','Theatre','HBR','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['JTM','Lawn Games','Garden','Volleyball','Boat Ride','Chugim Bet'],
   ),
 
   street_12: sk(
-    ['Music','Library / Board Games','Lawn Games','Cooking','Zipline','Chugim Bet'],
-    ['Low Ropes','Hockey','Canoe / Kayak','Pool Games','Counselors Choice','Chugim Bet'],
-    ['Kineret I.S.','Chugim','Mud Hike','JTM','Blob and Rave','Unit Program'],
-    ['Tubing','Random Acts of Kindness','Giants Ladder','Volleyball','Dance','Chugim Bet'],
-    ['Gymnastics Center','Party Trip!'],
+    ['Super Cleanup','Canteen','Theatre','Cove Games','Dance','Pool Party'],
+    ['Morning','Chugim','Music','Ceramics','Frisbee','Chugim Bet'],
+    ['PUH PUH','Counselors Choice','Boat Ride','Pickleball','Arts & Crafts','Chugim Bet'],
+    ['Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program','Unit Program'],
+    ['JTM','Mud Hike','HBR','Random Acts of Kindness','Canoe / Kayak','Chugim Bet'],
   ),
 
   // ── HALUTZIM ─────────────────────────────────────────────────────────────
 
   park_1: ht(
-    ['PuH-PuH','Canoe / Kayak','JTM','Low Ropes / Counselors Choice','STEM','Chugim Bet'],
-    ['Soccer','Halutzim','chug Aleph','Counselors Choice / Tubing','Arts & Crafts','Chugim Bet'],
-    ['Library / Board Games','Mud Hike','chug Aleph','Tubing / Pool Games','Swaneys / Theatre','Unit Program'],
-    ['Canteen','Halutzim','chug Aleph','Pool Games','Theatre','Chugim Bet'],
-    ['Lawn Games','Cooking','Zipline'],
+    ['Super Cleanup','Kickball v P10','Ceramics','HBR','Music','Campfire'],
+    ['Archery','PUH PUH','Arts & Crafts','Pamper Pole','Counselors Choice','Chugim Bet'],
+    ['Library / Board Games','Morning','Chugim','Mud Hike','Leaping with Levit','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Cove Games','Morning','Chugim','JTM','Random Acts of Kindness','Chugim Bet'],
   ),
 
   park_2: ht(
-    ['Tennis','Cove Games','Cooking','PuH-PuH / Mud Hike','Theatre','Chugim Bet'],
-    ['Climbing Wall','Halutzim','chug Aleph','Mud Hike','JTM','Chugim Bet'],
-    ['Canteen','Library / Board Games','Zipline','Volleyball / Tubing','Swaneys / Arts & Crafts','Unit Program'],
-    ['Counselors Choice','Halutzim','chug Aleph','Tubing','Random Acts of Kindness','Chugim Bet'],
-    ['Pamper Pole','HBR','Paddleboard'],
+    ['Super Cleanup','Arts & Crafts','Vertical Playground','Counselors Choice','Music','Campfire'],
+    ['Random Acts of Kindness','Archery','Ceramics','Blob & Rave','Mud Hike','Chugim Bet'],
+    ['Pamper Pole','Morning','Chugim','Frisbee','STEM','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Cove Games','Morning','Chugim','JTM','Lawn Games','Chugim Bet'],
   ),
 
   park_3: ht(
-    ['Pamper Pole','Cove Games','JTM','Pickleball','Library / Board Games','Chugim Bet'],
-    ['Counselors Choice','Halutzim','chug Aleph','Tubing','STEM','Chugim Bet'],
-    ['Theatre','Mud Hike','Blob and Rave','Lawn Games / Pool Games','Swaneys / Israeli Culture','Unit Program'],
-    ['Random Acts of Kindness','Halutzim','chug Aleph','Pool Games','HBR','Chugim Bet'],
-    ['Arts & Crafts','Zipline','HBR'],
+    ['Super Cleanup','Theatre','PUH PUH','Giants Ladder','STEM','Campfire'],
+    ['HBR','Mud Hike','Canoe / Kayak','Archery','Music','Chugim Bet'],
+    ['Blob & Rave','Morning','Chugim','Cooking','Israeli Culture','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Ceramics','Morning','Chugim','Arts & Crafts','Canteen','Chugim Bet'],
   ),
 
   park_4: ht(
-    ['Hockey','Lawn Games','HBR','Pamper Pole','Israeli Culture','Chugim Bet'],
-    ['Counselors Choice','Halutzim','chug Aleph','Canoe / Kayak','JTM','Chugim Bet'],
-    ['PuH-PuH','Tubing','Low Ropes','Theatre / Swaneys','Random Acts of Kindness','Unit Program'],
-    ['Paddleboard','Halutzim','chug Aleph','Giants Ladder','Random Acts of Kindness','Chugim Bet'],
-    ['Arts & Crafts','Library / Board Games','Dance'],
+    ['Super Cleanup','Climbing Wall','Cooking','Boat Ride','Lawn Games','Campfire'],
+    ['Library / Board Games','Mud Hike','Arts & Crafts','Blob & Rave','Random Acts of Kindness','Chugim Bet'],
+    ['Canteen','Morning','Chugim','Ceramics','Music','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Pamper Pole','Morning','Chugim','Archery','Counselors Choice','Chugim Bet'],
   ),
 
   park_5: ht(
-    ['Climbing Wall','Tennis','Ceramics','Dance','Canteen','Chugim Bet'],
-    ['Pamper Pole','Halutzim','chug Aleph','Tubing','Lawn Games','Chugim Bet'],
-    ['Frisbee','JTM','Cooking','Random Acts of Kindness / Swaneys','Israeli Culture','Unit Program'],
-    ['Mud Hike','Halutzim','chug Aleph','Low Ropes','Library / Board Games','Chugim Bet'],
-    ['Israeli Culture','Arts & Crafts','Zipline'],
+    ['Super Cleanup','JTM','HBR','Arts & Crafts','Ceramics','Campfire'],
+    ['Canoe / Kayak','Music','Soccer','Jumping with Jake M','Counselors Choice','Chugim Bet'],
+    ['Volleyball','Morning','Chugim','Mud Hike','Lawn Games','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Pickleball','Morning','Chugim','Pamper Pole','Random Acts of Kindness','Chugim Bet'],
   ),
 
   park_6: ht(
-    ['Hockey','Lawn Games','HBR','Pamper Pole','Israeli Culture','Chugim Bet'],
-    ['Counselors Choice','Halutzim','chug Aleph','Canoe / Kayak','JTM','Chugim Bet'],
-    ['PuH-PuH','Tubing','Low Ropes','Theatre / Swaneys','Random Acts of Kindness','Unit Program'],
-    ['Paddleboard','Halutzim','chug Aleph','Giants Ladder','Random Acts of Kindness','Chugim Bet'],
-    ['Arts & Crafts','Library / Board Games','Dance'],
+    ['Super Cleanup','JTM','Dance','Archery','Counselors Choice','Campfire'],
+    ['Theatre','Cooking','Vertical Playground','Volleyball v P7','Random Acts of Kindness','Chugim Bet'],
+    ['Boat Ride','Morning','Chugim','Arts & Crafts','Music','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Canteen','Morning','Chugim','Cove Games','Mud Hike','Chugim Bet'],
   ),
 
   park_7: ht(
-    ['Mud Hike','PuH-PuH','Tubing','Volleyball / Random Acts of Kindness','JTM','Chugim Bet'],
-    ['Cove Games','Halutzim','chug Aleph','Tubing','Ceramics','Chugim Bet'],
-    ['Music','Pamper Pole','Library / Board Games','Hockey / Swaneys','Lawn Games','Unit Program'],
-    ['Theatre','Halutzim','chug Aleph','Soccer','Lawn Games','Chugim Bet'],
-    ['Garden','Arts & Crafts','Low Ropes'],
+    ['Super Cleanup','Random Acts of Kindness','Arts & Crafts','Canoe / Kayak','Basketball (counselor led)','Campfire'],
+    ['Dance','Cove Games','Giants Ladder','Volleyball v P6','Counselors Choice','Chugim Bet'],
+    ['Boat Ride','Morning','Chugim','Canteen','Music','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Hockey','Morning','Chugim','Mud Hike','Mud Hike','Chugim Bet'],
   ),
 
   park_8: ht(
-    ['Arts & Crafts','Random Acts of Kindness','Canoe / Kayak','Adventures with Adrian','JTM','Chugim Bet'],
-    ['Lawn Games','Halutzim','chug Aleph','Giants Ladder','Canteen','Chugim Bet'],
-    ['Israeli Culture','Basketball','Tubing','Paddleboard / Swaneys','Random Acts of Kindness','Unit Program'],
-    ['Volleyball','Halutzim','chug Aleph','Basketball / Dance','Ceramics','Chugim Bet'],
-    ['Theatre','Low Ropes','Library / Board Games'],
+    ['Super Cleanup','Dance','Climbing Wall','Softball v P12','Counselors Choice','Campfire'],
+    ['Giants Ladder','Blob & Rave','Cooking','Cove Games','Random Acts of Kindness','Chugim Bet'],
+    ['Doing Stuff w/ David','Morning','Chugim','Basketball','Mud Hike','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Tubing','Morning','Chugim','Hockey','Music','Chugim Bet'],
   ),
 
   park_10: ht(
-    ['Random Acts of Kindness','Theatre','Vertical Playground','Pool Games','PuH-PuH','Chugim Bet'],
-    ['Dance','Halutzim','chug Aleph','Basketball','Library / Board Games','Chugim Bet'],
-    ['STEM','Soccer','JTM','Tubing / Swaneys','Counselors Choice','Unit Program'],
-    ['Low Ropes','Halutzim','chug Aleph','Lacrosse','Counselors Choice','Chugim Bet'],
-    ['Mud Hike','Canoe / Kayak','Lawn Games'],
+    ['Super Cleanup','Kickball v P1','JTM','Blob & Rave','Random Acts of Kindness','Campfire'],
+    ['Lawn Games','Canteen','Dance','Music','Library / Board Games','Chugim Bet'],
+    ['Ceramics','Morning','Chugim','Mud Hike','Acrobatics with Abby','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Archery','Morning','Chugim','Climbing Wall','PUH PUH','Chugim Bet'],
   ),
 
   park_11: ht(
-    ['Library / Board Games','Pamper Pole','Blob and Rave','Lacrosse','Arts & Crafts','Chugim Bet'],
-    ['PuH-PuH','Halutzim','chug Aleph','Mud Hike','Theatre','Chugim Bet'],
-    ['Paddleboard','Counselors Choice','JTM','Soccer / Swaneys','Canteen','Unit Program'],
-    ['Israeli Culture','Halutzim','chug Aleph','Tubing','Garden','Chugim Bet'],
-    ['Random Acts of Kindness','Garden','Climbing Wall'],
+    ['Super Cleanup','Archery','Low Ropes','Ceramics','PUH PUH','Campfire'],
+    ['Cove Games','Pamper Pole','Tennis','Counselors Choice','Theatre','Chugim Bet'],
+    ['Lawn Games','Morning','Chugim','Arts & Crafts','Random Acts of Kindness','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Mud Hike','Morning','Chugim','Dance','Mud Hike','Chugim Bet'],
   ),
 
   park_12: ht(
-    ['Cove Games','Volleyball','Low Ropes','Tubing','Arts & Crafts','Chugim Bet'],
-    ['Mud Hike','Halutzim','chug Aleph','Pamper Pole','Theatre','Chugim Bet'],
-    ['Blob and Rave','Soccer','JTM','Swaneys','Blob and Rave','Unit Program'],
-    ['Dance','Israeli Culture','chug Aleph','Tubing','Dance','Chugim Bet'],
-    ['Paddleboard','Theatre','Random Acts of Kindness'],
+    ['Super Cleanup','Arts & Crafts','JTM','Softball v P8','Library / Board Games','Campfire'],
+    ['Cove Games','Tennis','PUH PUH','Canteen','Ceramics','Chugim Bet'],
+    ['Lacrosse','Morning','Chugim','Blob & Rave','Lawn Games','Chugim Bet'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Unit Program'],
+    ['Canoe / Kayak','Morning','Chugim','Dance','Counselors Choice','Chugim Bet'],
   ),
 
   // ── TEENS ────────────────────────────────────────────────────────────────
-  // Keyed by Quad (all tents in a Quad share the same schedule)
 
   quad_1: ht(
-    ['Mud Hike','Climbing Wall','Library / Board Games','Chat w/ Pippa / Cove Games','Acrobating with Abby / Random Acts of Kindness','JTM'],
-    ['Frisbee','Lawn Games','JTM','PuH-PuH','PuH-PuH','Low Ropes'],
-    ['Quad','Quests','Fun','Paddleboard','Arts & Crafts','Zipline'],
-    ['Lacrosse','Music','Tubing / Canteen','Paddleboard / Counselor-led','Basketball','Israeli Culture'],
-    ['Pool Games','Hockey',''],
+    ['Super Cleanup','Lake Livin\'','Lake Livin\'','Pamper Pole','Mud Hike','Dance'],
+    ['Tennis','Random Acts of Kindness','HBR','Boat Ride','PUH PUH','Low Ropes'],
+    ['Soccer','Downtime w/ David','Library / Board Games','Tubing','Ceramics','TC Cheers'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Teen Lawn Games'],
+    ['Arts & Crafts','Garden','Volleyball','Cooking','JTM','TC Tugs'],
   ),
 
+  // Quad 3 was on White Water Rafting trip Sun–Mon; Monday = return/unpack
   quad_3: ht(
-    ['Random Acts of Kindness','Arts & Crafts','Tubing','Chat w/ Pippa / Lacrosse','Lawn Games / Counselors Choice','Israeli Culture'],
-    ['Doing Stuff with Daniel','Climbing Wall','JTM','Lacrosse','Counselors Choice','Archery'],
-    ['Quad','Quests','Fun','Bball','Ceramics','Low Ropes'],
-    ['Mud Hike','Vertical Playground','Canoe / Kayak','PuH-PuH','Cove Games','Big Sibling'],
-    ['Pool Games','Music',''],
+    ['White Water','White Water','Rafting','','',''],
+    ['','','','','','Clean Up / Unpack'],
+    ['STEM','Kickball v S5','Giants Ladder','Cove Games','Theatre','TC Cheers'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Teen Lawn Games'],
+    ['HBR','Tennis','JTM','Blob & Rave','Library / Board Games','TC Tugs'],
   ),
 
+  // Quad 5 was on White Water Rafting trip Sun–Mon; Monday = return/unpack
   quad_5: ht(
-    ['Soccer','Tubing','PuH-PuH','Chat w/ Pippa / Advocating with Abby','Music / Israeli Culture','Zipline'],
-    ['Counselors Choice','Volleyball','Ceramics','Mud Hike','JTM','Solomon\'s Circuit'],
-    ['Quad','Quests','Fun','Arts & Crafts','Random Acts of Kindness','Cooking'],
-    ['Solomon\'s Circuit','Jammin\' w/ Jamie','Canteen','Arts & Crafts','Big Sibling','Big Sibling'],
-    ['Softball','Pamper Pole',''],
+    ['White Water','White Water','Rafting','','',''],
+    ['','','','','','Clean Up / Unpack'],
+    ['Low Ropes','Kickball v Q3','Cove Games','JTM','Library / Board Games','TC Cheers'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Teen Lawn Games'],
+    ['Blob & Rave','Theatre','Giants Ladder','HBR','STEM','TC Tugs'],
   ),
 
   quad_6: ht(
-    ['Soccer','Mud Hike','Lawn Games','Chat w/ Pippa / PuH-PuH','Canteen / Random Acts of Kindness','JTM'],
-    ['Volleyball','Eating w/ EHM','Blob and Rave','PuH-PuH','Random Acts of Kindness','Low Ropes'],
-    ['Quad','Quests','Fun','Israeli Culture','Theatre','Arts & Crafts'],
-    ['Archery','Kickball','Cove Games','Counselors Choice','Music','Zipline'],
-    ['Softball','Tubing',''],
+    ['Super Cleanup','Lake Livin\'','Lake Livin\'','Energizing with Ella','Theatre','Frisbee'],
+    ['Ceramics','Soccer','Canteen','Pool Games','STEM','PUH PUH'],
+    ['Dance','Tubing','Tubing','Pamper Pole','JTM','TC Cheers'],
+    ['Israel Day','Israel Day','ISRAEL DAY','Tel Aviv','Beach Party','Teen Lawn Games'],
+    ['Giants Ladder','Cooking','Cooking','Library / Board Games','Israeli Culture','TC Tugs'],
   ),
 };
 
