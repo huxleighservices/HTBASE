@@ -7,23 +7,12 @@ runConfig:
   maxInstances: 1
 
 env:
-  - variable: COMPANYCAM_API_KEY
-    value: JXVCw3oq-udSHuVU0IiL5RzcXn9T3pSR8utQ1nrPHQY
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: RESEND_API_KEY
-    value: re_CvNjKxJB_JU75Uz4frhaCsYBUL136HzAc
-    availability:
-      - BUILD
-      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: https://htbase.online
     availability:
       - BUILD
       - RUNTIME
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
   - variable: GEMINI_API_KEY
-    value: AIzaSyB4HdVpZmPX0x-aP5RV7NzDBRzm0f8ILtk
-    availability:
-      - BUILD
-      - RUNTIME
+    secret: GEMINI_API_KEY
