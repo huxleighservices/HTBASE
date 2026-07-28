@@ -54,6 +54,7 @@ import {
   User,
   Tag,
   GripVertical,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -98,7 +99,7 @@ type PipelineSettings = {
 };
 
 type ViewMode = 'kanban' | 'list';
-type SidePanel = 'none' | 'add-task' | 'settings';
+type SidePanel = 'none' | 'add-task' | 'edit-task' | 'settings';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -169,18 +170,20 @@ type AddTaskFormProps = {
   columns: string[];
   accessKeys: ClientAccessKey[];
   activeUser: AccessKey | null;
+  initialTask?: PipelineTask;
   onSave: (data: Omit<PipelineTask, 'id' | 'createdAt'>) => Promise<void>;
   onClose: () => void;
 };
 
-function AddTaskForm({ columns, accessKeys, activeUser, onSave, onClose }: AddTaskFormProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<Priority>('None');
-  const [assignee, setAssignee] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [tags, setTags] = useState('');
-  const [status, setStatus] = useState(columns[0] ?? 'To Do');
+function AddTaskForm({ columns, accessKeys, activeUser, initialTask, onSave, onClose }: AddTaskFormProps) {
+  const isEditing = !!initialTask;
+  const [title, setTitle] = useState(initialTask?.title ?? '');
+  const [description, setDescription] = useState(initialTask?.description ?? '');
+  const [priority, setPriority] = useState<Priority>(initialTask?.priority ?? 'None');
+  const [assignee, setAssignee] = useState(initialTask?.assignee ?? '');
+  const [dueDate, setDueDate] = useState(initialTask?.dueDate ?? '');
+  const [tags, setTags] = useState(initialTask?.tags ?? '');
+  const [status, setStatus] = useState(initialTask?.status ?? columns[0] ?? 'To Do');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -196,7 +199,7 @@ function AddTaskForm({ columns, accessKeys, activeUser, onSave, onClose }: AddTa
       dueDate: dueDate || undefined,
       status,
       tags: tags.trim() || undefined,
-      createdBy: activeUser?.username,
+      createdBy: initialTask?.createdBy ?? activeUser?.username,
     });
     setSaving(false);
   };
@@ -205,8 +208,12 @@ function AddTaskForm({ columns, accessKeys, activeUser, onSave, onClose }: AddTa
     <div className="flex flex-col h-full">
       <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <PlusCircle className="h-4 w-4 text-primary" />
-          <p className="text-sm font-semibold">New Task</p>
+          {isEditing ? (
+            <Pencil className="h-4 w-4 text-primary" />
+          ) : (
+            <PlusCircle className="h-4 w-4 text-primary" />
+          )}
+          <p className="text-sm font-semibold">{isEditing ? 'Edit Task' : 'New Task'}</p>
         </div>
         <button
           onClick={onClose}
@@ -341,7 +348,7 @@ function AddTaskForm({ columns, accessKeys, activeUser, onSave, onClose }: AddTa
           ) : (
             <Check className="mr-2 h-4 w-4" />
           )}
-          Create Task
+          {isEditing ? 'Save Changes' : 'Create Task'}
         </Button>
         <Button variant="ghost" size="sm" className="w-full border border-border/40 text-xs" onClick={onClose}>
           Cancel
@@ -470,9 +477,10 @@ type TaskCardProps = {
   columns: string[];
   onMove: (task: PipelineTask, newStatus: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (task: PipelineTask) => void;
 };
 
-function TaskCard({ task, columns, onMove, onDelete }: TaskCardProps) {
+function TaskCard({ task, columns, onMove, onDelete, onEdit }: TaskCardProps) {
   const currentIndex = columns.indexOf(task.status);
   const canMovePrev = currentIndex > 0;
   const canMoveNext = currentIndex < columns.length - 1;
@@ -488,30 +496,38 @@ function TaskCard({ task, columns, onMove, onDelete }: TaskCardProps) {
     <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur-sm px-3 py-3 space-y-2 hover:bg-background/60 transition-all group">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-semibold leading-tight flex-1 min-w-0">{task.title}</p>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive shrink-0">
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete task?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete &ldquo;{task.title}&rdquo;.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => onDelete(task.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <button
+            onClick={() => onEdit(task)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button className="text-muted-foreground hover:text-destructive">
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete &ldquo;{task.title}&rdquo;.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(task.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {task.description && (
@@ -596,6 +612,7 @@ export function TaskPipelineDialog({
 
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [sidePanel, setSidePanel] = useState<SidePanel>('none');
+  const [editingTask, setEditingTask] = useState<PipelineTask | null>(null);
   const [filterAssignee, setFilterAssignee] = useState('__all__');
   const [filterPriority, setFilterPriority] = useState<Priority | '__all__'>('__all__');
   const [myTasksOnly, setMyTasksOnly] = useState(false);
@@ -676,6 +693,22 @@ export function TaskPipelineDialog({
     if (!tasksCollectionRef) return;
     await deleteDoc(doc(tasksCollectionRef, taskId));
     toast({ title: 'Task deleted', variant: 'destructive' });
+  };
+
+  const handleEditTask = async (taskId: string, data: Omit<PipelineTask, 'id' | 'createdAt'>) => {
+    if (!tasksCollectionRef) return;
+    await updateDoc(doc(tasksCollectionRef, taskId), data);
+    toast({ title: 'Task updated', description: data.title });
+    setSidePanel('none');
+    setEditingTask(null);
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'task-pipeline', `Task updated: ${data.title}`);
+    }
+  };
+
+  const openEditTask = (task: PipelineTask) => {
+    setEditingTask(task);
+    setSidePanel('edit-task');
   };
 
   const handleSaveSettings = async (newColumns: string[]) => {
@@ -827,6 +860,7 @@ export function TaskPipelineDialog({
                 columns={columns}
                 onMove={handleMoveTask}
                 onDelete={handleDeleteTask}
+                onEdit={openEditTask}
               />
             ) : (
               <ListView
@@ -834,6 +868,7 @@ export function TaskPipelineDialog({
                 columns={columns}
                 onMove={handleMoveTask}
                 onDelete={handleDeleteTask}
+                onEdit={openEditTask}
               />
             )}
           </div>
@@ -848,6 +883,16 @@ export function TaskPipelineDialog({
                   activeUser={activeUser}
                   onSave={handleAddTask}
                   onClose={() => setSidePanel('none')}
+                />
+              )}
+              {sidePanel === 'edit-task' && editingTask && (
+                <AddTaskForm
+                  columns={columns}
+                  accessKeys={accessKeys ?? []}
+                  activeUser={activeUser}
+                  initialTask={editingTask}
+                  onSave={(data) => handleEditTask(editingTask.id, data)}
+                  onClose={() => { setSidePanel('none'); setEditingTask(null); }}
                 />
               )}
               {sidePanel === 'settings' && isManager && (
@@ -874,9 +919,10 @@ type KanbanViewProps = {
   columns: string[];
   onMove: (task: PipelineTask, newStatus: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (task: PipelineTask) => void;
 };
 
-function KanbanView({ tasks, columns, onMove, onDelete }: KanbanViewProps) {
+function KanbanView({ tasks, columns, onMove, onDelete, onEdit }: KanbanViewProps) {
   return (
     <div className="h-full overflow-x-auto">
       <div className="flex gap-3 h-full px-4 py-4 min-w-max">
@@ -911,6 +957,7 @@ function KanbanView({ tasks, columns, onMove, onDelete }: KanbanViewProps) {
                     columns={columns}
                     onMove={onMove}
                     onDelete={onDelete}
+                    onEdit={onEdit}
                   />
                 ))}
               </div>
@@ -931,9 +978,10 @@ type ListViewProps = {
   columns: string[];
   onMove: (task: PipelineTask, newStatus: string) => void;
   onDelete: (taskId: string) => void;
+  onEdit: (task: PipelineTask) => void;
 };
 
-function ListView({ tasks, columns, onMove, onDelete }: ListViewProps) {
+function ListView({ tasks, columns, onMove, onDelete, onEdit }: ListViewProps) {
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 py-16 text-center">
@@ -954,6 +1002,7 @@ function ListView({ tasks, columns, onMove, onDelete }: ListViewProps) {
             <TableHead>Due Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right w-24">Move</TableHead>
+            <TableHead className="w-10" />
             <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
@@ -1032,6 +1081,16 @@ function ListView({ tasks, columns, onMove, onDelete }: ListViewProps) {
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => onEdit(task)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                 </TableCell>
                 <TableCell>
                   <AlertDialog>
