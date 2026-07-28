@@ -34,6 +34,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { ContractSignedNotificationDialog } from './contract-signed-notification-dialog';
 import { Label } from '../ui/label';
+import { logActivity } from '@/lib/activity-log';
 
 const formSchema = z.object({
   agent: z.string().min(1, "Agent is required."),
@@ -161,9 +162,13 @@ export function EditLeadDialog({
     setIsSaving(true);
     
     const leadUpdateData = { ...data, sortOrder: lead.sortOrder };
-    
+
     updateDocumentNonBlocking(leadDocRef, leadUpdateData);
-    
+
+    if (data.currentStep && data.currentStep !== lead.currentStep) {
+      logActivity(firestore, clientPath, 'leads', `${data.firstName} ${data.lastName}'s step changed to ${data.currentStep}`);
+    }
+
     const syncedLeadData: SyncedLead = {
         agent: data.agent,
         name: `${data.firstName} ${data.lastName}`,

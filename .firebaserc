@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "studio-9495804365-10cc6"
+  },
+  "targets": {},
+  "etags": {
+    "studio-9495804365-10cc6": {
+      "extensionInstances": {
+        "send-message": "752d2aae14c04ff3079a760b4017e1ecbb227e865578784880af0b72da349394"
+      }
+    }
   }
 }

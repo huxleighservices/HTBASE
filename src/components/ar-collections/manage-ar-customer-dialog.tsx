@@ -25,6 +25,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Loader2, PlusCircle, MinusCircle, Phone, Mail, MessageSquare, MenuSquare, Copy, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmailComposerDialog } from './email-composer-dialog';
+import { logActivity } from '@/lib/activity-log';
 
 type ManageArCustomerDialogProps = {
   open: boolean;
@@ -124,6 +125,9 @@ export function ManageArCustomerDialog({ open, onOpenChange, customer, clientPat
     });
 
     toast({ title: 'Activity Logged' });
+    if (firestore) {
+      logActivity(firestore, clientPath, 'ar-collections', `Activity logged for ${customer.customerName}: ${newActivity.note}`);
+    }
     setActivityNote('');
   };
 

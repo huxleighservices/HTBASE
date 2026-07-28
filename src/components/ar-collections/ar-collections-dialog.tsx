@@ -40,6 +40,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
 import { AiCollectionsAssistant } from './ai-collections-assistant';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { logActivity } from '@/lib/activity-log';
 
 type EnrichedARCustomer = ARCustomer & {
     totalPaid: number;
@@ -313,6 +314,9 @@ export function ARCollectionsDialog({ open, onOpenChange, client, activeUser }: 
     if (!arCustomersCollectionRef) return;
     addDocumentNonBlocking(arCustomersCollectionRef, { ...customerData, createdAt: serverTimestamp(), activityLog: [] });
     toast({ title: 'A/R Customer Created', description: `${customerData.customerName} has been added to collections.` });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'ar-collections', `New A/R customer: ${customerData.customerName}`);
+    }
   };
   
   const handleDeleteCustomer = (customerId: string) => {

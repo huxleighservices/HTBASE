@@ -70,6 +70,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { Client, AccessKey as ClientAccessKey } from '@/types/client';
 import type { AccessKey } from '@/types/session';
+import { logActivity } from '@/lib/activity-log';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -514,7 +515,7 @@ function TaskCard({ task, columns, onMove, onDelete }: TaskCardProps) {
       </div>
 
       {task.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+        <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words">{task.description}</p>
       )}
 
       <div className="flex flex-wrap gap-1.5 items-center">
@@ -657,12 +658,18 @@ export function TaskPipelineDialog({
     await addDoc(tasksCollectionRef, { ...data, createdAt: serverTimestamp() });
     toast({ title: 'Task created', description: data.title });
     setSidePanel('none');
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'task-pipeline', `New task: ${data.title}`);
+    }
   };
 
   const handleMoveTask = async (task: PipelineTask, newStatus: string) => {
     if (!tasksCollectionRef) return;
     const taskRef = doc(tasksCollectionRef, task.id);
     await updateDoc(taskRef, { status: newStatus });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'task-pipeline', `"${task.title}" moved to ${newStatus}`);
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -962,7 +969,7 @@ function ListView({ tasks, columns, onMove, onDelete }: ListViewProps) {
                   <div>
                     <p className="font-medium text-sm">{task.title}</p>
                     {task.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap break-words mt-0.5">
                         {task.description}
                       </p>
                     )}

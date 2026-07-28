@@ -52,6 +52,7 @@ import type { AccessKey } from '@/types/session';
 import { AddCollectionDialog } from './add-collection-dialog';
 import { AddItemDialog } from './add-item-dialog';
 import { sendEmail } from '@/app/actions/send-email';
+import { logActivity } from '@/lib/activity-log';
 
 type InventoryManagerDialogProps = {
   open: boolean;
@@ -129,12 +130,18 @@ export function InventoryManagerDialog({ open, onOpenChange, client, activeUser 
       createdAt: serverTimestamp(),
     });
     toast({ title: 'Item added', description: `${data.name} added to ${selectedCollection.name}.` });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'inventory-manager', `New item added: ${data.name}`);
+    }
   };
 
   const handleUpdateQuantity = (item: InventoryItem, delta: number) => {
     if (!itemsRef) return;
     const newQty = Math.max(0, item.quantity + delta);
     updateDocumentNonBlocking(doc(itemsRef, item.id), { quantity: newQty });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'inventory-manager', `${item.name} quantity ${delta > 0 ? 'increased' : 'decreased'} to ${newQty}`);
+    }
 
     if (prefs?.lowStockAlertsEnabled && prefs.alertEmail && delta < 0) {
       const limit = prefs.lowStockThreshold ?? 5;

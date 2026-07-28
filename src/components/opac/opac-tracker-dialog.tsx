@@ -51,6 +51,7 @@ import { EditOpaCustomerDialog } from './edit-customer-dialog';
 import type { AccessKey } from '@/types/session';
 import { BulkAddCustomersDialog } from './bulk-add-customers-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { logActivity } from '@/lib/activity-log';
 
 type OpacTrackerDialogProps = {
     open: boolean;
@@ -148,6 +149,9 @@ export function OpacTrackerDialog({ open, onOpenChange, client, activeUser }: Op
     if (!customersCollectionRef) return;
     addDocumentNonBlocking(customersCollectionRef, {...customer, activityLog: [], createdAt: serverTimestamp()});
     toast({ title: 'Customer Added', description: `${customer.firstName} ${customer.lastName} has been added.` });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'opac', `New customer added: ${customer.firstName} ${customer.lastName}`);
+    }
   };
 
   const handleDeleteCustomer = (customerId: string) => {

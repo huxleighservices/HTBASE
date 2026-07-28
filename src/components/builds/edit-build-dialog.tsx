@@ -29,6 +29,7 @@ import { Textarea } from '../ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, updateDocumentNonBlocking, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { logActivity } from '@/lib/activity-log';
 import { Loader2 } from 'lucide-react';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -122,7 +123,11 @@ export function EditBuildDialog({
     if (!buildDocRef) return;
     setIsSaving(true);
     updateDocumentNonBlocking(buildDocRef, data);
-    
+
+    if (firestore && data.buildStage && data.buildStage !== build.buildStage) {
+      logActivity(firestore, clientPath, 'builds', `${data.buildName}'s stage changed to ${data.buildStage}`);
+    }
+
     setTimeout(() => {
         toast({ title: 'Build Updated', description: `${data.buildName}'s record has been updated.` });
         setIsSaving(false);

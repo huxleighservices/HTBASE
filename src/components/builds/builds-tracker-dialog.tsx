@@ -48,6 +48,7 @@ import type { AccessKey } from '@/types/session';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Checkbox } from '../ui/checkbox';
 import { Badge } from '../ui/badge';
+import { logActivity } from '@/lib/activity-log';
 
 type BuildsTrackerDialogProps = {
     open: boolean;
@@ -102,6 +103,9 @@ export function BuildsTrackerDialog({ open, onOpenChange, client, activeUser }: 
     if (!buildsCollectionRef) return;
     addDocumentNonBlocking(buildsCollectionRef, {...build, createdAt: serverTimestamp()});
     toast({ title: 'Build Added', description: `${build.buildName} has been added.` });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'builds', `New build added: ${build.buildName}`);
+    }
   };
 
   const handleDeleteBuild = (buildId: string) => {

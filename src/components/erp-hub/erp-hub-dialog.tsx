@@ -52,6 +52,7 @@ import type { DepartmentId } from '@/lib/departments';
 import type { Client } from '@/types/client';
 import type { AccessKey } from '@/types/session';
 import type { ERPPerson, ERPConfig, ERPViewMode } from '@/types/erp';
+import { logActivity } from '@/lib/activity-log';
 import { CardView } from './card-view';
 import { SpreadsheetView } from './spreadsheet-view';
 import { HybridView } from './hybrid-view';
@@ -167,6 +168,9 @@ export function ERPHubDialog({ open, onOpenChange, client, activeUser, fullScree
       createdAt: serverTimestamp(),
     });
     toast({ title: 'Record added', description: `${data.name} was added to the ERP.` });
+    if (firestore && client.path) {
+      logActivity(firestore, client.path, 'base', `New record added: ${data.name}`);
+    }
   };
 
   const handleDeletePerson = (id: string) => {

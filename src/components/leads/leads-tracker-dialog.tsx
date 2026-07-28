@@ -51,6 +51,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { MasterQueuePasscodeDialog } from '../queue/master-queue-passcode-dialog';
 import { BulkAddLeadsDialog } from './bulk-add-leads-dialog';
+import { logActivity } from '@/lib/activity-log';
 
 type LeadsTrackerDialogProps = {
     open: boolean;
@@ -203,6 +204,9 @@ export function LeadsTrackerDialog({ open, onOpenChange, client, activeUser }: L
     setDocumentNonBlocking(syncedLeadRef, syncedLeadData, { merge: true });
 
     toast({ title: 'Lead Added', description: `${lead.firstName} ${lead.lastName} has been added.` });
+    if (client.path) {
+      logActivity(firestore, client.path, 'leads', `New lead: ${lead.firstName} ${lead.lastName}`);
+    }
   };
 
   const handleDeleteLead = (lead: Lead) => {

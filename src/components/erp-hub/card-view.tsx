@@ -40,6 +40,7 @@ import type { AccessKey } from '@/types/session';
 import { updateDocumentNonBlocking, useFirestore, useMemoFirebase, useDoc } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { logActivity } from '@/lib/activity-log';
 import { WidgetChip, COLLECTION_TO_WIDGET } from './spreadsheet-view';
 import {
   AlertDialog,
@@ -607,13 +608,16 @@ function DeptSection({
   person,
   itemsRef,
   activeUserName,
+  clientPath,
 }: {
   dept: Department;
   entry: any;
   person: ERPPerson;
   itemsRef: any;
   activeUserName: string;
+  clientPath: string;
 }) {
+  const firestore = useFirestore();
   const status = entry?.status ?? 'inactive';
   const notesList: ERPNote[] = entry?.notesList ?? [];
   const [addingNote, setAddingNote] = useState(false);
@@ -634,6 +638,9 @@ function DeptSection({
     });
     setNoteText('');
     setAddingNote(false);
+    if (firestore) {
+      logActivity(firestore, clientPath, 'base', `Note added for ${person.name} (${dept.label}): ${newNote.text}`);
+    }
   };
 
   const saveEdit = (id: string) => {
@@ -659,6 +666,9 @@ function DeptSection({
     updateDocumentNonBlocking(doc(itemsRef, person.id), {
       [`deptData.${dept.id}.status`]: status,
     });
+    if (firestore) {
+      logActivity(firestore, clientPath, 'base', `${person.name}'s status in ${dept.label} changed to ${STATUS_LABELS[status] ?? status}`);
+    }
   };
 
   return (
@@ -1147,6 +1157,7 @@ export function CardView({ people, enabledDepartments, itemsRef, clientPath, wid
                       entry={person.deptData?.[dept.id]}
                       person={person}
                       itemsRef={itemsRef}
+                      clientPath={clientPath}
                       activeUserName={activeUser?.displayName ?? 'Unknown'}
                     />
                   ))

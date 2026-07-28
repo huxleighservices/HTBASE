@@ -35,6 +35,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { logActivity } from '@/lib/activity-log';
 
 
 type ContractGeneratorDialogProps = {
@@ -183,7 +184,10 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
       await setDoc(syncedLeadRef, syncedLeadData);
 
       toast({ title: "Lead Created", description: "You can now configure the contract." });
-      
+      if (client.path) {
+        logActivity(firestore, client.path, 'leads', `New lead: ${newLeadData.firstName} ${newLeadData.lastName}`);
+      }
+
       setSelectedLead(newLeadData);
       setStage('configure');
 
@@ -216,6 +220,9 @@ export function ContractGeneratorDialog({ open, onOpenChange, client, activeUser
         if (docRef) {
             setGeneratedContractId(docRef.id);
             toast({ title: "Contract Generated!", description: "The contract is now ready for download." });
+            if (firestore && client.path) {
+              logActivity(firestore, client.path, 'contracts', `Contract generated for ${selectedLead.firstName} ${selectedLead.lastName}`);
+            }
             setStage('download');
         } else {
             throw new Error("Failed to get document reference after creation.");
