@@ -58,6 +58,7 @@ import { MasterQueueDialog } from '@/components/queue/master-queue-dialog';
 import { ContractGeneratorDialog } from '@/components/contracts/contract-generator-dialog';
 import { ManageTemplatesDialog } from '@/components/contracts/manage-templates-dialog';
 import { ARCollectionsDialog } from '@/components/ar-collections/ar-collections-dialog';
+import { BaseDocDialog } from '@/components/base-doc/base-doc-dialog';
 import { KnockProDialog } from '@/components/knock-pro/knock-pro-dialog';
 import { TaskPipelineDialog } from '@/components/task-pipeline/task-pipeline-dialog';
 import { TeamOverviewDialog } from '@/components/team-overview/team-overview-dialog';
@@ -927,6 +928,7 @@ export default function ClientLaunchPage() {
       {client && <CompletionCertificateDialog open={openDialog === 'completion-certificate'} onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <SupplementalAddendumDialog open={openDialog === 'supplemental-addendum'} onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {client && <InventoryManagerDialog     open={openDialog === 'inventory-manager'}    onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
+      {client && <BaseDocDialog              open={openDialog === 'base-doc'}             onOpenChange={(o) => !o && setOpenDialog(null)} client={client} activeUser={activeUser} />}
       {/* Session manager is rendered inline in Sales Training section for the session-manager widget */}
 
       {client && (

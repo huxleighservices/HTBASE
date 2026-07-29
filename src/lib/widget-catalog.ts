@@ -33,7 +33,8 @@ export type WidgetType =
   | 'resource-library'
   | 'communications'
   | 'supplemental-addendum'
-  | 'inventory-manager';
+  | 'inventory-manager'
+  | 'base-doc';
 
 export type WidgetCategory = 'Sales Training' | 'Operations' | 'Leads' | 'Essentials';
 
@@ -267,6 +268,16 @@ export const WIDGET_CATALOG: WidgetDefinition[] = [
     iconName: 'Package',
     category: 'Operations',
     actionLabel: 'Open Inventory',
+  },
+
+  // ── Base Doc ─────────────────────────────────────────────────────────────────
+  {
+    type: 'base-doc',
+    defaultTitle: 'Base Doc',
+    defaultDescription: 'Shared documents with rich text editing, sketching, and PDF export.',
+    iconName: 'FileEdit',
+    category: 'Operations',
+    actionLabel: 'Open Base Doc',
   },
 
 ];

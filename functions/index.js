@@ -73,6 +73,7 @@ const WIDGET_LABELS = {
   "opac": "OPAC Tracker",
   "builds": "Builds Tracker",
   "contracts": "Contracts",
+  "base-doc": "Base Doc",
 };
 
 /**

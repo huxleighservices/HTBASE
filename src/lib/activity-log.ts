@@ -8,7 +8,8 @@ export type ActivityWidgetType =
   | 'ar-collections'
   | 'opac'
   | 'builds'
-  | 'contracts';
+  | 'contracts'
+  | 'base-doc';
 
 /**
  * Records a change for the daily notification digest. Fire-and-forget: failures are

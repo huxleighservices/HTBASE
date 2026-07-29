@@ -17,6 +17,7 @@ import {
   FileText, DollarSign, Users, Search, Plus, Check, MapPin,
   KanbanSquare, Users2, TrendingUp, Sparkles, CircleDollarSign,
   CalendarDays, FolderOpen, Hash, ClipboardCheck, ScrollText,
+  FileEdit,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -54,6 +55,7 @@ export function WidgetIcon({ iconName, className }: { iconName: string; classNam
     Hash:               <Hash               className={cn('h-5 w-5', className)} />,
     ClipboardCheck:     <ClipboardCheck     className={cn('h-5 w-5', className)} />,
     ScrollText:         <ScrollText         className={cn('h-5 w-5', className)} />,
+    FileEdit:           <FileEdit           className={cn('h-5 w-5', className)} />,
   };
   return <>{icons[iconName] ?? <Bot className={cn('h-5 w-5', className)} />}</>;
 }
